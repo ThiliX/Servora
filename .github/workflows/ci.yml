@@ -22,6 +22,42 @@ jobs:
         with:
           globs: "**/*.md"
 
+  core-api:
+    name: Core API (build and test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/core-api
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+      # Integration tests start PostgreSQL (pgvector) through Testcontainers and run with RLS enabled.
+      - name: Build and test
+        run: ./mvnw -B --no-transfer-progress verify
+
+  web:
+    name: Dashboard (lint, test, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
   compose:
     name: Validate and start Compose stack
     runs-on: ubuntu-latest
@@ -31,6 +67,7 @@ jobs:
         run: |
           cp .env.example .env
           sed -i "s/^SERVORA_POSTGRES_OWNER_PASSWORD=.*/SERVORA_POSTGRES_OWNER_PASSWORD=ci-$(openssl rand -hex 12)/" .env
+          sed -i "s/^SERVORA_POSTGRES_APP_PASSWORD=.*/SERVORA_POSTGRES_APP_PASSWORD=ci-$(openssl rand -hex 12)/" .env
       - name: Validate Compose configuration
         run: docker compose config --quiet
       - name: Start stack and wait for health
@@ -39,6 +76,10 @@ jobs:
         run: |
           docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U servora_owner -d servora \
             -c "CREATE EXTENSION IF NOT EXISTS vector; SELECT extversion FROM pg_extension WHERE extname = 'vector';"
+      - name: Verify the runtime role is unprivileged
+        run: |
+          result=$(docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U servora_owner -d servora -Atc "SELECT rolsuper OR rolbypassrls OR rolcreaterole OR rolcreatedb FROM pg_roles WHERE rolname = 'servora_app'")
+          test "$result" = "f"
       - name: Verify Redis
         run: docker compose exec -T redis redis-cli ping
       - name: Stop stack

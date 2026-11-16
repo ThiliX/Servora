@@ -87,8 +87,8 @@ flowchart LR
 
 1. Validate the access token and identify the user.
 2. Read the requested workspace ID from the route. It is a selector, not proof of access.
-3. Check active membership in that workspace and the required role.
-4. Open a transaction and set `app.tenant_id` transaction-locally.
+3. Open a transaction, then check active membership in that workspace and the required role.
+4. Set `app.tenant_id` transaction-locally.
 5. Run tenant-scoped repository operations. RLS catches a query that misses its tenant predicate.
 6. Commit or roll back. The connection returns to the pool with no tenant context.
 
@@ -126,10 +126,10 @@ Conversation control mode is separate from ticket status (`OPEN`, `IN_PROGRESS`,
 | Milestone | Services added to `docker-compose.yml` |
 |---|---|
 | M0 | `postgres`, `redis` |
-| M1 | `core-api`, `web`, a local mail catcher for verification and invitation emails |
+| M1 | None. The core API and dashboard run on the host; email links are written to the development log |
 | M2 | `document-worker`, the Python enqueue endpoint, an S3-compatible storage emulator |
 | M3 | `ai-service` |
 | M4 | `widget` assets and two static demo sites |
-| M7 | Production profile: no public database or Redis ports, non-root users, resource limits |
+| M7 | `core-api` and `web` containers; production profile with no public database or Redis ports, non-root users, resource limits |
 
-During M1 the core API and dashboard can also run directly on the host (`mvnw spring-boot:run`, `npm run dev`) against the Compose infrastructure.
+The core API and dashboard run directly on the host (`mvnw spring-boot:run`, `npm run dev`) against the Compose infrastructure. See the [README](../../README.md).

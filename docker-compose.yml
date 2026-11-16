@@ -1,6 +1,6 @@
 # Servora local development stack.
-# M0 scope: only the infrastructure every later milestone depends on.
-# Application services are added in the milestone that introduces them.
+# Infrastructure only. In M1 the core API and dashboard run on the host against this stack;
+# application containers are added when the Compose stack is hardened.
 name: servora
 
 services:
@@ -11,12 +11,17 @@ services:
       POSTGRES_DB: ${SERVORA_POSTGRES_DB:-servora}
       POSTGRES_USER: ${SERVORA_POSTGRES_OWNER_USER:-servora_owner}
       POSTGRES_PASSWORD: ${SERVORA_POSTGRES_OWNER_PASSWORD:?Set SERVORA_POSTGRES_OWNER_PASSWORD in .env}
+      # Read by infrastructure/database/init to create the unprivileged runtime role.
+      SERVORA_POSTGRES_APP_USER: ${SERVORA_POSTGRES_APP_USER:-servora_app}
+      SERVORA_POSTGRES_APP_PASSWORD: ${SERVORA_POSTGRES_APP_PASSWORD:?Set SERVORA_POSTGRES_APP_PASSWORD in .env}
     ports:
       # Loopback only; never publish the database on all interfaces.
       - "127.0.0.1:${SERVORA_POSTGRES_PORT:-5432}:5432"
     volumes:
       # PostgreSQL 18 images keep data under /var/lib/postgresql/<major>.
       - postgres-data:/var/lib/postgresql
+      # Runs once, when the volume is first initialised.
+      - ./infrastructure/database/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s

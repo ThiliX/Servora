@@ -1,0 +1,77 @@
+spring:
+  application:
+    name: servora-core-api
+  config:
+    # Local development: read the repository's .env, whether started from the repository root
+    # or from services/core-api. Real deployments set environment variables instead.
+    import:
+      - optional:file:.env[.properties]
+      - optional:file:../../.env[.properties]
+  datasource:
+    # Runtime role: owns no tables and cannot bypass Row-Level Security.
+    url: jdbc:postgresql://${SERVORA_POSTGRES_HOST:localhost}:${SERVORA_POSTGRES_PORT:5432}/${SERVORA_POSTGRES_DB:servora}
+    username: ${SERVORA_POSTGRES_APP_USER:servora_app}
+    password: ${SERVORA_POSTGRES_APP_PASSWORD}
+    hikari:
+      maximum-pool-size: ${SERVORA_POSTGRES_POOL_SIZE:10}
+  flyway:
+    # Owner role: runs migrations only.
+    user: ${SERVORA_POSTGRES_OWNER_USER:servora_owner}
+    password: ${SERVORA_POSTGRES_OWNER_PASSWORD}
+    placeholders:
+      app_role: ${SERVORA_POSTGRES_APP_USER:servora_app}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate.jdbc.time_zone: UTC
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+
+server:
+  port: ${SERVORA_API_PORT:8080}
+  forward-headers-strategy: none
+  error:
+    whitelabel:
+      enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+servora:
+  auth:
+    issuer: servora-core-api
+    # Base64-encoded HMAC key, at least 32 bytes after decoding.
+    jwt-secret: ${SERVORA_JWT_SECRET}
+    access-token-ttl: PT15M
+    refresh-token-ttl: P14D
+    verification-token-ttl: PT24H
+    invitation-ttl: P7D
+    refresh-cookie-secure: ${SERVORA_REFRESH_COOKIE_SECURE:true}
+    login-max-failures: 5
+    login-failure-window: PT15M
+  web:
+    base-url: ${SERVORA_WEB_BASE_URL:http://localhost:5173}
+  mail:
+    # Development only: write verification and invitation links to the log
+    # instead of sending email. Never enable outside local development.
+    log-links: ${SERVORA_MAIL_LOG_LINKS:false}
+
+logging:
+  pattern:
+    level: "%5p [trace_id=%X{trace_id:-}]"

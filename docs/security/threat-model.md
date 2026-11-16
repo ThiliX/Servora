@@ -1,6 +1,6 @@
 # Threat model
 
-This is the M0 draft, taken from the implementation handbook. It lists the threats, the planned controls and the milestone where each control is implemented and tested. The "Evidence" column is filled in only when a test exists and has been run. Nothing here is a claim that the system is secure.
+Started in M0 from the implementation handbook and updated as controls are built. It lists the threats, the planned controls and the milestone where each control is implemented and tested. The "Evidence" column is filled in only when a test exists and has been run. Nothing here is a claim that the system is secure.
 
 Review checklists: [OWASP API Security Top 10](https://owasp.org/www-project-api-security/) and [OWASP Top 10 for LLM Applications](https://owasp.org/www-project-top-10-for-large-language-model-applications/).
 
@@ -26,11 +26,11 @@ Review checklists: [OWASP API Security Top 10](https://owasp.org/www-project-api
 
 | # | Threat | Example | Planned controls | Milestone | Evidence |
 |---|---|---|---|---|---|
-| T1 | Cross-tenant access | Tenant A changes an ID to read Tenant B's ticket | Membership checks, tenant-scoped queries, RLS, composite foreign keys, negative tests per resource family | M1, extended in M2–M6 | — |
-| T2 | Tenant context leak through the connection pool | A pooled connection keeps a previous request's tenant | Transaction-local `set_config`; parallel pooled-connection test | M1 | — |
-| T3 | Broken object-level authorization | Agent requests another tenant's conversation ID | Object-level authorization in every service method; integration tests | M1–M5 | — |
-| T4 | Credential or session theft | Refresh token copied; long-lived token exposed | In-memory access token, rotating HttpOnly refresh cookie, reuse detection, revocation, CSRF handling on refresh | M1 | — |
-| T5 | Brute force and credential stuffing | Repeated login attempts | Login rate limiting, adaptive password hashing | M1 | — |
+| T1 | Cross-tenant access | Tenant A changes an ID to read Tenant B's ticket | Membership checks, tenant-scoped queries, RLS, composite foreign keys, negative tests per resource family | M1, extended in M2–M6 | M1 resources: `TenantIsolationIntegrationTest`, `RowLevelSecurityIntegrationTest`. See [tenant isolation](tenant-isolation.md) |
+| T2 | Tenant context leak through the connection pool | A pooled connection keeps a previous request's tenant | Transaction-local `set_config`; parallel pooled-connection test | M1 | `PooledConnectionIsolationIntegrationTest`; `RowLevelSecurityIntegrationTest` (context cleared after commit and rollback) |
+| T3 | Broken object-level authorization | Agent requests another tenant's conversation ID | Object-level authorization in every service method; integration tests | M1–M5 | M1 resources: ID-substitution cases in `TenantIsolationIntegrationTest`; `RoleEnforcementIntegrationTest` |
+| T4 | Credential or session theft | Refresh token copied; long-lived token exposed | In-memory access token, rotating HttpOnly refresh cookie, reuse detection, revocation, CSRF handling on refresh | M1 | `AuthFlowIntegrationTest` (rotation, replay revokes family, cookie attributes, required client header, logout); dashboard `api.test.ts` (token never in web storage, single shared refresh) |
+| T5 | Brute force and credential stuffing | Repeated login attempts | Login rate limiting, adaptive password hashing | M1 | `AuthFlowIntegrationTest`, `LoginAttemptLimiterTest`. Limiter is per instance and in memory; Argon2id via Spring Security |
 | T6 | Malicious upload | Oversized or malformed PDF, archive bomb | Extension allowlist, content sniffing, byte/page/text/time limits, constrained worker, private storage, no fetching of embedded URLs | M2 | — |
 | T7 | Stale knowledge retrieval | A deleted document still answers questions | Deactivate chunks on replace/delete in one transaction; retrieval filters on active state | M2, M3 | — |
 | T8 | Prompt injection | Customer says "ignore your rules"; a document contains instructions to reveal data | Retrieved text labelled as untrusted; backend policy is authoritative; adversarial tests for message and document injection | M3 | — |
@@ -44,9 +44,16 @@ Review checklists: [OWASP API Security Top 10](https://owasp.org/www-project-api
 | T16 | AI and human reply race | Late AI answer delivered after takeover | Atomic takeover, optimistic locking, pre-delivery re-check, concurrency test | M4, M5 | — |
 | T17 | Internal note exposure | Note returned by a customer endpoint | Visibility filter in the query; negative tests on every public endpoint | M5 | — |
 | T18 | Data leakage through logs | Full prompts and personal data stored indefinitely | Minimal logging, redaction, retention policy | All, reviewed in M7 | — |
-| T19 | Secrets in the repository | Provider key committed | `.env` ignored, `.env.example` placeholders only, diff review, scanning in CI | M0, M7 | `.gitignore` in place; scanning not yet added |
+| T19 | Secrets in the repository | Provider key committed | `.env` ignored, `.env.example` placeholders only, diff review, scanning in CI | M0, M7 | `.gitignore` in place; runtime role password kept out of migrations; scanning not yet added |
 | T20 | Over-privileged platform admin | Routine access to tenant conversations | Separate platform role; explicit, audited, narrow access | M6 | — |
 | T21 | Vulnerable dependencies and images | Known CVE in a library | Pinned versions, dependency and image scanning in CI | M7 | — |
+
+## Additional M1 notes
+
+- **Account enumeration:** registration returns the same response whether or not the email exists, and login returns the same error for an unknown email and a wrong password. Tested in `AuthFlowIntegrationTest`.
+- **Secret links:** verification and invitation tokens travel in the URL fragment, which browsers do not send to servers or include in the `Referer` header. Only token hashes are stored.
+- **Open redirect:** after sign-in the dashboard returns only to in-app paths.
+- **Not yet addressed:** no email provider, so links are logged in development; no review of security response headers; no dependency scanning. `npm audit` reports moderate advisories in the dashboard's dependency tree, to be triaged in M7.
 
 ## File upload checklist (M2)
 

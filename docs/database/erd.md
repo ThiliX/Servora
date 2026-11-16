@@ -1,6 +1,6 @@
 # Database design and tenant ownership
 
-This is the M0 draft. Column lists are the planned minimum; migrations written in each milestone are the source of truth and this document is updated with them.
+Tables marked M1 exist and are described as built. Later tables are still the plan. Migrations in `services/core-api/src/main/resources/db/migration` are the source of truth.
 
 ## Entity relationships
 
@@ -39,11 +39,12 @@ erDiagram
 | `users` | Global | M1 | Normalised unique email, password hash, status. Reachable from a tenant only through `memberships` |
 | `platform_admins` | Global | M1 | Platform role, kept apart from workspace roles |
 | `refresh_tokens` | Global (per user) | M1 | Stored hashed; rotation family for reuse detection |
-| `tenants` | Global root | M1 | Unique slug, status, timezone, default language, plan reference |
+| `email_verification_tokens` | Global (per user) | M1 | Stored hashed; single use; expires |
+| `tenants` | Tenant root | M1 | Unique slug, status, timezone, default language, industry, logo URL, plan code. Under RLS, keyed on its own `id` |
 | `plans` | Global | M6 | Plan catalogue and limits |
 | `memberships` | Tenant | M1 | Unique `(tenant_id, user_id)`; role and status |
-| `invitations` | Tenant | M1 | Hashed token, expiry, status |
-| `audit_events` | Tenant | M1 | Append-only |
+| `invitations` | Tenant | M1 | Hashed token, expiry, status; one pending invitation per email per tenant; inviter referenced by `(tenant_id, membership_id)` |
+| `audit_events` | Tenant | M1 | Append-only: the runtime role has `SELECT` and `INSERT` only |
 | `ai_assistants` | Tenant | M2 | One per workspace for the MVP |
 | `assistant_versions` | Tenant | M2 | Immutable configuration snapshots |
 | `widgets` | Tenant | M2 | Public key is an identifier, not a secret |
@@ -97,11 +98,19 @@ SELECT set_config('app.tenant_id', :validatedTenantId, true);
 | `servora_ai` | AI service | `SELECT` on the knowledge tables needed for retrieval |
 | `servora_worker` | Document worker | Insert chunks; update document processing state |
 
-In M0 only `servora_owner` exists, created by the Compose environment. The other roles are created in the milestone that first uses them.
+`servora_owner` is created by the Compose environment and `servora_app` by `infrastructure/database/init` when the volume is first initialised. `servora_ai` and `servora_worker` are created in the milestones that first use them. The runtime role has no `DELETE` privilege on any tenant-owned table.
 
 ## Global tables and lookups without tenant context
 
-Some lookups happen before a tenant is known: login by email, listing a user's workspaces, accepting an invitation by token, and resolving a widget public key. These are handled by narrowly scoped queries or `SECURITY DEFINER` functions that return only the minimum needed to establish context. Each one is designed and tested in the milestone that introduces it, and listed here.
+Some lookups happen before a tenant is known. As built in M1 ([ADR-015](../architecture/adr/0015-row-level-security-context-beyond-the-tenant-id.md)):
+
+| Lookup | How it works |
+|---|---|
+| Login by email | `users` is a global table, not under RLS |
+| Validating membership; listing a user's workspaces | Policies also expose rows matching the transaction-local `app.user_id` |
+| Accepting an invitation by token | A policy exposes the one row matching the transaction-local `app.invitation_token_hash` |
+
+These settings unlock reads only; every write policy requires `app.tenant_id`. Resolving a widget public key is designed in M4.
 
 ## Indexes
 

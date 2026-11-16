@@ -8,6 +8,7 @@
 *.jks
 
 # OS and editors
+.claude/
 .DS_Store
 Thumbs.db
 .idea/

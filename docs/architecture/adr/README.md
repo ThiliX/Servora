@@ -18,3 +18,4 @@ Each record states the context, the decision and its consequences. Supersede a r
 | [ADR-012](0012-local-sentence-transformers-model-for-embeddings.md) | Local Sentence Transformers model for embeddings | Accepted (recommended in M0) |
 | [ADR-013](0013-llm-provider-behind-an-adapter.md) | LLM provider behind an adapter | Proposed (provider not chosen) |
 | [ADR-014](0014-server-sent-events-from-the-core-api-for-customer-streaming.md) | Server-Sent Events from the core API for customer streaming | Accepted (recommended in M0) |
+| [ADR-015](0015-row-level-security-context-beyond-the-tenant-id.md) | Row-Level Security context beyond the tenant ID | Accepted (decided in M1) |
