@@ -28,8 +28,8 @@ Requirements: FR-001, FR-002, FR-003, FR-004, FR-005, FR-006, FR-007. Starts FR-
 - [x] Dashboard: auth, workspace create and switch, team, settings
 - [x] Cross-tenant, pooled-connection and RLS tests passing (56 backend tests, 28 dashboard tests, local run 2026-11-16)
 - [x] Owner and agent flows checked by hand in a browser against the real API and database
-- [ ] CI green on GitHub for the M1 branch
-- [ ] Reviewed and merged to `main`
+- [x] CI green on GitHub for the M1 branch (2026-11-16, pull request 1)
+- [x] Merged to `main` and tagged `v0.1-m1` (2026-11-16)
 
 Deferred from M1, with the milestone that picks each up:
 
