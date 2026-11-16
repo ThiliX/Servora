@@ -1,0 +1,18 @@
+{
+  "config": {
+    "default": true,
+    // Long lines are fine in tables and prose.
+    "MD013": false,
+    // The master prompt and plan repeat heading text across sections.
+    "MD024": { "siblings_only": true },
+    // The PR template intentionally starts with a second-level heading.
+    "MD041": false,
+    // Bold run-in labels are used as light sub-headings in plans.
+    "MD036": false,
+    // Table pipe spacing is cosmetic.
+    "MD060": false,
+    // Task lists in the plan are numbered continuously across sub-headings.
+    "MD029": false
+  },
+  "ignores": ["docs/agent/master-implementation-prompt.md", "**/node_modules/**", "**/target/**", "**/.venv/**"]
+}

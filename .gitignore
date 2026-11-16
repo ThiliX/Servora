@@ -1,0 +1,59 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.jks
+
+# OS and editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.iml
+*.swp
+
+# Java / Maven
+target/
+*.class
+.mvn/wrapper/maven-wrapper.jar
+hs_err_pid*
+
+# Node
+node_modules/
+dist/
+coverage/
+.vite/
+*.tsbuildinfo
+playwright-report/
+test-results/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+htmlcov/
+.coverage
+
+# Local data, uploads, dumps and model caches
+data/
+uploads/
+storage/
+*.dump
+*.sql.gz
+*.sqlite
+*.db
+.cache/
+models/
+
+# Logs
+*.log
+logs/
