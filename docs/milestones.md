@@ -12,7 +12,7 @@ Tasks, tests and exit gates for each milestone are in the [implementation plan](
 - [x] Compose file with PostgreSQL (pgvector) and Redis, with health checks
 - [x] CI workflow written
 - [x] Compose stack verified healthy and `CREATE EXTENSION vector` succeeds (2026-11-16: PostgreSQL 18.7, pgvector 0.8.7, Redis 8.8.4)
-- [ ] First commit pushed and CI green on GitHub
+- [x] First commit pushed and CI green on GitHub (2026-11-16, commit 4c66556)
 - [ ] Branch protection enabled on `main`
 - [ ] LLM provider chosen (ADR-013) — required before M3, not before M1
 
