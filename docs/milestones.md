@@ -20,13 +20,23 @@ Tasks, tests and exit gates for each milestone are in the [implementation plan](
 
 Requirements: FR-001, FR-002, FR-003, FR-004, FR-005, FR-006, FR-007. Starts FR-041 and FR-044.
 
-- [ ] Core API scaffold, error envelope, correlation IDs, OpenAPI
-- [ ] Migrations, database roles and RLS for identity and tenant tables
-- [ ] Register, verify, login, refresh rotation, logout
-- [ ] Tenant context resolution and role enforcement
-- [ ] Workspaces, memberships, invitations
-- [ ] Dashboard: auth, workspace create and switch, team, settings
-- [ ] Cross-tenant, pooled-connection and RLS tests passing
+- [x] Core API scaffold, error envelope, correlation IDs, OpenAPI
+- [x] Migrations, database roles and RLS for identity and tenant tables
+- [x] Register, verify, login, refresh rotation, logout
+- [x] Tenant context resolution and role enforcement
+- [x] Workspaces, memberships, invitations
+- [x] Dashboard: auth, workspace create and switch, team, settings
+- [x] Cross-tenant, pooled-connection and RLS tests passing (56 backend tests, 28 dashboard tests, local run 2026-11-16)
+- [x] Owner and agent flows checked by hand in a browser against the real API and database
+- [ ] CI green on GitHub for the M1 branch
+- [ ] Reviewed and merged to `main`
+
+Deferred from M1, with the milestone that picks each up:
+
+- Email delivery through a real provider (links are logged in development) — M7
+- Shared-store login rate limiting (in memory today) — M4, with the public rate limits
+- Application containers in Compose — M7
+- Playwright end-to-end suite — M4 onward
 
 ## M2 — Assistant, widget configuration, knowledge ingestion
 
