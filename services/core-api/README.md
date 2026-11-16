@@ -9,6 +9,9 @@ Spring Boot modular monolith and system of record. Base package `com.servora`, o
 | `membership` | Memberships, roles, the permission matrix and `WorkspaceAccess` |
 | `invitation` | Invitations and acceptance |
 | `audit` | Append-only audit events |
+| `assistant` | Assistant configuration with immutable versions |
+| `widget` | Widget settings, public key, allowed origins and origin matching |
+| `knowledge` | Document upload and lifecycle, private storage, outbox and its dispatcher |
 | `common` | Error envelope, correlation IDs, security configuration, tenant context, mail gateway |
 
 ## Rules for tenant-scoped code

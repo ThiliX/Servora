@@ -1,14 +1,17 @@
 package com.servora.workspace;
 
+import com.servora.assistant.AssistantService;
 import com.servora.audit.AuditService;
 import com.servora.common.error.ApiException;
 import com.servora.common.tenant.TenantContext;
+import com.servora.knowledge.DocumentService;
 import com.servora.membership.Membership;
 import com.servora.membership.MembershipRepository;
 import com.servora.membership.Permission;
 import com.servora.membership.WorkspaceAccess;
 import com.servora.membership.WorkspaceContext;
 import com.servora.membership.WorkspaceRole;
+import com.servora.widget.WidgetService;
 import java.time.Clock;
 import java.time.DateTimeException;
 import java.time.Instant;
@@ -57,6 +60,9 @@ public class WorkspaceService {
     private final TenantRepository tenants;
     private final MembershipRepository memberships;
     private final AuditService audit;
+    private final AssistantService assistants;
+    private final WidgetService widgets;
+    private final DocumentService documents;
     private final Clock clock;
 
     public WorkspaceService(
@@ -65,12 +71,18 @@ public class WorkspaceService {
             TenantRepository tenants,
             MembershipRepository memberships,
             AuditService audit,
+            AssistantService assistants,
+            WidgetService widgets,
+            DocumentService documents,
             Clock clock) {
         this.tenantContext = tenantContext;
         this.access = access;
         this.tenants = tenants;
         this.memberships = memberships;
         this.audit = audit;
+        this.assistants = assistants;
+        this.widgets = widgets;
+        this.documents = documents;
         this.clock = clock;
     }
 
@@ -97,6 +109,10 @@ public class WorkspaceService {
         }
         Membership owner = memberships.save(new Membership(tenantId, userId, WorkspaceRole.OWNER, now));
         WorkspaceContext ctx = new WorkspaceContext(tenantId, userId, owner.getId(), WorkspaceRole.OWNER);
+        // Every workspace starts with a default assistant and widget (handbook journey 4.1).
+        assistants.createDefault(ctx, tenant.getName(), tenant.getDefaultLanguage());
+        widgets.createDefault(ctx, tenant.getName());
+        documents.createDefaultSource(ctx);
         audit.record(ctx, "WORKSPACE_CREATED", "workspace", tenantId, Map.of("slug", slug));
         return WorkspaceView.of(tenant, WorkspaceRole.OWNER);
     }

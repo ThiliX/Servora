@@ -13,6 +13,11 @@ export function canManageSettings(role: WorkspaceRole): boolean {
   return MANAGERS.includes(role);
 }
 
+/** Assistant, widget and knowledge base configuration. */
+export function canConfigureAssistant(role: WorkspaceRole): boolean {
+  return MANAGERS.includes(role);
+}
+
 /** Roles an actor may assign to someone else. Only an owner can grant ownership. */
 export function assignableRoles(actor: WorkspaceRole): WorkspaceRole[] {
   if (actor === "OWNER") {

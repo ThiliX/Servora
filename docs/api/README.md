@@ -62,18 +62,42 @@ Paths are relative to `/api/v1`. "Member" means any active member of the workspa
 
 Outside `/api/v1`: `GET /actuator/health`, `/actuator/health/liveness` and `/actuator/health/readiness` are public.
 
+## Endpoints implemented in M2
+
+| Method | Path | Access | Purpose |
+|---|---|---|---|
+| GET | `/workspaces/{workspaceId}/assistant` | Owner, Admin | Read the assistant configuration |
+| PUT | `/workspaces/{workspaceId}/assistant` | Owner, Admin | Replace the configuration; records a new immutable version |
+| GET | `/workspaces/{workspaceId}/assistant/versions` | Owner, Admin | Version history, newest first |
+| GET | `/workspaces/{workspaceId}/widget` | Owner, Admin | Widget settings, public key and allowed origins |
+| PATCH | `/workspaces/{workspaceId}/widget` | Owner, Admin | Change title, colour, position, branding, status |
+| POST | `/workspaces/{workspaceId}/widget/rotate-key` | Owner, Admin | Issue a new public key; the old one stops resolving |
+| PUT | `/workspaces/{workspaceId}/widget/allowed-origins` | Owner, Admin | Replace the allowed-origin list (at most 20) |
+| POST | `/workspaces/{workspaceId}/knowledge/documents` | Owner, Admin | Upload a document (`multipart/form-data`, part `file`). Returns `202` |
+| GET | `/workspaces/{workspaceId}/knowledge/documents` | Owner, Admin | List documents |
+| GET | `/workspaces/{workspaceId}/knowledge/documents/{documentId}` | Owner, Admin | Read one document and its processing state |
+| POST | `/workspaces/{workspaceId}/knowledge/documents/{documentId}/replace` | Owner, Admin | Upload a new version. Returns `202` |
+| POST | `/workspaces/{workspaceId}/knowledge/documents/{documentId}/archive` | Owner, Admin | Take the document out of retrieval |
+| POST | `/workspaces/{workspaceId}/knowledge/documents/{documentId}/reprocess` | Owner, Admin | Process again (retry a failure or restore an archived document). Returns `202` |
+| DELETE | `/workspaces/{workspaceId}/knowledge/documents/{documentId}` | Owner, Admin | Delete the document, its chunks and its stored file |
+
+Upload rules: PDF, TXT or Markdown; 10 MB by default; the content must match the extension. Errors: `UNSUPPORTED_FILE_TYPE` (415), `CONTENT_MISMATCH` and `EMPTY_FILE` (400), `FILE_TOO_LARGE` (413), `DUPLICATE_DOCUMENT` and `DOCUMENT_LIMIT_REACHED` (409), `UPLOAD_RATE_LIMITED` (429). Lifecycle errors: `DOCUMENT_BUSY` and `NOT_LATEST_VERSION` (409).
+
+Allowed origins must be plain origins such as `https://shop.example.com`: no path, query, wildcard or credentials, and https except for localhost. The server stores and returns the canonical form.
+
 ## Idempotency
 
 - Registration, verification and invitation acceptance are safe to retry: a repeat either does nothing or returns a clear conflict (`INVITATION_NOT_PENDING`, `ALREADY_MEMBER`).
 - Creating a duplicate pending invitation returns `409 INVITATION_EXISTS`.
+- Uploading content identical to a live document returns `409 DUPLICATE_DOCUMENT`, so a retried upload does not create a second copy.
+- Archive, reprocess and delete can be repeated safely; a repeat returns the current state or a clear conflict.
 - Idempotency keys for message submission and ticket creation arrive with those endpoints in M4 and M5.
 
 ## Planned endpoint groups
 
 | Group | Base path | Milestone |
 |---|---|---|
-| Assistant | `/workspaces/{workspaceId}/assistant` | M2, M3 |
-| Knowledge | `/workspaces/{workspaceId}/knowledge` | M2 |
+| Assistant playground | `/workspaces/{workspaceId}/assistant/test` | M3 |
 | Conversations | `/workspaces/{workspaceId}/conversations` | M4, M5 |
 | Tickets | `/workspaces/{workspaceId}/tickets` | M5 |
 | Analytics | `/workspaces/{workspaceId}/analytics` | M6 |

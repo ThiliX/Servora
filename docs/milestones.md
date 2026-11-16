@@ -42,13 +42,23 @@ Deferred from M1, with the milestone that picks each up:
 
 Requirements: FR-008, FR-009, FR-011 to FR-019.
 
-- [ ] Assistant configuration with immutable versions
-- [ ] Widget key and allowed origins
-- [ ] Private storage abstraction and validated upload
-- [ ] Outbox dispatch and Celery worker pipeline
-- [ ] Document lifecycle: list, archive, delete, reprocess
-- [ ] Dashboard: assistant, widget and knowledge pages
-- [ ] Ingestion, idempotency and cross-tenant tests passing
+- [x] Assistant configuration with immutable versions
+- [x] Widget key and allowed origins
+- [x] Private storage abstraction and validated upload
+- [x] Outbox dispatch and Celery worker pipeline
+- [x] Document lifecycle: list, archive, delete, reprocess, replace
+- [x] Dashboard: assistant, widget and knowledge pages
+- [x] Ingestion, idempotency and cross-tenant tests passing (112 core API, 50 worker, 40 dashboard; local run 2026-11-16)
+- [x] Real upload run end to end through the local stack (storage, outbox, worker, real embedding model)
+- [ ] CI green on GitHub for the M2 branch
+- [ ] Reviewed and merged to `main`
+
+Deferred from M2, with the milestone that picks each up:
+
+- Malware scanning of uploads — M7
+- Automated test of the S3 storage implementation and the HTTP enqueue client (exercised end to end by hand today) — M7
+- Chunk size and overlap evaluated against a labelled question set — M3
+- Scanned PDFs without a text layer (no OCR) — not planned for the MVP
 
 ## M3 — RAG AI service
 

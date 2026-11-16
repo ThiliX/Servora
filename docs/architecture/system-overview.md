@@ -127,7 +127,7 @@ Conversation control mode is separate from ticket status (`OPEN`, `IN_PROGRESS`,
 |---|---|
 | M0 | `postgres`, `redis` |
 | M1 | None. The core API and dashboard run on the host; email links are written to the development log |
-| M2 | `document-worker`, the Python enqueue endpoint, an S3-compatible storage emulator |
+| M2 | `storage` (S3-compatible emulator), `worker-api` (enqueue endpoint), `document-worker` (Celery) |
 | M3 | `ai-service` |
 | M4 | `widget` assets and two static demo sites |
 | M7 | `core-api` and `web` containers; production profile with no public database or Redis ports, non-root users, resource limits |

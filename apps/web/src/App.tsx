@@ -3,11 +3,14 @@ import { Navigate, Route, Routes, useLocation } from "react-router";
 import { Loading } from "./components/ui";
 import { useAuth } from "./lib/auth";
 import { AcceptInvitationPage } from "./pages/AcceptInvitationPage";
+import { AssistantPage } from "./pages/AssistantPage";
+import { KnowledgePage } from "./pages/KnowledgePage";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { TeamPage } from "./pages/TeamPage";
 import { VerifyEmailPage } from "./pages/VerifyEmailPage";
+import { WidgetPage } from "./pages/WidgetPage";
 import { WorkspaceLayout } from "./pages/WorkspaceLayout";
 import { WorkspacesPage } from "./pages/WorkspacesPage";
 
@@ -57,6 +60,9 @@ export function App() {
       >
         <Route index element={<Navigate to="team" replace />} />
         <Route path="team" element={<TeamPage />} />
+        <Route path="assistant" element={<AssistantPage />} />
+        <Route path="knowledge" element={<KnowledgePage />} />
+        <Route path="widget" element={<WidgetPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

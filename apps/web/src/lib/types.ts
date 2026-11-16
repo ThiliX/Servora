@@ -52,6 +52,51 @@ export interface Invitation {
   created_at: string;
 }
 
+export type Tone = "FRIENDLY" | "PROFESSIONAL" | "CONCISE";
+export type ConfidencePolicy = "STRICT" | "BALANCED";
+
+export interface Assistant {
+  id: string;
+  name: string;
+  welcome_message: string;
+  fallback_message: string;
+  language: string;
+  tone: Tone;
+  automation_enabled: boolean;
+  confidence_policy: ConfidencePolicy;
+  current_version: number;
+  updated_at: string;
+}
+
+export interface Widget {
+  id: string;
+  name: string;
+  public_key: string;
+  status: "ACTIVE" | "DISABLED";
+  theme_color: string;
+  position: "BOTTOM_RIGHT" | "BOTTOM_LEFT";
+  title: string;
+  show_branding: boolean;
+  allowed_origins: string[];
+  updated_at: string;
+}
+
+export type DocumentStatus = "UPLOADED" | "QUEUED" | "PROCESSING" | "READY" | "FAILED" | "ARCHIVED";
+
+export interface KnowledgeDocument {
+  id: string;
+  lineage_id: string;
+  version: number;
+  filename: string;
+  mime: string;
+  size_bytes: number;
+  status: DocumentStatus;
+  error_code: string | null;
+  chunk_count: number;
+  created_at: string;
+  processed_at: string | null;
+}
+
 export interface Page<T> {
   items: T[];
   page: number;

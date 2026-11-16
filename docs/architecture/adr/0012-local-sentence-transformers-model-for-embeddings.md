@@ -15,7 +15,7 @@ Generate embeddings locally with a Sentence Transformers model. The model identi
 
 - No per-token embedding cost and deterministic tests.
 - The worker image is larger and CPU embedding is slower than a hosted API.
-- The specific model is chosen in M2 and evaluated in M3 against the labelled set.
+- M2 chose `sentence-transformers/all-MiniLM-L6-v2` at revision `1110a243fdf4706b3f48f1d95db1a4f5529b4d41` (384 dimensions, normalised). It is baked into the worker image, which is about 1.7 GB with CPU-only PyTorch. Its quality is unmeasured until the M3 evaluation.
 
 ## Revisit when
 

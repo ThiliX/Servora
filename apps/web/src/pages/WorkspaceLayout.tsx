@@ -2,7 +2,7 @@ import { Link, NavLink, Outlet, useNavigate, useOutletContext, useParams } from 
 import { Button, ErrorState, Loading, Notice, Select } from "../components/ui";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
-import { canManageSettings, ROLE_LABELS } from "../lib/permissions";
+import { canConfigureAssistant, canManageSettings, ROLE_LABELS } from "../lib/permissions";
 import type { User, Workspace, WorkspaceSummary } from "../lib/types";
 import { useAsync } from "../lib/useAsync";
 
@@ -89,10 +89,23 @@ export function WorkspaceLayout() {
             </Button>
           </div>
         </div>
-        <nav aria-label="Workspace" className="mx-auto flex max-w-5xl gap-1 px-4 pb-2">
+        <nav aria-label="Workspace" className="mx-auto flex max-w-5xl flex-wrap gap-1 px-4 pb-2">
           <NavLink to="team" className={linkClass}>
             Team
           </NavLink>
+          {canConfigureAssistant(workspace.role) && (
+            <>
+              <NavLink to="assistant" className={linkClass}>
+                Assistant
+              </NavLink>
+              <NavLink to="knowledge" className={linkClass}>
+                Knowledge
+              </NavLink>
+              <NavLink to="widget" className={linkClass}>
+                Widget
+              </NavLink>
+            </>
+          )}
           {canManageSettings(workspace.role) && (
             <NavLink to="settings" className={linkClass}>
               Settings

@@ -1,7 +1,21 @@
 # Servora local development stack.
-# Infrastructure only. In M1 the core API and dashboard run on the host against this stack;
-# application containers are added when the Compose stack is hardened.
+# Runs the infrastructure and the Python document worker. The core API and dashboard run on the
+# host against this stack; their containers are added when the Compose stack is hardened (M7).
 name: servora
+
+x-worker-environment: &worker-environment
+  SERVORA_POSTGRES_HOST: postgres
+  SERVORA_POSTGRES_PORT: "5432"
+  SERVORA_POSTGRES_DB: ${SERVORA_POSTGRES_DB:-servora}
+  SERVORA_POSTGRES_WORKER_USER: ${SERVORA_POSTGRES_WORKER_USER:-servora_worker}
+  SERVORA_POSTGRES_WORKER_PASSWORD: ${SERVORA_POSTGRES_WORKER_PASSWORD:?Set SERVORA_POSTGRES_WORKER_PASSWORD in .env}
+  SERVORA_REDIS_URL: redis://redis:6379/0
+  SERVORA_STORAGE_ENDPOINT: http://storage:7070
+  SERVORA_STORAGE_REGION: ${SERVORA_STORAGE_REGION:-us-east-1}
+  SERVORA_STORAGE_BUCKET: ${SERVORA_STORAGE_BUCKET:-servora-documents}
+  SERVORA_STORAGE_ACCESS_KEY: ${SERVORA_STORAGE_ACCESS_KEY:?Set SERVORA_STORAGE_ACCESS_KEY in .env}
+  SERVORA_STORAGE_SECRET_KEY: ${SERVORA_STORAGE_SECRET_KEY:?Set SERVORA_STORAGE_SECRET_KEY in .env}
+  SERVORA_INTERNAL_TOKEN_SECRET: ${SERVORA_INTERNAL_TOKEN_SECRET:?Set SERVORA_INTERNAL_TOKEN_SECRET in .env}
 
 services:
   postgres:
@@ -11,9 +25,11 @@ services:
       POSTGRES_DB: ${SERVORA_POSTGRES_DB:-servora}
       POSTGRES_USER: ${SERVORA_POSTGRES_OWNER_USER:-servora_owner}
       POSTGRES_PASSWORD: ${SERVORA_POSTGRES_OWNER_PASSWORD:?Set SERVORA_POSTGRES_OWNER_PASSWORD in .env}
-      # Read by infrastructure/database/init to create the unprivileged runtime role.
+      # Read by infrastructure/database/init to create the unprivileged runtime roles.
       SERVORA_POSTGRES_APP_USER: ${SERVORA_POSTGRES_APP_USER:-servora_app}
       SERVORA_POSTGRES_APP_PASSWORD: ${SERVORA_POSTGRES_APP_PASSWORD:?Set SERVORA_POSTGRES_APP_PASSWORD in .env}
+      SERVORA_POSTGRES_WORKER_USER: ${SERVORA_POSTGRES_WORKER_USER:-servora_worker}
+      SERVORA_POSTGRES_WORKER_PASSWORD: ${SERVORA_POSTGRES_WORKER_PASSWORD:?Set SERVORA_POSTGRES_WORKER_PASSWORD in .env}
     ports:
       # Loopback only; never publish the database on all interfaces.
       - "127.0.0.1:${SERVORA_POSTGRES_PORT:-5432}:5432"
@@ -44,8 +60,67 @@ services:
     networks:
       - backend
 
+  # Private S3-compatible object storage for uploaded documents (local stand-in for a cloud bucket).
+  storage:
+    image: versity/versitygw:v1.11.0
+    restart: unless-stopped
+    environment:
+      ROOT_ACCESS_KEY: ${SERVORA_STORAGE_ACCESS_KEY:?Set SERVORA_STORAGE_ACCESS_KEY in .env}
+      ROOT_SECRET_KEY: ${SERVORA_STORAGE_SECRET_KEY:?Set SERVORA_STORAGE_SECRET_KEY in .env}
+    command: ["posix", "/data"]
+    ports:
+      # Loopback only, for the core API running on the host.
+      - "127.0.0.1:${SERVORA_STORAGE_PORT:-7070}:7070"
+    volumes:
+      - storage-data:/data
+    networks:
+      - backend
+
+  # Internal endpoint the core API calls to queue a document for processing.
+  worker-api:
+    build:
+      context: ./workers/document-worker
+    image: servora/document-worker:dev
+    restart: unless-stopped
+    command: ["uvicorn", "servora_worker.api:app", "--host", "0.0.0.0", "--port", "8090"]
+    environment: *worker-environment
+    ports:
+      - "127.0.0.1:${SERVORA_WORKER_API_PORT:-8090}:8090"
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+    networks:
+      - backend
+
+  # Parses, chunks and embeds documents. No published ports.
+  document-worker:
+    image: servora/document-worker:dev
+    restart: unless-stopped
+    environment: *worker-environment
+    depends_on:
+      worker-api:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      storage:
+        condition: service_started
+    # Bounds what a hostile or oversized document can consume.
+    mem_limit: 2g
+    cpus: 2
+    networks:
+      - backend
+
 volumes:
   postgres-data:
+  storage-data:
 
 networks:
   backend:

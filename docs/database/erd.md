@@ -1,6 +1,6 @@
 # Database design and tenant ownership
 
-Tables marked M1 exist and are described as built. Later tables are still the plan. Migrations in `services/core-api/src/main/resources/db/migration` are the source of truth.
+Tables marked M1 and M2 exist and are described as built. Later tables are still the plan. Migrations in `services/core-api/src/main/resources/db/migration` are the source of truth.
 
 ## Entity relationships
 
@@ -45,14 +45,14 @@ erDiagram
 | `memberships` | Tenant | M1 | Unique `(tenant_id, user_id)`; role and status |
 | `invitations` | Tenant | M1 | Hashed token, expiry, status; one pending invitation per email per tenant; inviter referenced by `(tenant_id, membership_id)` |
 | `audit_events` | Tenant | M1 | Append-only: the runtime role has `SELECT` and `INSERT` only |
-| `ai_assistants` | Tenant | M2 | One per workspace for the MVP |
-| `assistant_versions` | Tenant | M2 | Immutable configuration snapshots |
-| `widgets` | Tenant | M2 | Public key is an identifier, not a secret |
-| `widget_allowed_origins` | Tenant | M2 | Normalised origin, exact matching |
-| `knowledge_sources` | Tenant | M2 | |
-| `documents` | Tenant | M2 | Generated storage key, content hash, version, processing status, safe error code |
-| `document_chunks` | Tenant | M2 | Text, page/heading metadata, `vector` embedding, model id/revision/dimension, active flag |
-| `outbox_events` | Tenant | M2 | Reliable dispatch to the worker |
+| `ai_assistants` | Tenant | M2 | One per workspace for the MVP (unique on `tenant_id`). Name, messages, language, tone, automation flag, confidence policy, current version |
+| `assistant_versions` | Tenant | M2 | Immutable JSON snapshots: the runtime role has `SELECT` and `INSERT` only |
+| `widgets` | Tenant | M2 | One per workspace for the MVP. Globally unique public key, which is an identifier, not a secret |
+| `widget_allowed_origins` | Tenant | M2 | Canonical origin, exact matching, format enforced by a check constraint. Replaced as a whole list |
+| `knowledge_sources` | Tenant | M2 | One default "Uploaded documents" source per workspace |
+| `documents` | Tenant | M2 | One row per version; versions share a `lineage_id`. Generated storage key, content hash, status, safe error code, chunk count |
+| `document_chunks` | Tenant | M2 | Text, page and heading metadata, unconstrained `vector` embedding, model id/revision/dimension (checked against the vector), active flag |
+| `outbox_events` | Tenant | M2 | Written with the change it describes; delivered by the dispatcher ([ADR-016](../architecture/adr/0016-outbox-dispatcher-reads-across-tenants.md)) |
 | `customers` | Tenant | M4 | Pseudonymous identity; optional name and email under privacy rules |
 | `conversations` | Tenant | M4 | Status, control mode, assigned agent, `version` for optimistic locking |
 | `messages` | Tenant | M4 | Sender type, visibility, delivery status, model metadata, token usage |
@@ -89,6 +89,20 @@ Tenant context is set inside the authorised transaction, never at session scope:
 SELECT set_config('app.tenant_id', :validatedTenantId, true);
 ```
 
+## Document states
+
+| State | Meaning | Next |
+|---|---|---|
+| `UPLOADED` | Stored privately; not yet handed to the worker | `QUEUED`, `PROCESSING`, `FAILED`, `DELETED` |
+| `QUEUED` | The worker has accepted the job | `PROCESSING`, `DELETED` |
+| `PROCESSING` | Extraction, chunking, embedding and indexing in progress | `READY`, `FAILED`, `DELETED` |
+| `READY` | Indexed; its active chunks are eligible for retrieval | `ARCHIVED`, `UPLOADED` (reprocess), `DELETED` |
+| `FAILED` | Processing failed; a safe error code is recorded | `UPLOADED` (retry), `ARCHIVED`, `DELETED` |
+| `ARCHIVED` | Kept, but all its chunks are inactive | `UPLOADED` (restore), `DELETED` |
+| `DELETED` | Chunks removed, stored file removed through the outbox; only metadata remains | — |
+
+A document becomes `READY` only in the transaction that writes its chunks. In that same transaction, older versions of the same lineage are archived and their chunks deactivated, so retrieval never sees two versions or none.
+
 ## Database roles
 
 | Role | Used by | Privileges |
@@ -96,9 +110,9 @@ SELECT set_config('app.tenant_id', :validatedTenantId, true);
 | `servora_owner` | Flyway migrations | Owns all objects. Not used at runtime |
 | `servora_app` | Core API runtime | DML on application tables. Does not own tables, no `BYPASSRLS` |
 | `servora_ai` | AI service | `SELECT` on the knowledge tables needed for retrieval |
-| `servora_worker` | Document worker | Insert chunks; update document processing state |
+| `servora_worker` | Document worker | `SELECT` on `documents`; `UPDATE` on its processing columns only (`status`, `error_code`, `chunk_count`, `processed_at`, `updated_at`); `SELECT`, `INSERT`, `DELETE` and `UPDATE (active)` on `document_chunks`. Nothing else |
 
-`servora_owner` is created by the Compose environment and `servora_app` by `infrastructure/database/init` when the volume is first initialised. `servora_ai` and `servora_worker` are created in the milestones that first use them. The runtime role has no `DELETE` privilege on any tenant-owned table.
+`servora_owner` is created by the Compose environment; `servora_app` and `servora_worker` by `infrastructure/database/init` when the volume is first initialised. `servora_ai` is created in M3. The runtime role has no `DELETE` privilege on any tenant-owned table.
 
 ## Global tables and lookups without tenant context
 
@@ -109,6 +123,7 @@ Some lookups happen before a tenant is known. As built in M1 ([ADR-015](../archi
 | Login by email | `users` is a global table, not under RLS |
 | Validating membership; listing a user's workspaces | Policies also expose rows matching the transaction-local `app.user_id` |
 | Accepting an invitation by token | A policy exposes the one row matching the transaction-local `app.invitation_token_hash` |
+| Outbox dispatch (background job, no tenant) | A policy exposes `outbox_events` rows when the transaction-local `app.outbox_dispatcher` is on ([ADR-016](../architecture/adr/0016-outbox-dispatcher-reads-across-tenants.md)) |
 
 These settings unlock reads only; every write policy requires `app.tenant_id`. Resolving a widget public key is designed in M4.
 

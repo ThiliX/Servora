@@ -13,7 +13,7 @@ Store documents in private S3-compatible object storage behind a storage abstrac
 
 ## Consequences
 
-- The emulator image is not chosen yet: `minio/minio` is no longer published on Docker Hub as of 2026-11-16. M2 selects an S3-compatible emulator and records it in the version matrix.
+- Local development uses `versity/versitygw` (an S3 gateway over a plain directory), chosen in M2 because `minio/minio` is no longer published on Docker Hub. It needs only two environment variables and one volume. It was exercised end to end with the AWS SDK v2 client (core API) and boto3 (worker), both using path-style addressing.
 - Deleting a document requires coordinating storage and database state, handled through the outbox in ADR-010.
 
 ## Revisit when
