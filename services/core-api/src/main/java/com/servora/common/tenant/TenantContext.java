@@ -43,6 +43,14 @@ public class TenantContext {
         set("app.invitation_token_hash", tokenHash);
     }
 
+    /**
+     * Lets the outbox dispatcher read pending events of every tenant. Call only from the outbox
+     * dispatcher: it runs outside any request and must bind the event tenant before writing.
+     */
+    public void enableOutboxDispatch() {
+        set("app.outbox_dispatcher", "on");
+    }
+
     private void set(String name, String value) {
         if (!TransactionSynchronizationManager.isActualTransactionActive()) {
             throw new IllegalStateException("Tenant context must be set inside a transaction");

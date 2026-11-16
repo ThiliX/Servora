@@ -31,8 +31,8 @@ Review checklists: [OWASP API Security Top 10](https://owasp.org/www-project-api
 | T3 | Broken object-level authorization | Agent requests another tenant's conversation ID | Object-level authorization in every service method; integration tests | M1–M5 | M1 resources: ID-substitution cases in `TenantIsolationIntegrationTest`; `RoleEnforcementIntegrationTest` |
 | T4 | Credential or session theft | Refresh token copied; long-lived token exposed | In-memory access token, rotating HttpOnly refresh cookie, reuse detection, revocation, CSRF handling on refresh | M1 | `AuthFlowIntegrationTest` (rotation, replay revokes family, cookie attributes, required client header, logout); dashboard `api.test.ts` (token never in web storage, single shared refresh) |
 | T5 | Brute force and credential stuffing | Repeated login attempts | Login rate limiting, adaptive password hashing | M1 | `AuthFlowIntegrationTest`, `LoginAttemptLimiterTest`. Limiter is per instance and in memory; Argon2id via Spring Security |
-| T6 | Malicious upload | Oversized or malformed PDF, archive bomb | Extension allowlist, content sniffing, byte/page/text/time limits, constrained worker, private storage, no fetching of embedded URLs | M2 | — |
-| T7 | Stale knowledge retrieval | A deleted document still answers questions | Deactivate chunks on replace/delete in one transaction; retrieval filters on active state | M2, M3 | — |
+| T6 | Malicious upload | Oversized or malformed PDF, archive bomb | Extension allowlist, content sniffing, byte/page/text/time limits, constrained worker, private storage, no fetching of embedded URLs | M2 | `UploadValidatorTest`, `KnowledgeDocumentIntegrationTest` (extension allow-list, content sniffing, size, empty, private generated keys); worker `test_extract_and_chunking.py` and `test_pipeline.py` (page and text limits, encrypted and malformed PDFs, safe error codes); container memory, CPU and task time limits. **Not done:** malware scanning |
+| T7 | Stale knowledge retrieval | A deleted document still answers questions | Deactivate chunks on replace/delete in one transaction; retrieval filters on active state | M2, M3 | M2: archive deactivates chunks, delete removes them, a new version retires the old one atomically (`KnowledgeDocumentIntegrationTest`, `test_pipeline.py`). Retrieval-side filter arrives in M3 |
 | T8 | Prompt injection | Customer says "ignore your rules"; a document contains instructions to reveal data | Retrieved text labelled as untrusted; backend policy is authoritative; adversarial tests for message and document injection | M3 | — |
 | T9 | Sensitive information disclosure | Model reveals another customer's message or an internal note | Minimal context, tenant filter, visibility rules, output validation | M3, M5 | — |
 | T10 | Fabricated citations | Model invents a chunk ID | Verify every citation against the retrieved set for that tenant | M3 | — |
@@ -54,6 +54,14 @@ Review checklists: [OWASP API Security Top 10](https://owasp.org/www-project-api
 - **Secret links:** verification and invitation tokens travel in the URL fragment, which browsers do not send to servers or include in the `Referer` header. Only token hashes are stored.
 - **Open redirect:** after sign-in the dashboard returns only to in-app paths.
 - **Not yet addressed:** no email provider, so links are logged in development; no review of security response headers; no dependency scanning. `npm audit` reports moderate advisories in the dashboard's dependency tree, to be triaged in M7.
+
+## Additional M2 notes
+
+- **Service-to-service authentication:** the worker's enqueue endpoint accepts only a 60-second HS256 token with a fixed issuer and audience, signed with a key separate from the user token key. Wrong key, expired, wrong audience, missing claims and unsigned tokens are rejected (`test_api.py`).
+- **Parser safety:** PDFs are parsed with pypdf, a pure-Python library that does not execute document scripts or fetch linked resources. The worker runs as a non-root user with no published ports, a 2 GB memory limit and a 5-minute task limit.
+- **Error disclosure:** processing failures store and show a fixed code only; logs record the code or the exception type, never document text.
+- **Widget origins:** stored canonically and compared by exact equality. Enforcement at session issue is M4.
+- **Not yet addressed:** malware scanning; per-tenant storage credentials; the internal token is not bound to a single use.
 
 ## File upload checklist (M2)
 

@@ -110,14 +110,16 @@ export function refreshSession(): Promise<User | null> {
 }
 
 interface RequestOptions {
-  method?: "GET" | "POST" | "PATCH" | "DELETE";
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
+  /** Multipart form data, for file uploads. The browser sets the Content-Type with its boundary. */
+  form?: FormData;
   /** Public endpoints skip the Authorization header and the refresh-and-retry step. */
   anonymous?: boolean;
 }
 
 export async function api<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { method = "GET", body, anonymous = false } = options;
+  const { method = "GET", body, form, anonymous = false } = options;
   const request = (): Promise<Response> => {
     const headers: Record<string, string> = {};
     if (body !== undefined) {
@@ -126,7 +128,7 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
     if (!anonymous && accessToken) {
       headers["Authorization"] = `Bearer ${accessToken}`;
     }
-    return send(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
+    return send(path, { method, headers, body: form ?? (body === undefined ? undefined : JSON.stringify(body)) });
   };
 
   let response = await request();

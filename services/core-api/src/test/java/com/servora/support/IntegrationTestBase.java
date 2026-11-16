@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.jayway.jsonpath.JsonPath;
 import com.servora.common.mail.MailGateway;
+import com.servora.knowledge.DocumentStorage;
+import com.servora.knowledge.IngestionClient;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -49,7 +51,10 @@ public abstract class IntegrationTestBase {
     protected static final String OWNER_PASSWORD = "owner-" + UUID.randomUUID();
     protected static final String APP_USER = "servora_app";
     protected static final String APP_PASSWORD = "app-" + UUID.randomUUID();
+    protected static final String WORKER_USER = "servora_worker";
+    protected static final String WORKER_PASSWORD = "worker-" + UUID.randomUUID();
     protected static final String PASSWORD = "correct-horse-battery-staple";
+    protected static final long MAX_UPLOAD_BYTES = 1024 * 1024;
     protected static final int POOL_SIZE = 2;
 
     protected static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(
@@ -63,6 +68,8 @@ public abstract class IntegrationTestBase {
         try (Connection connection = ownerConnection();
                 Statement statement = connection.createStatement()) {
             statement.execute("CREATE ROLE " + APP_USER + " LOGIN PASSWORD '" + APP_PASSWORD
+                    + "' NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS");
+            statement.execute("CREATE ROLE " + WORKER_USER + " LOGIN PASSWORD '" + WORKER_PASSWORD
                     + "' NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS");
         } catch (SQLException e) {
             throw new IllegalStateException(e);
@@ -81,10 +88,24 @@ public abstract class IntegrationTestBase {
         registry.add("spring.flyway.password", () -> OWNER_PASSWORD);
         registry.add("spring.flyway.placeholders.app_role", () -> APP_USER);
         registry.add("servora.auth.jwt-secret", () -> Base64.getEncoder().encodeToString(key));
+        registry.add("spring.flyway.placeholders.worker_role", () -> WORKER_USER);
+        registry.add("servora.ingestion.token-secret", () -> Base64.getEncoder().encodeToString(key));
+        registry.add("servora.storage.access-key", () -> "unused-in-tests");
+        registry.add("servora.storage.secret-key", () -> "unused-in-tests");
+        registry.add("servora.knowledge.max-upload-bytes", () -> MAX_UPLOAD_BYTES);
+        registry.add("servora.knowledge.uploads-per-hour", () -> 100_000);
+        // Tests drive the outbox explicitly so delivery is deterministic.
+        registry.add("servora.outbox.enabled", () -> false);
+        registry.add("servora.outbox.max-attempts", () -> 3);
+        registry.add("servora.outbox.retry-base-delay", () -> "PT0S");
     }
 
     protected static Connection ownerConnection() throws SQLException {
         return DriverManager.getConnection(POSTGRES.getJdbcUrl(), OWNER_USER, OWNER_PASSWORD);
+    }
+
+    protected static Connection workerConnection() throws SQLException {
+        return DriverManager.getConnection(POSTGRES.getJdbcUrl(), WORKER_USER, WORKER_PASSWORD);
     }
 
     protected static Connection appConnection() throws SQLException {
@@ -104,6 +125,49 @@ public abstract class IntegrationTestBase {
         @Primary
         MutableClock mutableClock() {
             return new MutableClock();
+        }
+
+        @Bean
+        @Primary
+        InMemoryStorage inMemoryStorage() {
+            return new InMemoryStorage();
+        }
+
+        @Bean
+        @Primary
+        RecordingIngestion recordingIngestion() {
+            return new RecordingIngestion();
+        }
+    }
+
+    /** Stands in for object storage. The real S3 implementation has its own test. */
+    public static final class InMemoryStorage implements DocumentStorage {
+
+        public final Map<String, byte[]> objects = new ConcurrentHashMap<>();
+
+        @Override
+        public void put(String key, byte[] content, String contentType) {
+            objects.put(key, content);
+        }
+
+        @Override
+        public void delete(String key) {
+            objects.remove(key);
+        }
+    }
+
+    /** Stands in for the document worker's enqueue endpoint. */
+    public static final class RecordingIngestion implements IngestionClient {
+
+        public final java.util.List<String> enqueued = new java.util.concurrent.CopyOnWriteArrayList<>();
+        public volatile boolean failing;
+
+        @Override
+        public void enqueue(UUID tenantId, UUID documentId) {
+            if (failing) {
+                throw new IllegalStateException("worker unavailable");
+            }
+            enqueued.add(tenantId + ":" + documentId);
         }
     }
 
@@ -223,6 +287,33 @@ public abstract class IntegrationTestBase {
         }
         try {
             HttpResponse<String> response = http.send(request.build(), HttpResponse.BodyHandlers.ofString());
+            return new Response(response.statusCode(), response.body(), response);
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    /** Sends one file as multipart/form-data in a part named "file". */
+    protected Response uploadFile(String path, String filename, byte[] content, Session session) {
+        String boundary = "----servora" + UUID.randomUUID();
+        String crlf = "\r\n";
+        byte[] head = ("--" + boundary + crlf
+                        + "Content-Disposition: form-data; name=\"file\"; filename=\"" + filename + "\"" + crlf
+                        + "Content-Type: application/octet-stream" + crlf + crlf)
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] tail = (crlf + "--" + boundary + "--" + crlf).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] body = new byte[head.length + content.length + tail.length];
+        System.arraycopy(head, 0, body, 0, head.length);
+        System.arraycopy(content, 0, body, head.length, content.length);
+        System.arraycopy(tail, 0, body, head.length + content.length, tail.length);
+        HttpRequest request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + path))
+                .timeout(Duration.ofSeconds(60))
+                .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+                .header("Authorization", "Bearer " + session.accessToken())
+                .POST(HttpRequest.BodyPublishers.ofByteArray(body))
+                .build();
+        try {
+            HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
             return new Response(response.statusCode(), response.body(), response);
         } catch (Exception e) {
             throw new IllegalStateException(e);

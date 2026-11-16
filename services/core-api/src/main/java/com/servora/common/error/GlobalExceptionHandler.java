@@ -18,6 +18,9 @@ import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
@@ -43,10 +46,21 @@ public class GlobalExceptionHandler {
         ConstraintViolationException.class,
         HttpMessageNotReadableException.class,
         MethodArgumentTypeMismatchException.class,
-        MissingRequestHeaderException.class
+        MissingRequestHeaderException.class,
+        MissingServletRequestPartException.class
     })
     ResponseEntity<ApiError> handleBadRequest(Exception ex) {
         return respond(HttpStatus.BAD_REQUEST, "BAD_REQUEST", "The request is malformed.");
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    ResponseEntity<ApiError> handleTooLarge(MaxUploadSizeExceededException ex) {
+        return respond(HttpStatus.CONTENT_TOO_LARGE, "FILE_TOO_LARGE", "The file is larger than the upload limit.");
+    }
+
+    @ExceptionHandler(MultipartException.class)
+    ResponseEntity<ApiError> handleMultipart(MultipartException ex) {
+        return respond(HttpStatus.BAD_REQUEST, "BAD_REQUEST", "The upload is malformed.");
     }
 
     @ExceptionHandler(NoResourceFoundException.class)

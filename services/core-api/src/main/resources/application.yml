@@ -20,6 +20,7 @@ spring:
     password: ${SERVORA_POSTGRES_OWNER_PASSWORD}
     placeholders:
       app_role: ${SERVORA_POSTGRES_APP_USER:servora_app}
+      worker_role: ${SERVORA_POSTGRES_WORKER_USER:servora_worker}
   jpa:
     open-in-view: false
     hibernate:
@@ -28,6 +29,11 @@ spring:
       hibernate.jdbc.time_zone: UTC
   jackson:
     property-naming-strategy: SNAKE_CASE
+  servlet:
+    multipart:
+      # Hard transport limit. The application applies its own, lower, limit and a content check.
+      max-file-size: 12MB
+      max-request-size: 13MB
 
 server:
   port: ${SERVORA_API_PORT:8080}
@@ -67,6 +73,28 @@ servora:
     login-failure-window: PT15M
   web:
     base-url: ${SERVORA_WEB_BASE_URL:http://localhost:5173}
+  knowledge:
+    max-upload-bytes: ${SERVORA_MAX_UPLOAD_BYTES:10485760}
+    max-documents-per-workspace: 200
+    uploads-per-hour: 60
+  storage:
+    # Private S3-compatible object storage for uploaded documents.
+    endpoint: ${SERVORA_STORAGE_ENDPOINT:http://localhost:7070}
+    region: ${SERVORA_STORAGE_REGION:us-east-1}
+    bucket: ${SERVORA_STORAGE_BUCKET:servora-documents}
+    access-key: ${SERVORA_STORAGE_ACCESS_KEY}
+    secret-key: ${SERVORA_STORAGE_SECRET_KEY}
+  ingestion:
+    enqueue-url: ${SERVORA_WORKER_ENQUEUE_URL:http://localhost:8090/internal/v1/ingestion-jobs}
+    # Base64 HMAC key shared with the document worker, at least 32 bytes. Not the user JWT key.
+    token-secret: ${SERVORA_INTERNAL_TOKEN_SECRET}
+    token-ttl: PT1M
+    request-timeout: PT5S
+  outbox:
+    enabled: true
+    poll-interval: PT2S
+    max-attempts: 8
+    retry-base-delay: PT5S
   mail:
     # Development only: write verification and invitation links to the log
     # instead of sending email. Never enable outside local development.

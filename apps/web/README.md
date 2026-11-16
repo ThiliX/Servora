@@ -2,7 +2,7 @@
 
 React, TypeScript, Vite and Tailwind CSS dashboard for workspace owners, admins, supervisors and agents.
 
-Implemented in M1: registration, email verification, sign-in, workspace list and creation, workspace switcher, team and invitations, workspace settings.
+Implemented: registration, email verification, sign-in, workspace list and creation, workspace switcher, team and invitations, workspace settings (M1); assistant configuration, widget settings and knowledge base (M2).
 
 ```bash
 npm install
