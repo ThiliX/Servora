@@ -17,7 +17,8 @@ public class InteractionRecorder {
 
     public enum Source {
         PLAYGROUND,
-        WIDGET
+        WIDGET,
+        AGENT_SUGGESTION
     }
 
     private final JdbcClient jdbc;

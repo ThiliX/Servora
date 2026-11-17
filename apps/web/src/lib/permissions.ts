@@ -54,3 +54,8 @@ export const ROLE_LABELS: Record<WorkspaceRole, string> = {
 export function canViewConversations(role: WorkspaceRole): boolean {
   return role === "OWNER" || role === "ADMIN" || role === "SUPERVISOR";
 }
+
+/** Assigning tickets to team members. */
+export function canAssignTickets(role: WorkspaceRole): boolean {
+  return role === "OWNER" || role === "ADMIN" || role === "SUPERVISOR";
+}

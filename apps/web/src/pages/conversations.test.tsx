@@ -58,7 +58,7 @@ describe("conversations", () => {
   it("lists conversations with their state and pages through them", async () => {
     const { calls } = mockFetch((url) =>
       jsonResponse(200, {
-        items: [summary({}), summary({ id: "c2", control_mode: "HUMAN_PENDING", message_count: 1 })],
+        items: [summary({}), summary({ id: "c2", control_mode: "ESCALATION_PENDING", message_count: 1 })],
         page: url.includes("page=1") ? 1 : 0,
         size: 20,
         total: 45,

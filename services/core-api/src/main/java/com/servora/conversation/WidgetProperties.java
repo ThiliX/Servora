@@ -22,4 +22,5 @@ public record WidgetProperties(
         @Min(1) int sessionsPerIpPerHour,
         @Min(1) int messagesPerConversationPerMinute,
         @Min(1) int messagesPerIpPerMinute,
+        @Min(1) int historyPerConversationPerMinute,
         @Min(1) int aiRepliesPerTenantPerDay) {}

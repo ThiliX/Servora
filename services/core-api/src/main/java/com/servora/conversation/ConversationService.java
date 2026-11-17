@@ -14,6 +14,11 @@ import com.servora.common.error.ApiException;
 import com.servora.common.ratelimit.RateLimiter;
 import com.servora.common.tenant.TenantContext;
 import com.servora.conversation.WidgetTokens.WidgetSession;
+import com.servora.ticket.EscalationPolicy;
+import com.servora.ticket.EscalationPolicy.Decision;
+import com.servora.ticket.EscalationService;
+import com.servora.ticket.EscalationService.Escalation;
+import com.servora.ticket.TicketService;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Duration;
@@ -47,21 +52,21 @@ public class ConversationService {
 
     private static final Logger log = LoggerFactory.getLogger(ConversationService.class);
 
-    static final String HANDOFF_NOTICE = "Thanks. A member of our team will reply here as soon as possible.";
     private static final int HISTORY_LIMIT = 200;
 
     public record CitationView(String filename, Integer pageNumber, String heading, String snippet) {}
 
     public record MessageView(UUID id, String senderType, String body, Instant createdAt, List<CitationView> citations) {}
 
-    public record ConversationView(UUID conversationId, String status, String controlMode, List<MessageView> messages) {}
+    public record ConversationView(
+            UUID conversationId, String status, String controlMode, boolean feedbackSubmitted, List<MessageView> messages) {}
 
     /** What happened to a submitted message. */
     public record Submission(
             MessageView customerMessage, boolean duplicate, MessageView existingReply, boolean replyExpected,
-            String notice, int conversationVersion) {}
+            String notice, int conversationVersion, MessageView systemMessage) {}
 
-    public record Reply(MessageView message, boolean delivered, String outcome) {}
+    public record Reply(MessageView message, boolean delivered, String outcome, MessageView systemMessage) {}
 
     private record ConversationState(String status, String controlMode, int version) {}
 
@@ -72,6 +77,8 @@ public class ConversationService {
     private final InteractionRecorder recorder;
     private final RateLimiter rateLimiter;
     private final WidgetProperties properties;
+    private final EscalationService escalation;
+    private final TicketService tickets;
     private final TransactionTemplate transactions;
 
     public ConversationService(
@@ -82,6 +89,8 @@ public class ConversationService {
             InteractionRecorder recorder,
             RateLimiter rateLimiter,
             WidgetProperties properties,
+            EscalationService escalation,
+            TicketService tickets,
             PlatformTransactionManager transactionManager) {
         this.jdbc = jdbc;
         this.tenantContext = tenantContext;
@@ -90,14 +99,17 @@ public class ConversationService {
         this.recorder = recorder;
         this.rateLimiter = rateLimiter;
         this.properties = properties;
+        this.escalation = escalation;
+        this.tickets = tickets;
         this.transactions = new TransactionTemplate(transactionManager);
     }
 
     public ConversationView history(WidgetSession session) {
+        limit("history-conversation:" + session.conversationId(),
+                properties.historyPerConversationPerMinute(), Duration.ofMinutes(1));
         return transactions.execute(status -> {
             tenantContext.bindTenant(session.tenantId());
-            ConversationState state = state(session, false);
-            return new ConversationView(session.conversationId(), state.status(), state.controlMode(), publicMessages(session));
+            return view(session);
         });
     }
 
@@ -145,12 +157,21 @@ public class ConversationService {
                     .optional()
                     .orElse(false);
             if (!"AI_ACTIVE".equals(state.controlMode())) {
-                return new Submission(message, false, null, false, "HUMAN_PENDING", state.version());
+                tickets.onCustomerMessage(session.tenantId(), session.conversationId());
+                return new Submission(message, false, null, false, "HUMAN_PENDING", state.version(), null);
+            }
+            Optional<Decision> risk = EscalationPolicy.forCustomerMessage(text);
+            if (risk.isPresent()) {
+                MessageView notice = escalation.escalate(session.tenantId(), session.conversationId(), risk.get(), null)
+                        .map(Escalation::systemMessageId)
+                        .map(id -> message(session.tenantId(), id))
+                        .orElse(null);
+                return new Submission(message, false, null, false, "HUMAN_PENDING", state.version(), notice);
             }
             if (!automation) {
-                return new Submission(message, false, null, false, "AUTOMATION_OFF", state.version());
+                return new Submission(message, false, null, false, "AUTOMATION_OFF", state.version(), null);
             }
-            return new Submission(message, false, null, true, null, state.version());
+            return new Submission(message, false, null, true, null, state.version(), null);
         });
     }
 
@@ -181,6 +202,7 @@ public class ConversationService {
             boolean deliverable = "OPEN".equals(now.status())
                     && "AI_ACTIVE".equals(now.controlMode())
                     && now.version() == submission.conversationVersion();
+            boolean previousUnusable = EscalationPolicy.isUnusable(previousAssistantOutcome(session));
             UUID messageId = UUID.randomUUID();
             jdbc.sql("""
                             INSERT INTO messages (id, tenant_id, conversation_id, sender_type, visibility, delivery_status,
@@ -217,6 +239,7 @@ public class ConversationService {
                         .param("snippet", citation.snippet() == null ? "" : citation.snippet())
                         .update();
             }
+            MessageView notice = null;
             if (deliverable) {
                 jdbc.sql("""
                                 UPDATE conversations SET last_message_at = now(), updated_at = now()
@@ -225,8 +248,16 @@ public class ConversationService {
                         .param("tenantId", session.tenantId())
                         .param("conversationId", session.conversationId())
                         .update();
+                Optional<Decision> decision = EscalationPolicy.afterAiReply(
+                        verified.outcome(), verified.intent(), verified.escalationReason(), previousUnusable);
+                if (decision.isPresent()) {
+                    notice = escalation.escalate(session.tenantId(), session.conversationId(), decision.get(), null)
+                            .map(Escalation::systemMessageId)
+                            .map(id -> message(session.tenantId(), id))
+                            .orElse(null);
+                }
             }
-            return new Reply(message(session.tenantId(), messageId), deliverable, verified.outcome());
+            return new Reply(message(session.tenantId(), messageId), deliverable, verified.outcome(), notice);
         });
         // Identifiers and outcome only: never the question or the answer text.
         log.info("widget reply tenant={} conversation={} outcome={} delivered={}",
@@ -238,31 +269,68 @@ public class ConversationService {
     public ConversationView requestHuman(WidgetSession session) {
         return transactions.execute(status -> {
             tenantContext.bindTenant(session.tenantId());
-            state(session, true);
-            int changed = jdbc.sql("""
-                            UPDATE conversations
-                            SET control_mode = 'HUMAN_PENDING', version = version + 1, handoff_requested_at = now(),
-                                updated_at = now(), last_message_at = now()
-                            WHERE tenant_id = :tenantId AND id = :conversationId
-                              AND status = 'OPEN' AND control_mode = 'AI_ACTIVE'
+            ConversationState state = state(session, false);
+            if ("CLOSED".equals(state.status())) {
+                throw ApiException.conflict("CONVERSATION_CLOSED", "This conversation has ended. Start a new one.");
+            }
+            escalation.escalate(session.tenantId(), session.conversationId(), EscalationPolicy.customerRequest(), null);
+            return view(session);
+        });
+    }
+
+    /** The customer's rating of a resolved conversation. Accepted once. */
+    public ConversationView feedback(WidgetSession session, int rating, String comment) {
+        return transactions.execute(status -> {
+            tenantContext.bindTenant(session.tenantId());
+            ConversationState state = state(session, false);
+            if (!"CLOSED".equals(state.status())) {
+                throw ApiException.conflict("CONVERSATION_NOT_RESOLVED", "You can rate the conversation once it is resolved.");
+            }
+            Optional<UUID> inserted = jdbc.sql("""
+                            INSERT INTO conversation_feedback (id, tenant_id, conversation_id, rating, comment)
+                            VALUES (:id, :tenantId, :conversationId, :rating, :comment)
+                            ON CONFLICT ON CONSTRAINT uq_conversation_feedback_conversation DO NOTHING
+                            RETURNING id
                             """)
+                    .param("id", UUID.randomUUID())
                     .param("tenantId", session.tenantId())
                     .param("conversationId", session.conversationId())
-                    .update();
-            if (changed == 1) {
-                jdbc.sql("""
-                                INSERT INTO messages (id, tenant_id, conversation_id, sender_type, body)
-                                VALUES (:id, :tenantId, :conversationId, 'SYSTEM', :body)
-                                """)
-                        .param("id", UUID.randomUUID())
+                    .param("rating", rating)
+                    .param("comment", comment == null || comment.isBlank() ? null : comment.strip())
+                    .query(UUID.class)
+                    .optional();
+            if (inserted.isEmpty()) {
+                throw ApiException.conflict("FEEDBACK_EXISTS", "Thanks, your rating was already recorded.");
+            }
+            return view(session);
+        });
+    }
+
+    private ConversationView view(WidgetSession session) {
+        ConversationState state = state(session, false);
+        boolean rated = jdbc.sql(
+                        "SELECT count(*) FROM conversation_feedback WHERE tenant_id = :tenantId AND conversation_id = :conversationId")
                         .param("tenantId", session.tenantId())
                         .param("conversationId", session.conversationId())
-                        .param("body", HANDOFF_NOTICE)
-                        .update();
-            }
-            ConversationState state = state(session, false);
-            return new ConversationView(session.conversationId(), state.status(), state.controlMode(), publicMessages(session));
-        });
+                        .query(Long.class)
+                        .single()
+                > 0;
+        return new ConversationView(session.conversationId(), state.status(), state.controlMode(), rated, publicMessages(session));
+    }
+
+    private String previousAssistantOutcome(WidgetSession session) {
+        return jdbc.sql("""
+                        SELECT i.outcome FROM messages m
+                        JOIN ai_interactions i ON i.tenant_id = m.tenant_id AND i.id = m.interaction_id
+                        WHERE m.tenant_id = :tenantId AND m.conversation_id = :conversationId
+                          AND m.sender_type = 'ASSISTANT' AND m.visibility = 'PUBLIC'
+                        ORDER BY m.created_at DESC, m.id DESC LIMIT 1
+                        """)
+                .param("tenantId", session.tenantId())
+                .param("conversationId", session.conversationId())
+                .query(String.class)
+                .optional()
+                .orElse(null);
     }
 
     private Submission duplicate(WidgetSession session, String idempotencyKey, String text, ConversationState state) {
@@ -290,7 +358,7 @@ public class ConversationService {
                 .optional();
         MessageView reply = replyId.map(id -> message(session.tenantId(), id)).orElse(null);
         String notice = reply != null ? null : "AI_ACTIVE".equals(state.controlMode()) ? "REPLY_PENDING" : "HUMAN_PENDING";
-        return new Submission(message(session.tenantId(), customerMessageId), true, reply, false, notice, state.version());
+        return new Submission(message(session.tenantId(), customerMessageId), true, reply, false, notice, state.version(), null);
     }
 
     private boolean withinTenantBudget(UUID tenantId) {
@@ -409,7 +477,7 @@ public class ConversationService {
         }
     }
 
-    static Instant instant(ResultSet rs, String column) throws SQLException {
+    public static Instant instant(ResultSet rs, String column) throws SQLException {
         OffsetDateTime value = rs.getObject(column, OffsetDateTime.class);
         return value == null ? null : value.toInstant();
     }

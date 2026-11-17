@@ -7,6 +7,7 @@ import com.servora.common.web.PageResponse;
 import com.servora.membership.Permission;
 import com.servora.membership.WorkspaceAccess;
 import com.servora.membership.WorkspaceContext;
+import com.servora.ticket.StaffAccess;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -59,10 +60,12 @@ public class ConversationAdminService {
 
     private final JdbcClient jdbc;
     private final WorkspaceAccess access;
+    private final StaffAccess staff;
 
-    public ConversationAdminService(JdbcClient jdbc, WorkspaceAccess access) {
+    public ConversationAdminService(JdbcClient jdbc, WorkspaceAccess access, StaffAccess staff) {
         this.jdbc = jdbc;
         this.access = access;
+        this.staff = staff;
     }
 
     @Transactional(readOnly = true)
@@ -90,15 +93,17 @@ public class ConversationAdminService {
 
     @Transactional(readOnly = true)
     public ConversationSummary get(UUID userId, UUID workspaceId, UUID conversationId) {
-        WorkspaceContext ctx = access.authorize(userId, workspaceId, Permission.VIEW_ALL_CONVERSATIONS);
+        // Agents may open conversations of tickets assigned to them, or unassigned ones.
+        WorkspaceContext ctx = staff.authorize(userId, workspaceId);
+        staff.requireConversation(ctx, conversationId);
         return require(ctx, conversationId);
     }
 
-    /** Every message, oldest first, including internal and suppressed ones. */
+    /** Every message, oldest first, including internal, suppressed and suggested ones. */
     @Transactional(readOnly = true)
     public PageResponse<AdminMessage> messages(UUID userId, UUID workspaceId, UUID conversationId, int page, int size) {
-        WorkspaceContext ctx = access.authorize(userId, workspaceId, Permission.VIEW_ALL_CONVERSATIONS);
-        require(ctx, conversationId);
+        WorkspaceContext ctx = staff.authorize(userId, workspaceId);
+        staff.requireConversation(ctx, conversationId);
         int safePage = Math.max(page, 0);
         int safeSize = Math.min(Math.max(size, 1), PageResponse.MAX_SIZE);
         List<AdminMessage> rows = jdbc.sql("""

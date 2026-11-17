@@ -57,7 +57,7 @@ function setup(fetchImpl: (url: string, init: RequestInit) => Promise<Response>)
   return { root, widget, posted, calls, input };
 }
 
-const EMPTY = { conversation_id: "c1", status: "OPEN", control_mode: "AI_ACTIVE", messages: [] };
+const EMPTY = { conversation_id: "c1", status: "OPEN", control_mode: "AI_ACTIVE", feedback_submitted: false, messages: [] };
 
 describe("chat widget", () => {
   beforeEach(() => {
@@ -302,5 +302,91 @@ describe("loader", () => {
     expect(iframe!.style.position).toBe("fixed");
     expect(iframe!.style.left).toBe("0px");
     expect(iframe!.title).toBe("TechStore");
+  });
+});
+
+describe("chat widget with a person", () => {
+  it("checks for team replies while a person handles the chat, and stops when the chat ends", async () => {
+    vi.useFakeTimers();
+    try {
+      const pending = { ...EMPTY, control_mode: "ESCALATION_PENDING" };
+      const withReply = {
+        ...EMPTY,
+        control_mode: "HUMAN_ACTIVE",
+        messages: [message({ id: "a1", sender_type: "AGENT", body: "Hi, this is Sam from the team." })],
+      };
+      const closed = { ...withReply, status: "CLOSED" };
+      const responses = [pending, withReply, closed];
+      const { root, widget, calls } = setup(async () => json(200, responses.shift() ?? closed));
+      await widget.openPanel();
+      expect(calls).toHaveLength(1);
+
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(root.querySelector(".message.agent")!.textContent).toContain("Hi, this is Sam from the team.");
+
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(widget.state.conversationStatus).toBe("CLOSED");
+      const count = calls.length;
+      await vi.advanceTimersByTimeAsync(20000);
+      expect(calls).toHaveLength(count);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("asks for a rating when the chat has ended and lets the customer start again", async () => {
+    let view: unknown = { ...EMPTY, status: "CLOSED", control_mode: "HUMAN_ACTIVE" };
+    const { root, widget, calls, posted } = setup(async (url) => {
+      if (url.endsWith("/feedback")) {
+        return json(200, { ...EMPTY, status: "CLOSED", feedback_submitted: true });
+      }
+      return json(200, view);
+    });
+    await widget.openPanel();
+
+    expect(root.querySelector<HTMLFormElement>(".composer")!.hidden).toBe(true);
+    expect(root.querySelector<HTMLElement>(".ended")!.hidden).toBe(false);
+    expect(root.querySelector<HTMLButtonElement>(".human:not(.ended .human)")!.hidden).toBe(true);
+
+    await widget.sendFeedback();
+    expect(widget.state.status?.tone).toBe("error");
+
+    root.querySelectorAll<HTMLButtonElement>(".star")[3]!.click();
+    expect(root.querySelectorAll('.star[aria-pressed="true"]')).toHaveLength(4);
+    await widget.sendFeedback();
+    const feedback = calls.find((c) => c.url.endsWith("/conversation/feedback"))!;
+    expect(JSON.parse(feedback.init.body as string)).toEqual({ rating: 4, comment: null });
+    expect(widget.state.status?.text).toBe("Thank you for your feedback.");
+    expect(root.querySelector<HTMLButtonElement>(".star")!.disabled).toBe(true);
+
+    view = EMPTY;
+    await widget.startNewChat();
+    expect(posted.filter((m) => m.type === "session-request").at(-1)).toEqual({
+      source: "servora-widget",
+      type: "session-request",
+      renew: true,
+    });
+    expect(widget.state.conversationStatus).toBe("OPEN");
+    expect(root.querySelector<HTMLFormElement>(".composer")!.hidden).toBe(false);
+  });
+
+  it("shows the system notice streamed after an escalation", async () => {
+    const { root, widget, input } = setup(async (url) =>
+      url.endsWith("/messages")
+        ? sse([
+            ["customer_message", message({})],
+            ["system_message", message({ id: "s1", sender_type: "SYSTEM", body: "A member of our team will reply here." })],
+            ["notice", { code: "HUMAN_PENDING" }],
+            ["done", {}],
+          ])
+        : json(200, EMPTY),
+    );
+    await widget.openPanel();
+    input().value = "I want to speak to my lawyer";
+
+    await widget.send();
+
+    expect(root.querySelector(".message.system")!.textContent).toContain("A member of our team will reply here.");
+    expect(widget.state.controlMode).toBe("HUMAN_PENDING");
   });
 });

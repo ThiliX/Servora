@@ -113,6 +113,7 @@ servora:
     sessions-per-ip-per-hour: 30
     messages-per-conversation-per-minute: 10
     messages-per-ip-per-minute: 30
+    history-per-conversation-per-minute: 60
     ai-replies-per-tenant-per-day: 2000
   outbox:
     enabled: true

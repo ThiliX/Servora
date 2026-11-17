@@ -1,4 +1,5 @@
 import { Link, NavLink, Outlet, useNavigate, useOutletContext, useParams } from "react-router";
+import { NotificationsBell } from "../components/NotificationsBell";
 import { Button, ErrorState, Loading, Notice, Select } from "../components/ui";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
@@ -83,6 +84,7 @@ export function WorkspaceLayout() {
             </span>
           </div>
           <div className="flex items-center gap-3 text-sm">
+            <NotificationsBell workspaceId={workspace.id} />
             <span className="text-slate-600">{auth.user.email}</span>
             <Button variant="secondary" onClick={() => void logout()}>
               Sign out
@@ -90,6 +92,9 @@ export function WorkspaceLayout() {
           </div>
         </div>
         <nav aria-label="Workspace" className="mx-auto flex max-w-5xl flex-wrap gap-1 px-4 pb-2">
+          <NavLink to="inbox" className={linkClass}>
+            Inbox
+          </NavLink>
           <NavLink to="team" className={linkClass}>
             Team
           </NavLink>

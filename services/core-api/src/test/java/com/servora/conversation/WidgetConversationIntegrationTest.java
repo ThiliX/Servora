@@ -494,7 +494,7 @@ class WidgetConversationIntegrationTest extends IntegrationTestBase {
         Response after = postMessage(token, newKey(), "Are you there?");
 
         assertThat(handoff.status()).isEqualTo(200);
-        assertThat(handoff.<String>json("$.control_mode")).isEqualTo("HUMAN_PENDING");
+        assertThat(handoff.<String>json("$.control_mode")).isEqualTo("ESCALATION_PENDING");
         assertThat(again.<List<String>>json("$.messages[*].sender_type")).containsExactly("SYSTEM");
         assertThat(names(after)).containsExactly("customer_message", "notice", "done");
         assertThat(event(after, "notice").data()).contains("HUMAN_PENDING");
@@ -512,7 +512,9 @@ class WidgetConversationIntegrationTest extends IntegrationTestBase {
 
         Response response = postMessage(token, newKey(), "Refunds?");
 
-        assertThat(names(response)).containsExactly("customer_message", "assistant_typing", "assistant_message", "done");
+        // A service error also hands the conversation to a person (M5).
+        assertThat(names(response)).containsExactly(
+                "customer_message", "assistant_typing", "assistant_message", "system_message", "notice", "done");
         assertThat(event(response, "assistant_message").data())
                 .contains("I am not sure about that.")
                 .doesNotContain("connection refused");

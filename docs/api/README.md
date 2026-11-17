@@ -134,6 +134,29 @@ Default limits: config 120 per address per minute; sessions 30 per address per h
 | GET | `/workspaces/{workspaceId}/conversations/{conversationId}` | Owner, Admin, Supervisor | One conversation's summary |
 | GET | `/workspaces/{workspaceId}/conversations/{conversationId}/messages` | Owner, Admin, Supervisor | Every message, oldest first, including internal and suppressed ones, with citations and the AI outcome. Paged |
 
+## Endpoints implemented in M5
+
+Design: [ADR-018](../architecture/adr/0018-human-handoff-escalation-and-takeover.md). "Workers" means the ticket's assignee, or an owner, admin or supervisor.
+
+| Method | Path | Roles | Purpose |
+|---|---|---|---|
+| GET | `/workspaces/{workspaceId}/tickets?view=ALL\|MINE\|UNASSIGNED&state=ACTIVE\|DONE` | All; agents see only their own and unassigned | Ticket queue, by priority then age. Paged |
+| GET | `/workspaces/{workspaceId}/tickets/{ticketId}` | As above | Ticket, conversation state and version, history, customer rating, and whether the caller may work on it |
+| GET | `/workspaces/{workspaceId}/tickets/assignees` | Owner, Admin, Supervisor | Active members a ticket can be assigned to |
+| PUT | `/workspaces/{workspaceId}/tickets/{ticketId}/assignee` | Owner, Admin, Supervisor | `{"membership_id": "..."}` or `null`. Notifies the new assignee |
+| PATCH | `/workspaces/{workspaceId}/tickets/{ticketId}` | Workers | `{"status": "IN_PROGRESS" \| "WAITING_FOR_CUSTOMER"}` and/or `{"priority": ...}` |
+| POST | `/workspaces/{workspaceId}/tickets/{ticketId}/resolve` | Workers | `{"outcome": "SOLVED" \| "NOT_SOLVED" \| "NO_REPLY_FROM_CUSTOMER" \| "DUPLICATE", "note": "..."}`. Ends the customer's conversation |
+| POST | `/workspaces/{workspaceId}/tickets/{ticketId}/close` | Workers | Resolved to closed |
+| POST | `/workspaces/{workspaceId}/conversations/{conversationId}/takeover` | Assignee, or anyone for an unassigned ticket; owners, admins and supervisors also for unescalated conversations | `{"expected_version": n}`. Refused with `409 CONVERSATION_CHANGED` if the version moved |
+| POST | `/workspaces/{workspaceId}/conversations/{conversationId}/replies` | The assignee, after takeover | `{"body": "...", "suggestion_id": "..."}`. Otherwise `409 TAKEOVER_REQUIRED` |
+| GET, POST | `/workspaces/{workspaceId}/conversations/{conversationId}/notes` | Anyone who can see the conversation | Internal notes. Never returned by any public endpoint |
+| POST | `/workspaces/{workspaceId}/conversations/{conversationId}/suggestions` | Anyone who can see the conversation | AI draft of a reply to the latest customer message. Stored, not sent |
+| GET | `/workspaces/{workspaceId}/notifications` | All | The caller's latest 50 notifications and unread count |
+| POST | `/workspaces/{workspaceId}/notifications/read` | All | `{"ids": [...]}`, or empty to mark all read |
+| POST | `/public/conversation/feedback` | Session token | `{"rating": 1-5, "comment": "..."}`, once, after the conversation is resolved |
+
+Public widget changes: message streams may include a `system_message` event; the history includes `feedback_submitted`; handoff now creates a ticket; and the history is limited to 60 requests per conversation per minute. Errors: `TICKET_NOT_FOUND` (404), `NOT_ASSIGNED` and `TAKEOVER_NOT_ALLOWED` (403), `CONVERSATION_CHANGED`, `TAKEOVER_REQUIRED`, `TICKET_NOT_ACTIVE`, `TICKET_NOT_RESOLVED`, `INVALID_TRANSITION`, `CONVERSATION_NOT_RESOLVED`, `FEEDBACK_EXISTS` (409), `INVALID_STATUS`, `INVALID_ASSIGNEE` (400).
+
 ## Idempotency
 
 - Registration, verification and invitation acceptance are safe to retry: a repeat either does nothing or returns a clear conflict (`INVITATION_NOT_PENDING`, `ALREADY_MEMBER`).
@@ -141,12 +164,12 @@ Default limits: config 120 per address per minute; sessions 30 per address per h
 - Uploading content identical to a live document returns `409 DUPLICATE_DOCUMENT`, so a retried upload does not create a second copy.
 - Archive, reprocess and delete can be repeated safely; a repeat returns the current state or a clear conflict.
 - Customer messages require an `Idempotency-Key` header. A retry with the same key and text stores nothing new and replays the stored message and reply; the same key with different text returns `409 IDEMPOTENCY_KEY_REUSED`.
-- Idempotency keys for ticket creation arrive with that endpoint in M5.
+- Escalation is idempotent per conversation: repeated or parallel requests create one ticket and one notice.
+- A takeover repeated by the person who already holds the conversation returns the current state.
+- A customer rating is accepted once; a repeat returns `409 FEEDBACK_EXISTS`.
 
 ## Planned endpoint groups
 
 | Group | Base path | Milestone |
 |---|---|---|
-| Conversation replies and assignment | `/workspaces/{workspaceId}/conversations` | M5 |
-| Tickets | `/workspaces/{workspaceId}/tickets` | M5 |
 | Analytics | `/workspaces/{workspaceId}/analytics` | M6 |

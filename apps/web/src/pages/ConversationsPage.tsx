@@ -12,7 +12,7 @@ const MESSAGE_PAGE_SIZE = 50;
 
 const MODE_LABELS: Record<ControlMode, string> = {
   AI_ACTIVE: "Assistant replying",
-  HUMAN_PENDING: "Waiting for a person",
+  ESCALATION_PENDING: "Waiting for a person",
   HUMAN_ACTIVE: "Person replying",
 };
 

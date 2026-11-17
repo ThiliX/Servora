@@ -128,6 +128,7 @@ public abstract class IntegrationTestBase {
         registry.add("servora.widget.config-per-ip-per-minute", () -> 100_000);
         registry.add("servora.widget.sessions-per-ip-per-hour", () -> 100_000);
         registry.add("servora.widget.messages-per-ip-per-minute", () -> 100_000);
+        registry.add("servora.widget.history-per-conversation-per-minute", () -> 100_000);
         registry.add("servora.widget.ai-replies-per-tenant-per-day", () -> 100_000);
     }
 
