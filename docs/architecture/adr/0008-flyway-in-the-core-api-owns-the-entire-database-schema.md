@@ -11,6 +11,8 @@ Three services touch PostgreSQL. Two migration tools would create ordering and o
 
 All schema objects, including `document_chunks`, the pgvector extension, roles' grants and RLS policies, are created by Flyway migrations in `services/core-api`. Python services ship no migrations and treat the schema as a contract.
 
+**Amended in M7:** in the production profile the migrations run in a one-shot container (`com.servora.Migrate` from the API image) with the owner role, and the API runs with Flyway disabled and only the runtime role ([ADR-021](0021-production-deployment-profile.md)). In development the API still applies them at start-up.
+
 ## Consequences
 
 - One ordered migration history and one place to review tenant isolation.

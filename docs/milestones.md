@@ -173,12 +173,22 @@ M7 is delivered in four phases, each its own pull request.
 
 - [x] Playwright suite for the MVP demonstration script against the real stack, including the M6 pages ([tests/e2e](../tests/e2e/README.md)); 11 of 11 steps passed in two consecutive local runs
 - [x] Load test of the non-AI endpoints with recorded machine and workload ([load-test.md](testing/load-test.md)): P95 11.6 ms at 20 virtual users and 15.0 ms at 100, target 500 ms
-- [ ] Browser suite in CI (needs the containerised API from phase 3)
+- [x] Browser suite in CI (added in phase 3a)
+- [x] CI green and merged (pull request 9)
+
+**Phase 3a — production profile**
+
+- [x] Core API, dashboard and widget in containers; migrations in a one-shot container, so the API never holds the owner's password ([ADR-021](architecture/adr/0021-production-deployment-profile.md))
+- [x] Production Compose overlay: only the gateway and widget host publish ports, internal data network, non-root read-only containers with limits ([production.md](operations/production.md))
+- [x] Image scanning in CI; every image at 0 fixable high or critical vulnerabilities after base-image updates and removing `pip` from the Python images
+- [x] Browser suite in CI against the production stack
+- [x] Embed snippet fixed: the dashboard shows the real loader URL, and the widget host forwards the public widget API
+- [x] Backup and restore scripts, and a drill performed with identical counts, policies, grants and file checksums ([backup-and-restore.md](operations/backup-and-restore.md))
 - [ ] CI green and merged
 
 **Remaining phases**
 
-- [ ] Phase 3: production Compose profile, containerised API and dashboard, image scanning, observability, backup and restore drill
+- [ ] Phase 3b: observability (metrics, structured logs, tracing)
 - [ ] Phase 4: AI evaluation report, seed script, documentation and demo setup
 
 Original checklist, ticked as phases complete:
@@ -187,9 +197,9 @@ Original checklist, ticked as phases complete:
 - [x] End-to-end suite for the MVP demonstration script (phase 2, local; CI in phase 3)
 - [x] Load test with recorded conditions (phase 2)
 - [ ] AI evaluation report
-- [ ] Compose production profile and CI for all stacks
+- [x] Compose production profile and CI for all stacks (phase 3a)
 - [ ] Observability: logs, metrics, traces
-- [ ] Backup and restore drill performed
+- [x] Backup and restore drill performed (phase 3a)
 - [ ] Documentation, seed script and demo setup
 
 ## Post-MVP

@@ -1,10 +1,25 @@
 import { expect, type Browser, type BrowserContext, type FrameLocator, type Page } from "@playwright/test";
+import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
-export const API = "http://localhost:8080";
+
+/**
+ * "dev": the API, dashboard and widget run on the host, started by Playwright.
+ * "prod": the production Compose profile (compose.prod.yml) is already running; the dashboard and
+ * API are behind the gateway on 8000 and the widget is served on 8001.
+ */
+export const TARGET = process.env.E2E_TARGET === "prod" ? "prod" : "dev";
+export const API = TARGET === "prod" ? "http://localhost:8000" : "http://localhost:8080";
+/** Where the demo websites load the widget from. */
+const WIDGET_PARAMS =
+  // As the dashboard's embed snippet does: the built loader, with the API reached through the widget host.
+  TARGET === "prod" ? "&widget=http://localhost:8001&loader=/servora-widget.js&api=http://localhost:8001" : "";
+/** In the prod target, mail links are read from the core API container's log. */
+const COMPOSE_PROJECT = process.env.E2E_COMPOSE_PROJECT ?? "servora-prod";
+const COMPOSE_FILES = ["-f", "../../docker-compose.yml", "-f", "../../compose.prod.yml"];
 export const PASSWORD = "e2e-correct-horse-battery";
 export const LOG_FILE = process.env.E2E_API_LOG ?? join(here, "..", ".artifacts", "api.log");
 export const FIXTURES = join(here, "..", "fixtures");
@@ -19,8 +34,14 @@ export interface Actor {
   page: Page;
 }
 
-function logLength(): number {
-  return existsSync(LOG_FILE) ? readFileSync(LOG_FILE, "utf8").length : 0;
+function readLog(): string {
+  if (TARGET === "prod") {
+    return execFileSync("docker", ["compose", "-p", COMPOSE_PROJECT, ...COMPOSE_FILES, "logs", "--no-color", "core-api"], {
+      encoding: "utf8",
+      maxBuffer: 64 * 1024 * 1024,
+    });
+  }
+  return existsSync(LOG_FILE) ? readFileSync(LOG_FILE, "utf8") : "";
 }
 
 /**
@@ -28,14 +49,14 @@ function logLength(): number {
  * lines written after the action started are considered, and the steps run one at a time.
  */
 export async function mailLink(kind: "verification" | "invitation", action: () => Promise<void>): Promise<string> {
-  const start = logLength();
+  const start = readLog().length;
   await action();
   const pattern = new RegExp(`DEV MAIL ${kind} link: (\\S+)`);
   let link: string | undefined;
   await expect
     .poll(
       () => {
-        const added = readFileSync(LOG_FILE, "utf8").slice(start);
+        const added = readLog().slice(start);
         link = pattern.exec(added)?.[1];
         return link;
       },
@@ -84,7 +105,7 @@ export async function createWorkspace(owner: Actor, name: string): Promise<strin
 
 /** The chat inside a demo website: opens it and returns the iframe. */
 export async function openChat(page: Page, site: string, widgetKey: string): Promise<FrameLocator> {
-  await page.goto(`${site}/?key=${widgetKey}`);
+  await page.goto(`${site}/?key=${widgetKey}${WIDGET_PARAMS}`);
   const chat = page.frameLocator("iframe");
   await chat.getByRole("button", { name: /Open chat/ }).click();
   return chat;
@@ -100,4 +121,9 @@ export async function widgetToken(page: Page, widgetKey: string): Promise<string
   const stored = await page.evaluate((key) => sessionStorage.getItem(`servora:session:${key}`), widgetKey);
   expect(stored, "the loader stores the session for this page").toBeTruthy();
   return (JSON.parse(stored!) as { token: string }).token;
+}
+
+/** The demo website's address for a widget key, on this target. */
+export function demoUrl(site: string, widgetKey: string): string {
+  return `${site}/?key=${widgetKey}${WIDGET_PARAMS}`;
 }

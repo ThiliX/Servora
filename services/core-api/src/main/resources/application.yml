@@ -17,7 +17,7 @@ spring:
   flyway:
     # Owner role: runs migrations only.
     user: ${SERVORA_POSTGRES_OWNER_USER:servora_owner}
-    password: ${SERVORA_POSTGRES_OWNER_PASSWORD}
+    password: ${SERVORA_POSTGRES_OWNER_PASSWORD:}
     placeholders:
       app_role: ${SERVORA_POSTGRES_APP_USER:servora_app}
       worker_role: ${SERVORA_POSTGRES_WORKER_USER:servora_worker}

@@ -5,6 +5,7 @@ import {
   type Actor,
   ask,
   createWorkspace,
+  demoUrl,
   FIXTURES,
   mailLink,
   newActor,
@@ -99,7 +100,7 @@ test.describe.serial("MVP demonstration script", () => {
     expect(keyA).not.toEqual(keyB);
 
     // A widget key only works on its own website.
-    await customer.goto(`${HOTELPRO_SITE}/?key=${keyA}`);
+    await customer.goto(demoUrl(HOTELPRO_SITE, keyA));
     await expect(customer.frameLocator("iframe").getByRole("button", { name: /Open chat/ })).toHaveCount(0);
   });
 

@@ -43,6 +43,7 @@ const WIDGET: Widget = {
   id: "wid1",
   name: "Website widget",
   public_key: "wk_abc123",
+  loader_url: "http://localhost:8001/servora-widget.js",
   status: "ACTIVE",
   theme_color: "#4f46e5",
   position: "BOTTOM_RIGHT",
@@ -248,6 +249,8 @@ describe("helpers", () => {
   });
 
   it("builds the embed snippet from the public key", () => {
-    expect(embedSnippet("wk_x")).toContain('data-widget-key="wk_x"');
+    const snippet = embedSnippet("https://widget.example.test/servora-widget.js", "wk_x");
+    expect(snippet).toContain('data-widget-key="wk_x"');
+    expect(snippet).toContain('src="https://widget.example.test/servora-widget.js"');
   });
 });

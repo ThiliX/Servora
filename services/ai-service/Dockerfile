@@ -27,6 +27,8 @@ COPY evaluation ./evaluation
 RUN pip install ".[model]"
 # torch pulls in setuptools 78.1.0, which has known vulnerabilities (pip-audit, M7).
 RUN pip install "setuptools==84.1.0"
+# pip is not needed at runtime, and it bundles its own old copies of msgpack, urllib3 and setuptools.
+RUN pip uninstall -y pip
 
 RUN useradd --system --uid 10001 --home-dir /app ai && chown -R ai /opt/huggingface
 USER ai

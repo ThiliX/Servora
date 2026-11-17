@@ -80,6 +80,7 @@ export interface Widget {
   title: string;
   show_branding: boolean;
   allowed_origins: string[];
+  loader_url: string;
   updated_at: string;
 }
 

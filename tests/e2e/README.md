@@ -39,8 +39,18 @@ Step 9 checks the result of a takeover. The race between a takeover and an AI re
 
 Each run creates new users and workspaces with a unique suffix in the local database. The launcher raises the sign-up limit per address for the local API, because each run signs up four users from one machine.
 
+### Against the production profile
+
+```bash
+SERVORA_LLM_PROVIDER=fake SERVORA_PROD_MAIL_LOG_LINKS=true \
+  docker compose -p servora-prod -f docker-compose.yml -f compose.prod.yml up -d --build --wait
+cd tests/e2e && E2E_TARGET=prod npx playwright test
+```
+
+The tests then use the gateway on 8000 and the widget host on 8001, load the built widget loader the way an embed snippet does, and read mail links from the core API container's log. This is what the CI job "Production stack" runs.
+
 To reuse an API you started yourself, start it with `SERVORA_MAIL_LOG_LINKS=true` and `LOGGING_FILE_NAME` pointing at a file, then run with `E2E_REUSE_API=true E2E_API_LOG=<that file>`.
 
 ## Results
 
-Local runs on 2026-11-17: 11 of 11 steps passed in each of two consecutive runs, about 55 seconds each.
+Local runs on 2026-11-17: 11 of 11 steps passed in each of two consecutive runs against the development setup (about 55 seconds each), and in three runs against the production profile (about 70 seconds each).

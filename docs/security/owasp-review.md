@@ -46,12 +46,12 @@ Test names refer to the core API (`services/core-api/src/test`), the AI service 
 ### API8: Security misconfiguration
 
 - **Tested:** every API response carries `Content-Security-Policy: default-src 'none'`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer` and a restrictive `Permissions-Policy`, including errors and public widget responses (`SecurityHeadersIntegrationTest`). CORS allows only each widget's listed origins (`corsPreflightIsAnsweredOnlyForAllowedOrigins`). Errors return a fixed envelope without stack traces. Health details are never shown. Forwarded headers are not trusted.
-- **Not done yet:** the production Compose profile (M7 phase 3).
+- **Production profile (M7 phase 3a):** only the gateway and widget host publish ports; the data network has no internet access; containers run as non-root with read-only filesystems and no capabilities; the API holds no owner password and the API documentation is disabled. The CI job checks the published ports and the absence of the owner password on every pull request ([ADR-021](../architecture/adr/0021-production-deployment-profile.md)).
 
 ### API9: Improper inventory management
 
 - **Controls:** one API version (`/api/v1`), an OpenAPI document generated from the code, the endpoint tables in `docs/api/README.md`, and the endpoint inventory in `CrossTenantMatrixIntegrationTest`, which a new endpoint must join.
-- **Open decision:** whether the OpenAPI document and Swagger UI are served in production. Decided with the production profile.
+- **Decided:** the OpenAPI document and Swagger UI are disabled in the production profile.
 
 ### API10: Unsafe consumption of APIs
 
@@ -125,6 +125,6 @@ Local runs on 2026-11-17, now repeated by the CI job "Secret and dependency scan
 ## Not covered by this review
 
 - Saturation and abuse at volume beyond the load test's 418 requests per second.
-- The production deployment: TLS, container image scanning, network exposure (M7 phase 3).
+- TLS and a proxy in front of the production profile.
 - A live-model test of prompt injection and answer quality (M7 phase 4).
 - An external penetration test.

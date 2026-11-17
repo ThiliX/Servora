@@ -3,6 +3,7 @@ package com.servora.widget;
 import com.servora.audit.AuditService;
 import com.servora.common.error.ApiException;
 import com.servora.common.security.Tokens;
+import com.servora.conversation.WidgetProperties;
 import com.servora.membership.Permission;
 import com.servora.membership.WorkspaceAccess;
 import com.servora.membership.WorkspaceContext;
@@ -47,16 +48,21 @@ public class WidgetService {
             String title,
             boolean showBranding,
             List<String> allowedOrigins,
+            // The script a website embeds: the widget host's loader, which talks to the API through
+            // the same host.
+            String loaderUrl,
             Instant updatedAt) {}
 
     private final JdbcClient jdbc;
     private final WorkspaceAccess access;
     private final AuditService audit;
+    private final String loaderUrl;
 
-    public WidgetService(JdbcClient jdbc, WorkspaceAccess access, AuditService audit) {
+    public WidgetService(JdbcClient jdbc, WorkspaceAccess access, AuditService audit, WidgetProperties widgetProperties) {
         this.jdbc = jdbc;
         this.access = access;
         this.audit = audit;
+        this.loaderUrl = widgetProperties.appOrigin().replaceAll("/+$", "") + "/servora-widget.js";
     }
 
     /** Called when a workspace is created, inside that transaction. */
@@ -185,6 +191,7 @@ public class WidgetService {
                         rs.getString("title"),
                         rs.getBoolean("show_branding"),
                         origins,
+                        loaderUrl,
                         rs.getObject("updated_at", OffsetDateTime.class).toInstant()))
                 .single();
     }
