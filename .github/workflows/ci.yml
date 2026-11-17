@@ -124,6 +124,24 @@ jobs:
       # Known vulnerabilities in the installed dependencies. The package itself is local.
       - run: pip install pip-audit==2.7.3 && pip-audit --skip-editable --progress-spinner off
 
+  e2e-typecheck:
+    # The browser suite needs the whole stack and runs locally for now (tests/e2e/README.md); this
+    # keeps it compiling until it runs in CI.
+    name: Browser tests (typecheck)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tests/e2e
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: tests/e2e/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+
   security:
     name: Secret and dependency scanning
     runs-on: ubuntu-latest

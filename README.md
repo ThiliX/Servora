@@ -130,6 +130,8 @@ Runs unit tests and integration tests. The integration tests need Docker: they s
 cd apps/web && npm run lint && npm run typecheck && npm test
 ```
 
+Browser tests of the MVP demonstration script run against the real local stack with Playwright: see [tests/e2e/README.md](tests/e2e/README.md). The load test and its results are in [docs/testing/load-test.md](docs/testing/load-test.md).
+
 The Python services' tests are described in [workers/document-worker/README.md](workers/document-worker/README.md) and [services/ai-service/README.md](services/ai-service/README.md).
 
 ## Stopping

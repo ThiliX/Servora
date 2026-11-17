@@ -1,0 +1,16 @@
+{
+  "name": "servora-e2e",
+  "private": true,
+  "type": "module",
+  "description": "Browser tests of the MVP demonstration script against the real local stack.",
+  "scripts": {
+    "test": "playwright test",
+    "typecheck": "tsc --noEmit",
+    "install-browser": "playwright install chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "@types/node": "24.19.2",
+    "typescript": "6.0.3"
+  }
+}
