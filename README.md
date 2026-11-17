@@ -4,11 +4,11 @@ Servora is a multi-tenant AI customer-support platform. Each business gets an is
 
 ## Status
 
-**Milestones M1 to M4 are implemented.** You can register, create workspaces, invite members with roles, configure the assistant and widget, and upload PDF, TXT and Markdown documents that are stored privately and indexed in the background. Customers can chat with the assistant through a widget embedded on the workspace's own website: it answers from that workspace's documents with citations, gives a fallback message instead of guessing, and lets the customer ask for a person. Owners, admins and supervisors can read every conversation in the dashboard. Tenant isolation is enforced by the application and by PostgreSQL Row-Level Security.
+**Milestones M1 to M5 are implemented.** You can register, create workspaces, invite members with roles, configure the assistant and widget, and upload PDF, TXT and Markdown documents that are stored privately and indexed in the background. Customers chat with the assistant through a widget on the workspace's own website: it answers from that workspace's documents with citations, gives a fallback message instead of guessing, and hands the conversation to a person when the customer asks or the assistant cannot help. The team works from an inbox: tickets are assigned, a person takes over the conversation, replies, keeps internal notes, can ask the assistant for a draft, and resolves the ticket, after which the customer can rate it. Tenant isolation is enforced by the application and by PostgreSQL Row-Level Security.
 
 Out of the box the assistant uses a built-in test model that only quotes the best matching passage and costs nothing. Real answers need an Anthropic API key (step 2 below).
 
-Not built yet: agents replying to customers, tickets and analytics. See [docs/milestones.md](docs/milestones.md).
+Not built yet: analytics, usage metering and platform administration. See [docs/milestones.md](docs/milestones.md).
 
 ## Architecture
 
@@ -168,7 +168,9 @@ No credentials are committed. There are no built-in accounts: register your own 
 - **Each customer question is answered on its own**, without the earlier turns of the conversation.
 - **A chat lasts at most two hours.** When the session expires the widget starts a new conversation; visitors cannot resume a chat on another device.
 - **Answers are shown when complete**, not word by word, so they can be checked before the customer sees them.
-- **Agents cannot reply yet.** Asking for a person stops AI replies and is recorded; the agent workspace arrives in M5.
+- **Agent replies reach the customer within about five seconds**: the widget checks for them rather than receiving a push.
+- **Notifications are in the dashboard only**, not by email.
+- **Escalation rules are built in**, and the list of risky terms is English only.
 - **No OCR.** Scanned PDFs without a text layer fail as empty. Encrypted PDFs are refused.
 - **No malware scanning of uploads.**
 - **No browser end-to-end test suite yet.** The flows, including both demo websites, were checked by hand in a browser; Playwright is planned for M7.

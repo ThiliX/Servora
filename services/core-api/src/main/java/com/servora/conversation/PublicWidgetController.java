@@ -9,7 +9,10 @@ import com.servora.conversation.PublicWidgetService.WidgetConfig;
 import com.servora.conversation.WidgetTokens.WidgetSession;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.io.IOException;
 import java.util.Map;
@@ -41,6 +44,8 @@ public class PublicWidgetController {
     private static final Pattern IDEMPOTENCY_KEY = Pattern.compile("^[A-Za-z0-9_-]{8,100}$");
 
     public record MessageRequest(@NotBlank @Size(max = 2000) String text) {}
+
+    public record FeedbackRequest(@NotNull @Min(1) @Max(5) Integer rating, @Size(max = 1000) String comment) {}
 
     private final PublicWidgetService widgets;
     private final ConversationService conversations;
@@ -87,6 +92,13 @@ public class PublicWidgetController {
         return conversations.requestHuman(session(authorization));
     }
 
+    @PostMapping("/conversation/feedback")
+    ConversationView feedback(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @Valid @RequestBody FeedbackRequest body) {
+        return conversations.feedback(session(authorization), body.rating(), body.comment());
+    }
+
     /**
      * Stores the customer's message, then streams events: {@code customer_message}, then either
      * {@code assistant_typing} and {@code assistant_message}, or a {@code notice}; finally {@code done}.
@@ -115,6 +127,9 @@ public class PublicWidgetController {
             if (submission.existingReply() != null) {
                 events.send("assistant_message", submission.existingReply());
             }
+            if (submission.systemMessage() != null) {
+                events.send("system_message", submission.systemMessage());
+            }
             if (submission.notice() != null) {
                 events.send("notice", Map.of("code", submission.notice()));
             }
@@ -124,6 +139,10 @@ public class PublicWidgetController {
                 Reply reply = conversations.generateReply(session, submission);
                 if (reply.delivered()) {
                     events.send("assistant_message", reply.message());
+                    if (reply.systemMessage() != null) {
+                        events.send("system_message", reply.systemMessage());
+                        events.send("notice", Map.of("code", "HUMAN_PENDING"));
+                    }
                 } else {
                     events.send("notice", Map.of("code", "SUPPRESSED"));
                 }

@@ -58,11 +58,11 @@ erDiagram
 | `ai_interactions` | Tenant | M3 | Append-only. One row per question put to the assistant: outcome, retrieved chunk ids and scores, cited chunk ids, provider, model, prompt version, latency and token usage |
 | `messages` | Tenant | M4 | Append-only. Sender type, visibility (`PUBLIC`, `INTERNAL`), delivery status (`DELIVERED`, `SUPPRESSED`, which must be internal), unique idempotency key per conversation, the customer message a reply answers, and the `ai_interactions` row holding model metadata and token usage |
 | `message_citations` | Tenant | M4 | Append-only snapshot of what was cited: chunk and document ids, filename, page, heading, snippet. No foreign key to the chunk, so the record survives re-indexing and deletion |
-| `tickets` | Tenant | M5 | One per escalated conversation for the MVP; unique idempotency key |
-| `ticket_events` | Tenant | M5 | Append-only |
-| `internal_notes` | Tenant | M5 | Never returned by public endpoints |
-| `conversation_feedback` | Tenant | M5 | |
-| `notification_events` | Tenant | M5 | |
+| `tickets` | Tenant | M5 | One per escalated conversation. Per-workspace number, unique idempotency key, status, priority, reason, assignee, outcome, first response and resolution times |
+| `ticket_events` | Tenant | M5 | Append-only. Created, assigned, status and priority changes, takeover, resolution, closure, with the actor |
+| `internal_notes` | Tenant | M5 | Append-only, in their own table so no customer-facing query can return one |
+| `conversation_feedback` | Tenant | M5 | One rating (1 to 5) and optional comment per conversation, after resolution |
+| `notification_events` | Tenant | M5 | Per recipient: ticket assigned, customer message. Only `read_at` can change |
 | `usage_events` | Tenant | M6 | Append-only |
 | `subscriptions` | Tenant | M6 | |
 

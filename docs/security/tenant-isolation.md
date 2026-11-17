@@ -152,13 +152,21 @@ Runs the real pipeline against PostgreSQL with the real migrations, connected as
 - A TechStore question answered by a faulty AI service with a HotelPro chunk returns the fallback, and no HotelPro identifier, text or citation appears in the response or the database.
 - Dashboard: agents get `403`, another workspace's owner gets `404`, and a conversation id from another workspace is not found.
 
+### Tickets and the agent workspace — `TicketWorkflowIntegrationTest`, `TicketRulesTest` (core API)
+
+- Another workspace's owner gets `404` for tickets, ticket lists, notes, takeover, resolution and notifications, through either workspace's path.
+- An agent cannot see a ticket assigned to another agent (tickets, notes, messages, conversation), cannot assign, and cannot take over a conversation that was never escalated.
+- Internal notes and unsent AI suggestions never appear in the public history or in any message stream.
+- Parallel escalations create exactly one ticket, one notice and one creation event.
+- An AI reply is never delivered after a takeover: the race runs 24 rounds per test run with both orders observed.
+
 ### Role tests — `RoleEnforcementIntegrationTest`, `PermissionTest`
 
 The role matrix is asserted independently of its implementation, and enforced over HTTP for all four roles, including that an admin cannot change an owner or grant ownership.
 
 ## Results
 
-Recorded on 2026-11-17, local runs: core API 137 tests, AI service 45 tests, document worker 50 tests, dashboard 49 tests, widget 13 tests, all passing. CI results are on the repository's Actions page.
+Recorded on 2026-11-17, local runs: core API 151 tests, AI service 45 tests, document worker 50 tests, dashboard 55 tests, widget 16 tests, all passing. CI results are on the repository's Actions page.
 
 Manual end-to-end runs on 2026-11-17 against the real API, worker, AI service and embedding model, with the fake LLM provider:
 

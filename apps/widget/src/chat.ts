@@ -20,6 +20,7 @@ interface ConversationView {
   conversation_id: string;
   status: string;
   control_mode: string;
+  feedback_submitted: boolean;
   messages: ChatMessage[];
 }
 
@@ -28,6 +29,8 @@ export interface ChatDeps {
   fetch: typeof fetch;
   postToParent: (message: FromWidget) => void;
   newKey: () => string;
+  /** How often to check for replies from the team while a person is handling the chat. */
+  pollMs?: number;
 }
 
 const MAX_LENGTH = 2000;
@@ -79,6 +82,10 @@ export class ChatWidget {
   private sessionWaiters: Array<(session: SessionGrant | null) => void> = [];
   private messages: ChatMessage[] = [];
   private controlMode = "AI_ACTIVE";
+  private conversationStatus = "OPEN";
+  private feedbackSubmitted = false;
+  private rating = 0;
+  private pollTimer: ReturnType<typeof setTimeout> | null = null;
   private open = false;
   private sending = false;
   private typing = false;
@@ -91,6 +98,11 @@ export class ChatWidget {
   private input!: HTMLTextAreaElement;
   private sendButton!: HTMLButtonElement;
   private humanButton!: HTMLButtonElement;
+  private form!: HTMLFormElement;
+  private ended!: HTMLElement;
+  private ratingButtons: HTMLButtonElement[] = [];
+  private ratingComment!: HTMLTextAreaElement;
+  private ratingSubmit!: HTMLButtonElement;
 
   constructor(deps: ChatDeps) {
     this.deps = deps;
@@ -135,6 +147,7 @@ export class ChatWidget {
     this.statusLine = el("p", { class: "status", role: "status" });
 
     const form = el("form", { class: "composer" });
+    this.form = form;
     const label = el("label", { for: "servora-input", class: "visually-hidden" }, "Your message");
     this.input = el("textarea", { id: "servora-input", rows: "2", maxlength: String(MAX_LENGTH), placeholder: "Type your question…" });
     this.input.addEventListener("keydown", (event) => {
@@ -153,7 +166,8 @@ export class ChatWidget {
     this.humanButton = el("button", { type: "button", class: "human" }, "Talk to a person");
     this.humanButton.addEventListener("click", () => void this.requestHuman());
 
-    this.panel.append(header, this.log, this.statusLine, form, this.humanButton);
+    this.ended = this.buildEnded();
+    this.panel.append(header, this.log, this.statusLine, form, this.humanButton, this.ended);
     if (config.show_branding) {
       this.panel.append(el("p", { class: "branding" }, "Powered by Servora"));
     }
@@ -165,6 +179,84 @@ export class ChatWidget {
 
     root.append(this.launcher, this.panel);
     this.render();
+  }
+
+  private buildEnded(): HTMLElement {
+    const section = el("div", { class: "ended", hidden: "" });
+    section.append(el("p", { class: "ended-title" }, "How did we do?"));
+    const stars = el("div", { class: "stars", role: "group", "aria-label": "Rate this conversation" });
+    for (let value = 1; value <= 5; value++) {
+      const star = el("button", { type: "button", class: "star", "aria-label": `${value} out of 5`, "aria-pressed": "false" }, "★");
+      star.addEventListener("click", () => {
+        this.rating = value;
+        this.render();
+      });
+      this.ratingButtons.push(star);
+      stars.append(star);
+    }
+    const label = el("label", { for: "servora-feedback", class: "visually-hidden" }, "Comment (optional)");
+    this.ratingComment = el("textarea", { id: "servora-feedback", rows: "2", maxlength: "1000", placeholder: "Anything to add? (optional)" });
+    this.ratingSubmit = el("button", { type: "button", class: "send" }, "Send rating");
+    this.ratingSubmit.addEventListener("click", () => void this.sendFeedback());
+    const restart = el("button", { type: "button", class: "human" }, "Start a new chat");
+    restart.addEventListener("click", () => void this.startNewChat());
+    section.append(stars, label, this.ratingComment, this.ratingSubmit, restart);
+    return section;
+  }
+
+  async sendFeedback(): Promise<void> {
+    if (this.rating < 1) {
+      this.setStatus("Choose a rating from 1 to 5 stars.", "error");
+      return;
+    }
+    try {
+      const response = await this.call("/conversation/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rating: this.rating, comment: this.ratingComment.value.trim() || null }),
+      });
+      if (response.ok || response.status === 409) {
+        this.feedbackSubmitted = true;
+        this.setStatus("Thank you for your feedback.", "info");
+      } else {
+        this.setStatus(await this.errorText(response), "error");
+      }
+    } catch {
+      this.setStatus("You appear to be offline. Check your connection.", "error");
+    }
+  }
+
+  async startNewChat(): Promise<void> {
+    this.status = null;
+    this.rating = 0;
+    this.feedbackSubmitted = false;
+    this.conversationStatus = "OPEN";
+    this.session = null;
+    this.messages = [];
+    this.controlMode = "AI_ACTIVE";
+    this.render();
+    if (await this.requestSession(true)) {
+      await this.loadHistory();
+    }
+    this.input.focus();
+  }
+
+  /** While a person handles the chat, replies arrive by checking the history every few seconds. */
+  private schedulePoll(): void {
+    const waitingForTeam = this.open && this.controlMode !== "AI_ACTIVE" && this.conversationStatus === "OPEN";
+    if (!waitingForTeam) {
+      if (this.pollTimer !== null) {
+        clearTimeout(this.pollTimer);
+        this.pollTimer = null;
+      }
+      return;
+    }
+    if (this.pollTimer === null) {
+      this.pollTimer = setTimeout(() => {
+        this.pollTimer = null;
+        void this.loadHistory().finally(() => this.schedulePoll());
+      }, this.deps.pollMs ?? 5000);
+    }
   }
 
   async openPanel(): Promise<void> {
@@ -218,6 +310,8 @@ export class ChatWidget {
   private applyConversation(view: ConversationView): void {
     this.messages = view.messages;
     this.controlMode = view.control_mode;
+    this.conversationStatus = view.status;
+    this.feedbackSubmitted = view.feedback_submitted === true;
     this.render();
   }
 
@@ -251,6 +345,9 @@ export class ChatWidget {
       }
       if (!response.ok) {
         this.setStatus(await this.errorText(response), "error");
+        if (response.status === 409) {
+          await this.loadHistory();
+        }
         return;
       }
       this.input.value = "";
@@ -277,6 +374,7 @@ export class ChatWidget {
     switch (name) {
       case "customer_message":
       case "assistant_message":
+      case "system_message":
         this.typing = false;
         this.upsert(payload as ChatMessage);
         break;
@@ -351,11 +449,20 @@ export class ChatWidget {
     if (!this.config) {
       return;
     }
+    const ended = this.conversationStatus === "CLOSED";
     this.launcher.hidden = this.open;
     this.launcher.setAttribute("aria-expanded", String(this.open));
     this.panel.hidden = !this.open;
     this.sendButton.disabled = this.sending;
-    this.humanButton.hidden = this.controlMode !== "AI_ACTIVE";
+    this.humanButton.hidden = this.controlMode !== "AI_ACTIVE" || ended;
+    this.form.hidden = ended;
+    this.ended.hidden = !ended;
+    this.ratingButtons.forEach((star, index) => {
+      star.setAttribute("aria-pressed", String(index < this.rating));
+      star.disabled = this.feedbackSubmitted;
+    });
+    this.ratingComment.hidden = this.feedbackSubmitted;
+    this.ratingSubmit.hidden = this.feedbackSubmitted;
 
     const items: HTMLElement[] = [];
     if (this.config.welcome_message) {
@@ -372,6 +479,7 @@ export class ChatWidget {
 
     this.statusLine.textContent = this.status?.text ?? "";
     this.statusLine.dataset.tone = this.status?.tone ?? "info";
+    this.schedulePoll();
   }
 
   private bubble(sender: string, body: string, citations: Citation[]): HTMLElement {
@@ -394,6 +502,12 @@ export class ChatWidget {
 
   /** For tests. */
   get state() {
-    return { open: this.open, messages: this.messages, controlMode: this.controlMode, status: this.status };
+    return {
+      open: this.open,
+      messages: this.messages,
+      controlMode: this.controlMode,
+      conversationStatus: this.conversationStatus,
+      status: this.status,
+    };
   }
 }

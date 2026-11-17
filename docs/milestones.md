@@ -97,13 +97,13 @@ Requirements: FR-020 to FR-024.
 - [x] Token-scope, origin, isolation and idempotency tests passing (137 core API, 13 widget, 49 dashboard, 45 AI service, 50 worker; local run 2026-11-17)
 - [x] Both demo sites checked by hand in a browser against the real stack: answers with citations from their own documents, TechStore abstains on a hotel question, handoff stops AI replies
 - [ ] Playwright end-to-end suite (not built; see deferrals)
-- [ ] CI green on GitHub for the M4 branch
-- [ ] Reviewed and merged to `main`
+- [x] CI green on GitHub for the M4 branch (2026-11-17, pull request 4)
+- [x] Merged to `main` (2026-11-17)
 
 Deferred from M4, with the milestone that picks each up:
 
 - Playwright end-to-end suite for the widget and dashboard — M7
-- Earlier turns of the conversation sent to the AI service as context (each question is answered on its own today) — M5
+- Earlier turns of the conversation sent to the AI service as context (each question is answered on its own today) — M7
 - Resuming a conversation after the session token expires, or across devices — after the MVP
 - Token-by-token streaming of answers (see ADR-014) — revisit when real-model latency is measured
 
@@ -111,13 +111,24 @@ Deferred from M4, with the milestone that picks each up:
 
 Requirements: FR-032 to FR-037, FR-040.
 
-- [ ] Escalation policy and idempotent ticket creation
-- [ ] Assignment and ticket status workflow
-- [ ] Atomic takeover and AI reply suppression
-- [ ] Agent replies, internal notes, AI suggestions, notifications
-- [ ] Resolution and customer rating
-- [ ] Agent workspace UI
-- [ ] Concurrency, idempotency and visibility tests passing
+- [x] Escalation policy and idempotent ticket creation ([ADR-018](architecture/adr/0018-human-handoff-escalation-and-takeover.md))
+- [x] Assignment and ticket status workflow
+- [x] Atomic takeover and AI reply suppression
+- [x] Agent replies, internal notes, AI suggestions, notifications
+- [x] Resolution and customer rating, in the API and the widget
+- [x] Agent workspace UI (queue, thread, ticket panes) and notifications in the dashboard
+- [x] Concurrency, idempotency and visibility tests passing (151 core API, 16 widget, 55 dashboard; local run 2026-11-17). The takeover race test ran four times, 24 rounds each, with both orders observed every time
+- [x] Handbook journey 4.3 checked by hand in a browser against the real stack: handoff, takeover, agent reply reaching the widget, resolution, rating shown to the team
+- [ ] Playwright end-to-end suite (deferred to M7)
+- [ ] CI green on GitHub for the M5 branch
+- [ ] Reviewed and merged to `main`
+
+Deferred from M5, with the milestone that picks each up:
+
+- Playwright test of the full handoff — M7, with the other browser tests
+- Workspace-configurable escalation rules, and risk terms in other languages — after the MVP
+- Instant delivery of agent replies (push instead of five-second polling) — after the MVP
+- Email notifications (in-app only today) — M7, with email delivery
 
 ## M6 — Analytics, metering, platform admin
 

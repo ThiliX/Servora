@@ -21,3 +21,4 @@ Each record states the context, the decision and its consequences. Supersede a r
 | [ADR-015](0015-row-level-security-context-beyond-the-tenant-id.md) | Row-Level Security context beyond the tenant ID | Accepted (decided in M1) |
 | [ADR-016](0016-outbox-dispatcher-reads-across-tenants.md) | The outbox dispatcher reads pending events across tenants | Accepted (decided in M2) |
 | [ADR-017](0017-public-widget-access-and-session-tokens.md) | Public widget access, origins and session tokens | Accepted (decided in M4) |
+| [ADR-018](0018-human-handoff-escalation-and-takeover.md) | Human handoff: escalation, takeover and agent replies | Accepted (decided in M5) |

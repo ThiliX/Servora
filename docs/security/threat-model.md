@@ -63,6 +63,15 @@ Review checklists: [OWASP API Security Top 10](https://owasp.org/www-project-api
 - **Widget origins:** stored canonically and compared by exact equality. Enforcement at session issue is M4.
 - **Not yet addressed:** malware scanning; per-tenant storage credentials; the internal token is not bound to a single use.
 
+## Additional M5 notes
+
+- **AI reply after takeover:** prevented by the version check under a row lock; covered by a repeated race test.
+- **Note leakage:** notes are stored apart from messages; suggestions have their own visibility and are filtered out in SQL by every public query; tests assert neither reaches any public response.
+- **Object-level access for agents:** every ticket and conversation endpoint checks the agent's assignment and answers `404` otherwise.
+- **Duplicate tickets:** escalation is serialised by the conversation row lock and keyed per conversation.
+- **Polling load:** the widget checks for replies every five seconds only while a person handles the chat, within a per-conversation rate limit.
+- **Not yet addressed:** no email notifications; the escalation word list is English only and not configurable; there is no audit-log entry for ticket actions beyond the ticket's own history.
+
 ## Additional M4 notes
 
 - **Public surface:** the widget endpoints are the first ones reachable without an account. They run in a separate security filter chain, accept only a widget key or a widget session token, and take no tenant or conversation id from the request.

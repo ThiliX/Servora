@@ -71,7 +71,10 @@ textarea:focus-visible {
 
 .panel[hidden],
 .launcher[hidden],
-.human[hidden] {
+.human[hidden],
+.composer[hidden],
+.ended[hidden],
+.ended [hidden] {
   display: none;
 }
 
@@ -218,4 +221,51 @@ textarea:focus-visible {
   text-align: center;
   font-size: 11px;
   color: var(--servora-muted);
+}
+
+.ended {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.ended-title {
+  margin: 0;
+  font-weight: 600;
+}
+
+.stars {
+  display: flex;
+  gap: 4px;
+}
+
+.star {
+  border: 0;
+  background: transparent;
+  font-size: 26px;
+  line-height: 1;
+  color: #cbd5e1;
+  cursor: pointer;
+}
+
+.star[aria-pressed="true"] {
+  color: #f59e0b;
+}
+
+.ended textarea {
+  resize: none;
+  font: inherit;
+  padding: 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+}
+
+.ended .send {
+  padding: 8px 14px;
+}
+
+.ended .human {
+  margin: 0;
 }

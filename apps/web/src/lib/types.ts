@@ -150,7 +150,7 @@ export interface PlaygroundResult {
   output_tokens: number;
 }
 
-export type ControlMode = "AI_ACTIVE" | "HUMAN_PENDING" | "HUMAN_ACTIVE";
+export type ControlMode = "AI_ACTIVE" | "ESCALATION_PENDING" | "HUMAN_ACTIVE";
 
 export interface ConversationSummary {
   id: string;
@@ -176,10 +176,68 @@ export interface ThreadCitation {
 export interface ThreadMessage {
   id: string;
   sender_type: "CUSTOMER" | "ASSISTANT" | "AGENT" | "SYSTEM";
-  visibility: "PUBLIC" | "INTERNAL";
-  delivery_status: "DELIVERED" | "SUPPRESSED";
+  visibility: "PUBLIC" | "INTERNAL" | "AI_SUGGESTION";
+  delivery_status: "DELIVERED" | "SUPPRESSED" | "PENDING_APPROVAL";
   body: string;
   created_at: string;
   outcome: AnswerOutcome | null;
   citations: ThreadCitation[];
+}
+
+export type TicketStatus = "OPEN" | "IN_PROGRESS" | "WAITING_FOR_CUSTOMER" | "RESOLVED" | "CLOSED";
+export type TicketPriority = "LOW" | "NORMAL" | "HIGH" | "URGENT";
+export type TicketOutcome = "SOLVED" | "NOT_SOLVED" | "NO_REPLY_FROM_CUSTOMER" | "DUPLICATE";
+
+export interface TicketSummary {
+  id: string;
+  number: number;
+  status: TicketStatus;
+  priority: TicketPriority;
+  reason: string;
+  assignee_membership_id: string | null;
+  assignee_name: string | null;
+  conversation_id: string;
+  control_mode: ControlMode;
+  conversation_status: "OPEN" | "CLOSED";
+  conversation_version: number;
+  origin: string;
+  resolution_outcome: TicketOutcome | null;
+  created_at: string;
+  updated_at: string;
+  last_message_at: string | null;
+  last_message_preview: string | null;
+}
+
+export interface TicketDetail {
+  ticket: TicketSummary;
+  events: Array<{ event_type: string; actor_name: string | null; from_value: string | null; to_value: string | null; created_at: string }>;
+  feedback: { rating: number; comment: string | null; created_at: string } | null;
+  can_work: boolean;
+  assigned_to_me: boolean;
+}
+
+export interface Assignee {
+  membership_id: string;
+  display_name: string;
+  role: WorkspaceRole;
+}
+
+export interface InternalNote {
+  id: string;
+  author_name: string;
+  body: string;
+  created_at: string;
+}
+
+export interface NotificationList {
+  unread_count: number;
+  items: Array<{
+    id: string;
+    type: "TICKET_ASSIGNED" | "CUSTOMER_MESSAGE";
+    ticket_id: string | null;
+    ticket_number: number | null;
+    conversation_id: string | null;
+    created_at: string;
+    read: boolean;
+  }>;
 }
