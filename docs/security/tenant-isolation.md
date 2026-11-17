@@ -25,7 +25,7 @@ This document describes how tenant isolation works as of M2 and lists the automa
 
 ## Context settings
 
-Policies read three transaction-local settings. All are set only by `TenantContext`.
+Policies read these transaction-local settings. All are set only by `TenantContext`.
 
 | Setting | Set when | What it unlocks |
 |---|---|---|
@@ -33,6 +33,9 @@ Policies read three transaction-local settings. All are set only by `TenantConte
 | `app.user_id` | For every authenticated request | The user's own `memberships` rows, and `tenants` rows where they are an active member |
 | `app.invitation_token_hash` | When a user presents an invitation token | The single `invitations` row with that token hash |
 | `app.outbox_dispatcher` | By the outbox dispatcher only | Reading `outbox_events` of any tenant. No writes, no other table |
+| `app.widget_public_key` | For a public widget request presenting a key | The single `widgets` row with that key ([ADR-017](../architecture/adr/0017-public-widget-access-and-session-tokens.md)) |
+| `app.platform_admin` | By the platform admin service, after binding the user | Only together with a `platform_admins` row for `app.user_id`: reading and updating `tenants` and `subscriptions`, and reading `usage_events`, of any tenant. Nothing else ([ADR-019](../architecture/adr/0019-plans-usage-metering-and-platform-administration.md)) |
+| `app.retention_job` | By the retention job only | Reading the `tenants` rows that have a retention period. The job binds `app.tenant_id` before reading or deleting any workspace data |
 
 The settings other than `app.tenant_id` exist because some work happens before, or outside, a tenant context. They are narrow by construction and covered by the tests below. See [ADR-015](../architecture/adr/0015-row-level-security-context-beyond-the-tenant-id.md) and [ADR-016](../architecture/adr/0016-outbox-dispatcher-reads-across-tenants.md).
 
@@ -160,13 +163,21 @@ Runs the real pipeline against PostgreSQL with the real migrations, connected as
 - Parallel escalations create exactly one ticket, one notice and one creation event.
 - An AI reply is never delivered after a takeover: the race runs 24 rounds per test run with both orders observed.
 
+### Usage, analytics, data and platform — `UsageAnalyticsAndAdminIntegrationTest` (core API)
+
+- Another workspace's owner gets `404` for usage, analytics, the audit log, export and conversation deletion; each workspace's numbers count only its own activity.
+- `delete_conversation_data` refuses to run with no workspace bound, and with another workspace bound it finds nothing to delete.
+- Setting `app.platform_admin` without a `platform_admins` row exposes no other workspace's `tenants` or `usage_events` rows.
+- Platform endpoints return `404` to workspace owners. A suspended workspace is refused at the dashboard, the widget configuration and existing widget sessions, and the other workspace is unaffected. Each platform change appears in the platform log and in that workspace's audit log only.
+- The retention job deletes only expired conversations of the workspace that set a period, keeps conversations with an active ticket, and keeps usage events.
+
 ### Role tests — `RoleEnforcementIntegrationTest`, `PermissionTest`
 
 The role matrix is asserted independently of its implementation, and enforced over HTTP for all four roles, including that an admin cannot change an owner or grant ownership.
 
 ## Results
 
-Recorded on 2026-11-17, local runs: core API 151 tests, AI service 45 tests, document worker 50 tests, dashboard 55 tests, widget 16 tests, all passing. CI results are on the repository's Actions page.
+Recorded on 2026-11-17, local runs: core API 169 tests (after M6), AI service 45 tests, document worker 50 tests, dashboard 66 tests (after M6), widget 16 tests, all passing. CI results are on the repository's Actions page.
 
 Manual end-to-end runs on 2026-11-17 against the real API, worker, AI service and embedding model, with the fake LLM provider:
 

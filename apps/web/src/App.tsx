@@ -4,17 +4,21 @@ import { Loading } from "./components/ui";
 import { useAuth } from "./lib/auth";
 import { AcceptInvitationPage } from "./pages/AcceptInvitationPage";
 import { AssistantPage } from "./pages/AssistantPage";
+import { AuditLogPage } from "./pages/AuditLogPage";
 import { ConversationPage, ConversationsPage } from "./pages/ConversationsPage";
 import { InboxPage } from "./pages/InboxPage";
 import { KnowledgePage } from "./pages/KnowledgePage";
 import { PlaygroundPage } from "./pages/PlaygroundPage";
 import { LoginPage } from "./pages/LoginPage";
+import { OverviewPage } from "./pages/OverviewPage";
+import { PlatformPage } from "./pages/PlatformPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { TeamPage } from "./pages/TeamPage";
+import { UsagePage } from "./pages/UsagePage";
 import { VerifyEmailPage } from "./pages/VerifyEmailPage";
 import { WidgetPage } from "./pages/WidgetPage";
-import { WorkspaceLayout } from "./pages/WorkspaceLayout";
+import { WorkspaceHome, WorkspaceLayout } from "./pages/WorkspaceLayout";
 import { WorkspacesPage } from "./pages/WorkspacesPage";
 
 /** Sends signed-out visitors to the login page and brings them back afterwards. */
@@ -61,7 +65,10 @@ export function App() {
           </RequireAuth>
         }
       >
-        <Route index element={<Navigate to="team" replace />} />
+        <Route index element={<WorkspaceHome />} />
+        <Route path="overview" element={<OverviewPage />} />
+        <Route path="usage" element={<UsagePage />} />
+        <Route path="audit" element={<AuditLogPage />} />
         <Route path="team" element={<TeamPage />} />
         <Route path="inbox" element={<InboxPage />} />
         <Route path="inbox/:ticketId" element={<InboxPage />} />
@@ -73,6 +80,14 @@ export function App() {
         <Route path="widget" element={<WidgetPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
+      <Route
+        path="/platform"
+        element={
+          <RequireAuth>
+            <PlatformPage />
+          </RequireAuth>
+        }
+      />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

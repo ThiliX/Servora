@@ -15,6 +15,7 @@ import com.servora.assistant.AssistantService.Tone;
 import com.servora.common.error.ApiException;
 import com.servora.membership.WorkspaceContext;
 import com.servora.ticket.StaffAccess.Target;
+import com.servora.usage.UsageService;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -47,6 +48,7 @@ public class AgentConversationService {
     private final AiClient ai;
     private final AnswerVerifier verifier;
     private final InteractionRecorder recorder;
+    private final UsageService usage;
     private final TransactionTemplate transactions;
 
     public AgentConversationService(
@@ -56,6 +58,7 @@ public class AgentConversationService {
             AiClient ai,
             AnswerVerifier verifier,
             InteractionRecorder recorder,
+            UsageService usage,
             PlatformTransactionManager transactionManager) {
         this.jdbc = jdbc;
         this.staff = staff;
@@ -63,6 +66,7 @@ public class AgentConversationService {
         this.ai = ai;
         this.verifier = verifier;
         this.recorder = recorder;
+        this.usage = usage;
         this.transactions = new TransactionTemplate(transactionManager);
     }
 
@@ -159,6 +163,7 @@ public class AgentConversationService {
         Context context = transactions.execute(status -> {
             WorkspaceContext ctx = staff.authorize(userId, workspaceId);
             staff.requireConversation(ctx, conversationId);
+            usage.requireAi(ctx.tenantId());
             String question = jdbc.sql("""
                             SELECT body FROM messages
                             WHERE tenant_id = :tenantId AND conversation_id = :conversationId AND sender_type = 'CUSTOMER'

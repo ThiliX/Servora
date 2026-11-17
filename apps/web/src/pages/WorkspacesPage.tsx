@@ -39,7 +39,7 @@ function CreateWorkspaceForm() {
         method: "POST",
         body: { name, slug: effectiveSlug, timezone },
       });
-      navigate(`/w/${workspace.id}/team`);
+      navigate(`/w/${workspace.id}`);
     } catch (caught) {
       setError(toApiError(caught));
       setSubmitting(false);
@@ -78,12 +78,22 @@ function CreateWorkspaceForm() {
 export function WorkspacesPage() {
   const { state: auth, logout } = useAuth();
   const { state, reload } = useAsync(() => api<WorkspaceSummary[]>("/workspaces"), "workspaces");
+  // Only decides whether to show the link; the platform endpoints check access themselves.
+  const platform = useAsync(
+    () => api<{ platform_admin: boolean }>("/platform/access").catch(() => ({ platform_admin: false })),
+    "platform-access",
+  );
 
   return (
     <main className="mx-auto max-w-3xl space-y-6 px-4 py-10">
       <header className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Your workspaces</h1>
         <div className="flex items-center gap-3 text-sm">
+          {platform.state.status === "ready" && platform.state.data.platform_admin && (
+            <Link to="/platform" className="font-medium text-indigo-700 underline">
+              Platform admin
+            </Link>
+          )}
           {auth.status === "authenticated" && <span className="text-slate-600">{auth.user.email}</span>}
           <Button variant="secondary" onClick={() => void logout()}>
             Sign out
@@ -99,22 +109,38 @@ export function WorkspacesPage() {
         )}
         {state.status === "ready" && state.data.length > 0 && (
           <ul className="divide-y divide-slate-200">
-            {state.data.map((workspace) => (
-              <li key={workspace.id}>
-                <Link
-                  to={`/w/${workspace.id}/team`}
-                  className="flex items-center justify-between rounded px-2 py-3 hover:bg-slate-50"
-                >
-                  <span>
-                    <span className="font-medium">{workspace.name}</span>
-                    <span className="ml-2 text-sm text-slate-500">{workspace.slug}</span>
-                  </span>
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
-                    {ROLE_LABELS[workspace.role]}
-                  </span>
-                </Link>
-              </li>
-            ))}
+            {state.data.map((workspace) =>
+              workspace.status === "SUSPENDED" ? (
+                <li key={workspace.id} className="px-2 py-3">
+                  <div className="flex items-center justify-between">
+                    <span>
+                      <span className="font-medium text-slate-500">{workspace.name}</span>
+                      <span className="ml-2 text-sm text-slate-400">{workspace.slug}</span>
+                    </span>
+                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900">Suspended</span>
+                  </div>
+                  <p className="mt-1 text-sm text-slate-600">
+                    This workspace is suspended
+                    {workspace.suspended_reason ? `: ${workspace.suspended_reason}` : "."} Contact Servora support to restore it.
+                  </p>
+                </li>
+              ) : (
+                <li key={workspace.id}>
+                  <Link
+                    to={`/w/${workspace.id}`}
+                    className="flex items-center justify-between rounded px-2 py-3 hover:bg-slate-50"
+                  >
+                    <span>
+                      <span className="font-medium">{workspace.name}</span>
+                      <span className="ml-2 text-sm text-slate-500">{workspace.slug}</span>
+                    </span>
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
+                      {ROLE_LABELS[workspace.role]}
+                    </span>
+                  </Link>
+                </li>
+              ),
+            )}
           </ul>
         )}
       </Card>

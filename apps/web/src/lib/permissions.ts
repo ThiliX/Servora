@@ -59,3 +59,22 @@ export function canViewConversations(role: WorkspaceRole): boolean {
 export function canAssignTickets(role: WorkspaceRole): boolean {
   return role === "OWNER" || role === "ADMIN" || role === "SUPERVISOR";
 }
+
+/** The Overview page: workspace metrics. */
+export function canViewAnalytics(role: WorkspaceRole): boolean {
+  return role === "OWNER" || role === "ADMIN" || role === "SUPERVISOR";
+}
+
+/** Usage and plan limits. */
+export function canViewUsage(role: WorkspaceRole): boolean {
+  return MANAGERS.includes(role);
+}
+
+export function canViewAuditLog(role: WorkspaceRole): boolean {
+  return MANAGERS.includes(role);
+}
+
+/** Export, conversation deletion and the retention period. Owners only. */
+export function canManageData(role: WorkspaceRole): boolean {
+  return role === "OWNER";
+}

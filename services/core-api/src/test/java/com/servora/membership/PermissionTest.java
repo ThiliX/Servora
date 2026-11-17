@@ -28,7 +28,10 @@ class PermissionTest {
         EXPECTED.put(Permission.VIEW_ALL_CONVERSATIONS, EnumSet.of(OWNER, ADMIN, SUPERVISOR));
         EXPECTED.put(Permission.ASSIGN_TICKETS, EnumSet.of(OWNER, ADMIN, SUPERVISOR));
         EXPECTED.put(Permission.REPLY_TO_CUSTOMERS, EnumSet.of(OWNER, ADMIN, SUPERVISOR, AGENT));
+        EXPECTED.put(Permission.VIEW_ANALYTICS, EnumSet.of(OWNER, ADMIN, SUPERVISOR));
+        EXPECTED.put(Permission.VIEW_USAGE, EnumSet.of(OWNER, ADMIN));
         EXPECTED.put(Permission.MANAGE_SUBSCRIPTION, EnumSet.of(OWNER));
+        EXPECTED.put(Permission.MANAGE_DATA, EnumSet.of(OWNER));
     }
 
     @Test

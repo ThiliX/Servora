@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Link, useParams } from "react-router";
-import { Button, Card, Empty, ErrorState, Loading, Notice } from "../components/ui";
-import { api } from "../lib/api";
-import { canViewConversations } from "../lib/permissions";
+import { Link, useNavigate, useParams } from "react-router";
+import { Button, Card, Empty, ErrorState, FormError, Loading, Notice } from "../components/ui";
+import { api, type ApiError } from "../lib/api";
+import { canManageData, canViewConversations } from "../lib/permissions";
 import type { ControlMode, ConversationSummary, Page, ThreadMessage } from "../lib/types";
-import { useAsync } from "../lib/useAsync";
+import { toApiError, useAsync } from "../lib/useAsync";
 import { useWorkspace } from "./WorkspaceLayout";
 
 const PAGE_SIZE = 20;
@@ -126,7 +126,13 @@ export function ConversationPage() {
             ` · the customer asked for a person ${formatTime(summary.state.data.handoff_requested_at)}`}
         </p>
       )}
-      <Notice tone="info">Replying to customers arrives with the agent workspace. This view is read-only.</Notice>
+      <Notice tone="info">
+        This is the full record, including replies withheld from the customer. To reply, open the ticket in the{" "}
+        <Link to="../../inbox" relative="path" className="underline">
+          Inbox
+        </Link>
+        .
+      </Notice>
       <Card>
         {messages.state.status === "loading" && <Loading label="Loading messages" />}
         {messages.state.status === "error" && <ErrorState error={messages.state.error} onRetry={messages.reload} />}
@@ -171,6 +177,51 @@ export function ConversationPage() {
           </>
         )}
       </Card>
+      {canManageData(workspace.role) && <DeleteConversation workspaceId={workspace.id} conversationId={conversationId} />}
     </>
+  );
+}
+
+/** Owners can delete a conversation permanently, for example on a customer's erasure request. */
+function DeleteConversation({ workspaceId, conversationId }: { workspaceId: string; conversationId: string }) {
+  const navigate = useNavigate();
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<ApiError | null>(null);
+
+  async function remove() {
+    setBusy(true);
+    setError(null);
+    try {
+      await api(`/workspaces/${workspaceId}/conversations/${conversationId}`, { method: "DELETE" });
+      navigate("..", { relative: "path", replace: true });
+    } catch (caught) {
+      setError(toApiError(caught));
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card title="Delete this conversation">
+      <p className="mb-3 text-sm text-slate-600">
+        Deletes the messages, ticket, internal notes, rating and AI records of this conversation. This cannot be undone.
+        Usage counts are kept.
+      </p>
+      <FormError error={error} />
+      {confirming ? (
+        <div className="flex gap-2">
+          <Button variant="danger" disabled={busy} onClick={() => void remove()}>
+            {busy ? "Deleting…" : "Delete permanently"}
+          </Button>
+          <Button variant="secondary" disabled={busy} onClick={() => setConfirming(false)}>
+            Cancel
+          </Button>
+        </div>
+      ) : (
+        <Button variant="danger" onClick={() => setConfirming(true)}>
+          Delete conversation
+        </Button>
+      )}
+    </Card>
   );
 }

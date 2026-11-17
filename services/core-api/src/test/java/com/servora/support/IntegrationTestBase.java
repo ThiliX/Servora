@@ -130,6 +130,12 @@ public abstract class IntegrationTestBase {
         registry.add("servora.widget.messages-per-ip-per-minute", () -> 100_000);
         registry.add("servora.widget.history-per-conversation-per-minute", () -> 100_000);
         registry.add("servora.widget.ai-replies-per-tenant-per-day", () -> 100_000);
+        // Dollars per million tokens, so 10 input and 5 output tokens cost 30 + 75 = 105 micro-dollars.
+        registry.add("servora.usage.input-price-per-million-tokens-usd", () -> "3");
+        registry.add("servora.usage.output-price-per-million-tokens-usd", () -> "15");
+        // Tests run the retention job explicitly.
+        registry.add("servora.retention.enabled", () -> false);
+        registry.add("servora.export.per-workspace-per-hour", () -> 100_000);
     }
 
     protected static Connection ownerConnection() throws SQLException {

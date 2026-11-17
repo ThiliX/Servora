@@ -6,6 +6,7 @@ import com.servora.common.error.ApiException;
 import com.servora.common.web.PageResponse;
 import com.servora.membership.Permission;
 import com.servora.membership.WorkspaceAccess;
+import com.servora.audit.AuditService;
 import com.servora.membership.WorkspaceContext;
 import com.servora.ticket.NotificationService.Type;
 import com.servora.ticket.StaffAccess.Target;
@@ -93,18 +94,21 @@ public class TicketService {
     private final StaffAccess staff;
     private final EscalationService escalation;
     private final NotificationService notifications;
+    private final AuditService audit;
 
     public TicketService(
             JdbcClient jdbc,
             WorkspaceAccess access,
             StaffAccess staff,
             EscalationService escalation,
-            NotificationService notifications) {
+            NotificationService notifications,
+            AuditService audit) {
         this.jdbc = jdbc;
         this.access = access;
         this.staff = staff;
         this.escalation = escalation;
         this.notifications = notifications;
+        this.audit = audit;
     }
 
     @Transactional(readOnly = true)
@@ -183,6 +187,8 @@ public class TicketService {
             }
         }
         setAssignee(ctx, target, membershipId);
+        audit.record(ctx, "TICKET_ASSIGNED", "ticket", ticketId,
+                Map.of("assignee_membership_id", membershipId == null ? "none" : membershipId.toString()));
         return detail(ctx, ticketId);
     }
 
@@ -267,6 +273,7 @@ public class TicketService {
         }
         escalation.event(ctx.tenantId(), ticketId, "TAKEN_OVER", me, (String) conversation.get("control_mode"), "HUMAN_ACTIVE");
         escalation.systemMessage(ctx.tenantId(), conversationId, JOINED_NOTICE);
+        audit.record(ctx, "CONVERSATION_TAKEN_OVER", "conversation", conversationId, Map.of("ticket_id", ticketId.toString()));
         return detail(ctx, ticketId);
     }
 
@@ -306,6 +313,7 @@ public class TicketService {
                 .update();
         escalation.event(ctx.tenantId(), ticketId, "RESOLVED", ctx.membershipId(), status.name(), outcome.name());
         escalation.systemMessage(ctx.tenantId(), target.conversationId(), RESOLVED_NOTICE);
+        audit.record(ctx, "TICKET_RESOLVED", "ticket", ticketId, Map.of("outcome", outcome.name()));
         return detail(ctx, ticketId);
     }
 
@@ -323,6 +331,7 @@ public class TicketService {
                 .param("id", ticketId)
                 .update();
         escalation.event(ctx.tenantId(), ticketId, "CLOSED", ctx.membershipId(), "RESOLVED", "CLOSED");
+        audit.record(ctx, "TICKET_CLOSED", "ticket", ticketId, Map.of());
         return detail(ctx, ticketId);
     }
 

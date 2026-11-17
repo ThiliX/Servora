@@ -26,6 +26,8 @@ public class AnswerVerifier {
     private static final Logger log = LoggerFactory.getLogger(AnswerVerifier.class);
 
     public static final String SERVICE_UNAVAILABLE = "SERVICE_UNAVAILABLE";
+    /** The workspace has used its plan's AI requests or tokens for the month; the model was not asked. */
+    public static final String OVER_LIMIT = "OVER_LIMIT";
     private static final Set<String> OUTCOMES = Set.of(
             "ANSWERED",
             "ESCALATED",
@@ -55,7 +57,7 @@ public class AnswerVerifier {
     /** Must run inside a transaction with {@code tenantId} bound for Row-Level Security. */
     @Transactional(propagation = Propagation.MANDATORY)
     public AiAnswer verify(UUID tenantId, String fallbackMessage, AiAnswer answer) {
-        if (SERVICE_UNAVAILABLE.equals(answer.outcome())) {
+        if (SERVICE_UNAVAILABLE.equals(answer.outcome()) || OVER_LIMIT.equals(answer.outcome())) {
             return answer;
         }
         Set<UUID> givenToModel = answer.retrieval().stream()

@@ -12,6 +12,7 @@ import com.servora.common.ratelimit.RateLimiter;
 import com.servora.membership.Permission;
 import com.servora.membership.WorkspaceAccess;
 import com.servora.membership.WorkspaceContext;
+import com.servora.usage.UsageService;
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
@@ -56,6 +57,7 @@ public class PlaygroundService {
     private final InteractionRecorder recorder;
     private final RateLimiter rateLimiter;
     private final AiProperties properties;
+    private final UsageService usage;
     private final TransactionTemplate transactions;
 
     public PlaygroundService(
@@ -66,6 +68,7 @@ public class PlaygroundService {
             InteractionRecorder recorder,
             RateLimiter rateLimiter,
             AiProperties properties,
+            UsageService usage,
             PlatformTransactionManager transactionManager) {
         this.access = access;
         this.assistants = assistants;
@@ -74,12 +77,17 @@ public class PlaygroundService {
         this.recorder = recorder;
         this.rateLimiter = rateLimiter;
         this.properties = properties;
+        this.usage = usage;
         this.transactions = new TransactionTemplate(transactionManager);
     }
 
     public PlaygroundResult ask(UUID userId, UUID workspaceId, String question) {
         // Authorises and reads the configuration in its own short transaction.
         AssistantView assistant = assistants.get(userId, workspaceId);
+        transactions.executeWithoutResult(status -> {
+            WorkspaceContext ctx = access.authorize(userId, workspaceId, Permission.CONFIGURE_AI);
+            usage.requireAi(ctx.tenantId());
+        });
         if (!rateLimiter.tryAcquire("playground:" + workspaceId, properties.testsPerHour(), Duration.ofHours(1))) {
             throw new ApiException(
                     HttpStatus.TOO_MANY_REQUESTS,

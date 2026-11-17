@@ -1,9 +1,17 @@
-import { Link, NavLink, Outlet, useNavigate, useOutletContext, useParams } from "react-router";
+import { Link, Navigate, NavLink, Outlet, useNavigate, useOutletContext, useParams } from "react-router";
 import { NotificationsBell } from "../components/NotificationsBell";
 import { Button, ErrorState, Loading, Notice, Select } from "../components/ui";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
-import { canConfigureAssistant, canManageSettings, canViewConversations, ROLE_LABELS } from "../lib/permissions";
+import {
+  canConfigureAssistant,
+  canManageSettings,
+  canViewAnalytics,
+  canViewAuditLog,
+  canViewConversations,
+  canViewUsage,
+  ROLE_LABELS,
+} from "../lib/permissions";
 import type { User, Workspace, WorkspaceSummary } from "../lib/types";
 import { useAsync } from "../lib/useAsync";
 
@@ -15,6 +23,12 @@ export interface WorkspaceOutletContext {
 
 export function useWorkspace(): WorkspaceOutletContext {
   return useOutletContext<WorkspaceOutletContext>();
+}
+
+/** The first page of a workspace: the Overview for those who can see metrics, the inbox for everyone else. */
+export function WorkspaceHome() {
+  const { workspace } = useWorkspace();
+  return <Navigate to={canViewAnalytics(workspace.role) ? "overview" : "inbox"} replace />;
 }
 
 export function WorkspaceLayout() {
@@ -44,6 +58,8 @@ export function WorkspaceLayout() {
       <main className="mx-auto max-w-3xl space-y-4 px-4 py-10">
         {state.error.isNotFound ? (
           <Notice tone="error">This workspace does not exist, or you are not a member of it.</Notice>
+        ) : state.error.code === "WORKSPACE_SUSPENDED" ? (
+          <Notice tone="error">This workspace is suspended. Contact Servora support to restore it.</Notice>
         ) : (
           <ErrorState error={state.error} onRetry={reload} />
         )}
@@ -71,9 +87,9 @@ export function WorkspaceLayout() {
               label="Switch workspace"
               hideLabel
               value={workspace.id}
-              onChange={(e) => navigate(`/w/${e.target.value}/team`)}
+              onChange={(e) => navigate(`/w/${e.target.value}`)}
             >
-              {all.map((item) => (
+              {all.filter((item) => item.status !== "SUSPENDED" || item.id === workspace.id).map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.name}
                 </option>
@@ -92,6 +108,11 @@ export function WorkspaceLayout() {
           </div>
         </div>
         <nav aria-label="Workspace" className="mx-auto flex max-w-5xl flex-wrap gap-1 px-4 pb-2">
+          {canViewAnalytics(workspace.role) && (
+            <NavLink to="overview" className={linkClass}>
+              Overview
+            </NavLink>
+          )}
           <NavLink to="inbox" className={linkClass}>
             Inbox
           </NavLink>
@@ -118,6 +139,16 @@ export function WorkspaceLayout() {
                 Widget
               </NavLink>
             </>
+          )}
+          {canViewUsage(workspace.role) && (
+            <NavLink to="usage" className={linkClass}>
+              Usage &amp; plan
+            </NavLink>
+          )}
+          {canViewAuditLog(workspace.role) && (
+            <NavLink to="audit" className={linkClass}>
+              Audit log
+            </NavLink>
           )}
           {canManageSettings(workspace.role) && (
             <NavLink to="settings" className={linkClass}>

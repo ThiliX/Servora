@@ -123,7 +123,7 @@ describe("conversations", () => {
     expect(screen.getByText(/returns\.pdf, page 3: Within 30 days\./)).toBeInTheDocument();
     expect(screen.getByText(/Not shown to the customer/)).toBeInTheDocument();
     expect(await screen.findByText(/asked for a person/)).toBeInTheDocument();
-    expect(screen.getByText(/read-only/)).toBeInTheDocument();
+    expect(screen.getByText(/To reply, open the ticket/)).toBeInTheDocument();
   });
 
   it("is not available to agents", () => {

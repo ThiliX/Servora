@@ -39,8 +39,9 @@ public class Tenant extends BaseEntity {
 
     private String logoUrl;
 
-    @Column(nullable = false)
-    private String planCode;
+    private Integer conversationRetentionDays;
+
+    private String suspendedReason;
 
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
@@ -57,7 +58,6 @@ public class Tenant extends BaseEntity {
         this.status = Status.ACTIVE;
         this.timezone = timezone;
         this.defaultLanguage = defaultLanguage;
-        this.planCode = "FREE";
         this.createdAt = now;
         this.updatedAt = now;
     }
@@ -69,6 +69,11 @@ public class Tenant extends BaseEntity {
         this.defaultLanguage = defaultLanguage;
         this.industry = industry;
         this.logoUrl = logoUrl;
+        this.updatedAt = now;
+    }
+
+    public void setConversationRetentionDays(Integer days, Instant now) {
+        this.conversationRetentionDays = days;
         this.updatedAt = now;
     }
 
@@ -102,6 +107,14 @@ public class Tenant extends BaseEntity {
 
     public String getLogoUrl() {
         return logoUrl;
+    }
+
+    public Integer getConversationRetentionDays() {
+        return conversationRetentionDays;
+    }
+
+    public String getSuspendedReason() {
+        return suspendedReason;
     }
 
     public Instant getCreatedAt() {

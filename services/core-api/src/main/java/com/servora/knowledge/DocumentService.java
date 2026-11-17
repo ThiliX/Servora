@@ -8,6 +8,7 @@ import com.servora.knowledge.UploadValidator.DetectedFile;
 import com.servora.membership.Permission;
 import com.servora.membership.WorkspaceAccess;
 import com.servora.membership.WorkspaceContext;
+import com.servora.usage.UsageService;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.ResultSet;
@@ -68,6 +69,7 @@ public class DocumentService {
     private final UploadRateLimiter rateLimiter;
     private final AuditService audit;
     private final KnowledgeProperties properties;
+    private final UsageService usage;
 
     public DocumentService(
             JdbcClient jdbc,
@@ -75,13 +77,15 @@ public class DocumentService {
             DocumentStorage storage,
             UploadRateLimiter rateLimiter,
             AuditService audit,
-            KnowledgeProperties properties) {
+            KnowledgeProperties properties,
+            UsageService usage) {
         this.jdbc = jdbc;
         this.access = access;
         this.storage = storage;
         this.rateLimiter = rateLimiter;
         this.audit = audit;
         this.properties = properties;
+        this.usage = usage;
     }
 
     /** Called when a workspace is created, inside that transaction. */
@@ -244,6 +248,7 @@ public class DocumentService {
             throw ApiException.conflict(
                     "DOCUMENT_LIMIT_REACHED", "This workspace has reached its document limit. Delete a document first.");
         }
+        usage.requireDocumentSlot(ctx.tenantId(), existing);
 
         // Built only from server-generated identifiers. The user's filename is never part of a path.
         String storageKey = "tenants/%s/documents/%s".formatted(ctx.tenantId(), documentId);
@@ -269,6 +274,7 @@ public class DocumentService {
                     .param("userId", ctx.userId())
                     .update();
             enqueue(ctx, "DOCUMENT_INGEST", documentId, "{}");
+            usage.recordDocumentUploaded(ctx.tenantId(), documentId);
             audit.record(
                     ctx,
                     "DOCUMENT_UPLOADED",

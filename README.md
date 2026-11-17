@@ -4,11 +4,11 @@ Servora is a multi-tenant AI customer-support platform. Each business gets an is
 
 ## Status
 
-**Milestones M1 to M5 are implemented.** You can register, create workspaces, invite members with roles, configure the assistant and widget, and upload PDF, TXT and Markdown documents that are stored privately and indexed in the background. Customers chat with the assistant through a widget on the workspace's own website: it answers from that workspace's documents with citations, gives a fallback message instead of guessing, and hands the conversation to a person when the customer asks or the assistant cannot help. The team works from an inbox: tickets are assigned, a person takes over the conversation, replies, keeps internal notes, can ask the assistant for a draft, and resolves the ticket, after which the customer can rate it. Tenant isolation is enforced by the application and by PostgreSQL Row-Level Security.
+**Milestones M1 to M6 are implemented.** You can register, create workspaces, invite members with roles, configure the assistant and widget, and upload PDF, TXT and Markdown documents that are stored privately and indexed in the background. Customers chat with the assistant through a widget on the workspace's own website: it answers from that workspace's documents with citations, gives a fallback message instead of guessing, and hands the conversation to a person when the customer asks or the assistant cannot help. The team works from an inbox: tickets are assigned, a person takes over the conversation, replies, keeps internal notes, can ask the assistant for a draft, and resolves the ticket, after which the customer can rate it. Owners and admins see an Overview of conversations, escalations and response times, usage against the plan's monthly limits, and an audit log; owners can set a retention period, delete a conversation and export the workspace's data. Platform operators can suspend workspaces and change plans. Tenant isolation is enforced by the application and by PostgreSQL Row-Level Security.
 
 Out of the box the assistant uses a built-in test model that only quotes the best matching passage and costs nothing. Real answers need a Google Gemini key (free tier available) or an Anthropic key (step 2 below).
 
-Not built yet: analytics, usage metering and platform administration. See [docs/milestones.md](docs/milestones.md).
+Not built yet: the hardening and release work of M7. See [docs/milestones.md](docs/milestones.md).
 
 ## Architecture
 
@@ -108,6 +108,16 @@ DEV MAIL verification link: http://localhost:5173/verify-email#token=...
 
 Open the link in the browser to continue. These links contain secret tokens, so never enable this setting outside local development.
 
+### 6. Platform administration (optional)
+
+Platform admins are not created by the application. To make an existing, verified user one, run this against the local database. It adds a row to `platform_admins`, which the runtime role cannot do itself:
+
+```bash
+docker compose exec postgres psql -U servora_owner -d servora -c "INSERT INTO platform_admins (user_id) SELECT id FROM users WHERE email = 'you@example.test';"
+```
+
+Replace the email, and the user and database names if you changed them in `.env`. Sign in again and a **Platform admin** link appears on the workspace list.
+
 ## Tests
 
 ```bash
@@ -173,6 +183,10 @@ No credentials are committed. There are no built-in accounts: register your own 
 - **Escalation rules are built in**, and the list of risky terms is English only.
 - **No OCR.** Scanned PDFs without a text layer fail as empty. Encrypted PDFs are refused.
 - **No malware scanning of uploads.**
+- **Plan limits are soft** by up to the number of requests running at the same moment, and there is no billing: an operator changes plans.
+- **Estimated cost is only as good as the configured prices**, and shows as not configured until you set them.
+- **Analytics use UTC days**, not the workspace's timezone.
+- **Deletion is per conversation.** Deleting a whole workspace, and removing stored document files when conversations expire, are not built.
 - **No browser end-to-end test suite yet.** The flows, including both demo websites, were checked by hand in a browser; Playwright is planned for M7.
 - **Workspace logos are a URL**, not an upload.
 - **Platform administration has a table but no features** until M6.

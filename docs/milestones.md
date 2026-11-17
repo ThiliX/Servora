@@ -120,8 +120,8 @@ Requirements: FR-032 to FR-037, FR-040.
 - [x] Concurrency, idempotency and visibility tests passing (151 core API, 16 widget, 55 dashboard; local run 2026-11-17). The takeover race test ran four times, 24 rounds each, with both orders observed every time
 - [x] Handbook journey 4.3 checked by hand in a browser against the real stack: handoff, takeover, agent reply reaching the widget, resolution, rating shown to the team
 - [ ] Playwright end-to-end suite (deferred to M7)
-- [ ] CI green on GitHub for the M5 branch
-- [ ] Reviewed and merged to `main`
+- [x] CI green on GitHub for the M5 branch (pull request 5)
+- [x] Reviewed and merged to `main` (2026-11-17)
 
 Deferred from M5, with the milestone that picks each up:
 
@@ -134,11 +134,23 @@ Deferred from M5, with the milestone that picks each up:
 
 Requirements: FR-038, FR-039, FR-041, FR-042, FR-043 (post-MVP).
 
-- [ ] Usage events and plan limits
-- [ ] Analytics endpoints and dashboard pages
-- [ ] Audit coverage and audit log view
-- [ ] Scoped tenant export and deletion
-- [ ] Platform admin: list, suspend, reactivate tenants
+- [x] Plans, subscriptions and append-only usage events; AI requests metered with tokens and estimated cost ([ADR-019](architecture/adr/0019-plans-usage-metering-and-platform-administration.md))
+- [x] Plan limits enforced: the widget offers a person when AI is over the limit, new chats are refused politely over the conversation limit, and the playground, suggestions and uploads return `PLAN_LIMIT_REACHED`
+- [x] Analytics endpoint and Overview page: conversations resolved by AI, escalated and unanswered, daily trend, ticket queue, response times, intents, escalation reasons, outcomes, ratings
+- [x] Usage and plan page
+- [x] Audit coverage extended to ticket assignment, takeover, resolution and closure, retention, deletion and export; audit log page for owners and admins
+- [x] Retention period, owner deletion of a conversation, and workspace export ([ADR-020](architecture/adr/0020-retention-deletion-and-export.md))
+- [x] Platform admin: list workspaces, suspend, reactivate, change plan, with a platform audit log; suspension also stops existing widget sessions
+- [x] Tests passing (169 core API, 66 dashboard; local run 2026-11-17), including cross-tenant checks for usage, analytics, audit, deletion and export, and suspension at dashboard and widget
+- [ ] CI green on GitHub for the M6 branch
+- [ ] Reviewed and merged to `main`
+
+Deferred from M6, with the milestone that picks each up:
+
+- Deleting a whole workspace, and deleting stored document files on retention — after the MVP (an operator procedure until then)
+- Self-service plan changes and billing — after the MVP
+- Analytics in the workspace's own timezone (UTC today) — after the MVP
+- Browser tests of the Overview, Usage and Platform pages — M7, with the other Playwright tests
 
 ## M7 — Hardening and release
 

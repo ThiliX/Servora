@@ -59,6 +59,23 @@ public class TenantContext {
         set("app.outbox_dispatcher", "on");
     }
 
+    /**
+     * Lets the transaction read workspace metadata, subscriptions and usage of every tenant. Call
+     * only from the platform admin service, after binding the user: the policies also require that
+     * user to be in {@code platform_admins} (ADR-019).
+     */
+    public void enablePlatformAdmin() {
+        set("app.platform_admin", "on");
+    }
+
+    /**
+     * Lets the retention job list the workspaces that have a retention period. It must bind each
+     * workspace before reading or deleting any of its data.
+     */
+    public void enableRetentionJob() {
+        set("app.retention_job", "on");
+    }
+
     private void set(String name, String value) {
         if (!TransactionSynchronizationManager.isActualTransactionActive()) {
             throw new IllegalStateException("Tenant context must be set inside a transaction");
