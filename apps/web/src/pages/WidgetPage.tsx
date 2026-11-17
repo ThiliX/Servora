@@ -15,7 +15,7 @@ export function parseOrigins(text: string): string[] {
 }
 
 export function embedSnippet(publicKey: string): string {
-  return `<script src="https://YOUR-SERVORA-HOST/servora-widget.js" data-widget-key="${publicKey}" async></script>`;
+  return `<script type="module" src="https://YOUR-SERVORA-HOST/servora-widget.js" data-widget-key="${publicKey}" async></script>`;
 }
 
 function AppearanceForm({ widget, onSaved }: { widget: Widget; onSaved: () => void }) {
@@ -181,7 +181,10 @@ function KeyCard({ widget, onRotated }: { widget: Widget; onRotated: () => void 
         <pre className="overflow-x-auto rounded-md bg-slate-900 p-3 text-xs text-slate-100">
           <code>{embedSnippet(widget.public_key)}</code>
         </pre>
-        <Notice tone="info">The chat widget itself is not released yet. Keep this snippet for when it is.</Notice>
+        <p className="text-xs text-slate-500">
+          Paste this just before the closing body tag of your website. The chat button appears only on the websites listed
+          under Allowed websites.
+        </p>
         <Button variant="danger" onClick={() => void rotate()} disabled={busy}>
           {busy ? "Replacing…" : "Replace key"}
         </Button>

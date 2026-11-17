@@ -63,6 +63,17 @@ Review checklists: [OWASP API Security Top 10](https://owasp.org/www-project-api
 - **Widget origins:** stored canonically and compared by exact equality. Enforcement at session issue is M4.
 - **Not yet addressed:** malware scanning; per-tenant storage credentials; the internal token is not bound to a single use.
 
+## Additional M4 notes
+
+- **Public surface:** the widget endpoints are the first ones reachable without an account. They run in a separate security filter chain, accept only a widget key or a widget session token, and take no tenant or conversation id from the request.
+- **Embedding by other websites:** the loader's requests carry the website's `Origin`, checked by exact match against the widget's allowed origins, and CORS answers only those origins. A script that forges `Origin` is not stopped by this; it can reach only that widget's public assistant, within the rate limits.
+- **Session tokens:** two-hour HS256 tokens with their own signing key, one scope and one conversation. They are stored in the website's `sessionStorage`, readable by that website's scripts, which belong to the workspace owner.
+- **Cross-site scripting in the widget:** customer and model text is inserted with `textContent` only, enforced by a lint rule; the iframe page has a restrictive Content Security Policy and no referrer; `postMessage` traffic is checked by source window and origin, and payloads are validated field by field.
+- **Abuse and cost:** shared Redis limits per client address (stored hashed), per conversation, and a daily AI-reply budget per workspace. If Redis is down, limited operations are refused.
+- **Takeover races:** an AI reply is delivered only if the conversation's mode and version are unchanged under a row lock; otherwise it is stored as suppressed and never shown.
+- **Data shown to customers:** citations show document filenames, page numbers, headings and short snippets. Workspace owners should know that filenames are visible to their customers.
+- **Not yet addressed:** login rate limiting is still in memory; no CAPTCHA or bot detection on session creation; conversations are never closed automatically; no retention period for conversations yet.
+
 ## Additional M3 notes
 
 - **Prompt injection:** retrieved text and the customer's message are escaped and wrapped in labelled tags, and the system prompt tells the model to treat them as content, not instructions. This lowers the risk; it does not remove it. The controls that do not depend on the model behaving are: the model has no tools and no access to other tenants' data, its output must match a fixed schema, and every citation is checked against what was retrieved. Tests cover the escaping and the citation check with a fake model; behaviour of the real model under attack is unmeasured.

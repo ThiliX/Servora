@@ -58,6 +58,25 @@ jobs:
       - run: npm test
       - run: npm run build
 
+  widget:
+    name: Chat widget (lint, test, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/widget
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: apps/widget/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
   document-worker:
     name: Document worker (lint and test)
     runs-on: ubuntu-latest

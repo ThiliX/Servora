@@ -4,11 +4,11 @@ Servora is a multi-tenant AI customer-support platform. Each business gets an is
 
 ## Status
 
-**Milestones M1 to M3 are implemented.** You can register, create workspaces, invite members with roles, configure the assistant and widget, upload PDF, TXT and Markdown documents that are stored privately and indexed in the background, and ask the assistant questions in a private test page. It answers from that workspace's documents with citations, and gives a fallback message instead of guessing when it finds no evidence. Tenant isolation is enforced by the application and by PostgreSQL Row-Level Security.
+**Milestones M1 to M4 are implemented.** You can register, create workspaces, invite members with roles, configure the assistant and widget, and upload PDF, TXT and Markdown documents that are stored privately and indexed in the background. Customers can chat with the assistant through a widget embedded on the workspace's own website: it answers from that workspace's documents with citations, gives a fallback message instead of guessing, and lets the customer ask for a person. Owners, admins and supervisors can read every conversation in the dashboard. Tenant isolation is enforced by the application and by PostgreSQL Row-Level Security.
 
 Out of the box the assistant uses a built-in test model that only quotes the best matching passage and costs nothing. Real answers need an Anthropic API key (step 2 below).
 
-Not built yet: the chat widget, customer conversations, tickets and analytics. See [docs/milestones.md](docs/milestones.md).
+Not built yet: agents replying to customers, tickets and analytics. See [docs/milestones.md](docs/milestones.md).
 
 ## Architecture
 
@@ -58,7 +58,7 @@ Edit `.env`:
 
 - Set the three `SERVORA_POSTGRES_*_PASSWORD` values to different local passwords.
 - Set `SERVORA_STORAGE_ACCESS_KEY` and `SERVORA_STORAGE_SECRET_KEY` to local values of your choice.
-- Set `SERVORA_JWT_SECRET` and `SERVORA_INTERNAL_TOKEN_SECRET` to two different outputs of `openssl rand -base64 48`.
+- Set `SERVORA_JWT_SECRET`, `SERVORA_INTERNAL_TOKEN_SECRET` and `SERVORA_WIDGET_TOKEN_SECRET` to three different outputs of `openssl rand -base64 48`.
 
 `.env` is git-ignored. Docker Compose and the core API both read it.
 
@@ -89,6 +89,14 @@ cd apps/web && npm install && npm run dev
 ```
 
 Open <http://localhost:5173>. The dev server proxies `/api` to the core API, so the browser sees one origin.
+
+### 4a. Try the chat widget
+
+```bash
+cd apps/widget && npm install && npm run dev
+```
+
+In a second terminal, `npm run demo` in `apps/widget` serves two demo websites: TechStore on <http://localhost:5181> and HotelPro on <http://localhost:5182>. For each workspace, add the demo site's address on the Widget page, upload the matching files from `services/ai-service/evaluation/fixtures` on the Knowledge page, then open the site with `?key=` and the widget key. Details: [apps/widget/README.md](apps/widget/README.md).
 
 ### 5. Verification and invitation emails
 
@@ -126,9 +134,9 @@ Add `-v` to also delete the database volume.
 
 ```text
 apps/web                  React dashboard
-apps/widget               Iframe customer widget and loader (M4)
+apps/widget               Chat widget (iframe and loader) and two demo websites
 services/core-api         Spring Boot modular monolith
-services/ai-service       FastAPI RAG service (M3)
+services/ai-service       FastAPI RAG service
 workers/document-worker   Celery ingestion worker and its enqueue endpoint
 infrastructure            Database bootstrap, Docker and monitoring assets
 docs                      Architecture, database, API, security and AI documentation
@@ -151,17 +159,19 @@ No credentials are committed. There are no built-in accounts: register your own 
 ## Limitations
 
 - **No email delivery.** Links are written to the development log.
-- **Login rate limiting is in memory**, so it applies per API instance and resets on restart.
+- **Login rate limiting is in memory**, so it applies per API instance and resets on restart. The other rate limits are shared in Redis.
 - **The API runs migrations at startup** and therefore holds the database owner's credentials. Separating migration from runtime is part of M7.
 - **The API and dashboard are not containerised yet.** They run on the host; the infrastructure, worker and AI service run in Compose.
 - **Answer quality is unmeasured.** Retrieval has a first baseline on 40 questions ([docs/ai/evaluation-baseline.md](docs/ai/evaluation-baseline.md)); answers from the real model have not been evaluated, and the integration with the live Anthropic API has been tested against a stub only.
 - **The evidence threshold is a trade-off, not a solved problem.** In the baseline no threshold separated answerable from unanswerable questions cleanly.
 - **With the real model, questions and retrieved passages are sent to Anthropic's API.**
-- **The assistant is reachable only from the private test page** until the widget arrives in M4.
+- **Each customer question is answered on its own**, without the earlier turns of the conversation.
+- **A chat lasts at most two hours.** When the session expires the widget starts a new conversation; visitors cannot resume a chat on another device.
+- **Answers are shown when complete**, not word by word, so they can be checked before the customer sees them.
+- **Agents cannot reply yet.** Asking for a person stops AI replies and is recorded; the agent workspace arrives in M5.
 - **No OCR.** Scanned PDFs without a text layer fail as empty. Encrypted PDFs are refused.
 - **No malware scanning of uploads.**
-- **The upload and test-question rate limits are in memory**, like the login limiter.
-- **No browser end-to-end test suite yet.** The flows were checked by hand in a browser; Playwright arrives with later milestones.
+- **No browser end-to-end test suite yet.** The flows, including both demo websites, were checked by hand in a browser; Playwright is planned for M7.
 - **Workspace logos are a URL**, not an upload.
 - **Platform administration has a table but no features** until M6.
 - This is an engineering project, not legal advice; privacy and consumer-protection requirements need review before any real customer data is used.

@@ -149,3 +149,37 @@ export interface PlaygroundResult {
   input_tokens: number;
   output_tokens: number;
 }
+
+export type ControlMode = "AI_ACTIVE" | "HUMAN_PENDING" | "HUMAN_ACTIVE";
+
+export interface ConversationSummary {
+  id: string;
+  status: "OPEN" | "CLOSED";
+  control_mode: ControlMode;
+  origin: string;
+  created_at: string;
+  last_message_at: string | null;
+  handoff_requested_at: string | null;
+  message_count: number;
+  last_message_preview: string | null;
+}
+
+export interface ThreadCitation {
+  chunk_id: string;
+  document_id: string;
+  filename: string;
+  page_number: number | null;
+  heading: string | null;
+  snippet: string;
+}
+
+export interface ThreadMessage {
+  id: string;
+  sender_type: "CUSTOMER" | "ASSISTANT" | "AGENT" | "SYSTEM";
+  visibility: "PUBLIC" | "INTERNAL";
+  delivery_status: "DELIVERED" | "SUPPRESSED";
+  body: string;
+  created_at: string;
+  outcome: AnswerOutcome | null;
+  citations: ThreadCitation[];
+}

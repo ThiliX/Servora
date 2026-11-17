@@ -6,6 +6,7 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -26,7 +27,9 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 class SecurityConfig {
 
+    /** Every endpoint except the public widget endpoints, which have their own chain (ADR-017). */
     @Bean
+    @Order(2)
     SecurityFilterChain securityFilterChain(HttpSecurity http, ApiSecurityErrorHandler errors) throws Exception {
         http
                 // Stateless API. Access tokens travel in the Authorization header, so they are not

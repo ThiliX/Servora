@@ -2,7 +2,7 @@ import { Link, NavLink, Outlet, useNavigate, useOutletContext, useParams } from 
 import { Button, ErrorState, Loading, Notice, Select } from "../components/ui";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
-import { canConfigureAssistant, canManageSettings, ROLE_LABELS } from "../lib/permissions";
+import { canConfigureAssistant, canManageSettings, canViewConversations, ROLE_LABELS } from "../lib/permissions";
 import type { User, Workspace, WorkspaceSummary } from "../lib/types";
 import { useAsync } from "../lib/useAsync";
 
@@ -93,6 +93,11 @@ export function WorkspaceLayout() {
           <NavLink to="team" className={linkClass}>
             Team
           </NavLink>
+          {canViewConversations(workspace.role) && (
+            <NavLink to="conversations" className={linkClass}>
+              Conversations
+            </NavLink>
+          )}
           {canConfigureAssistant(workspace.role) && (
             <>
               <NavLink to="assistant" className={linkClass}>

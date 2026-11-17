@@ -34,7 +34,7 @@ Requirements: FR-001, FR-002, FR-003, FR-004, FR-005, FR-006, FR-007. Starts FR-
 Deferred from M1, with the milestone that picks each up:
 
 - Email delivery through a real provider (links are logged in development) — M7
-- Shared-store login rate limiting (in memory today) — M4, with the public rate limits
+- Shared-store login rate limiting (in memory today) — M7 (the other limits moved to Redis in M4)
 - Application containers in Compose — M7
 - Playwright end-to-end suite — M4 onward
 
@@ -74,26 +74,38 @@ Requirements: FR-010, FR-025 to FR-029, FR-031.
 - [x] AI test cases passing on the fake provider (121 core API, 45 AI service, 50 worker, 46 dashboard; local run 2026-11-17)
 - [x] Real run end to end through the local stack with the real embedding model and the fake provider
 - [ ] One answer from the live Anthropic API checked by hand (needs an API key; not done)
-- [ ] CI green on GitHub for the M3 branch
-- [ ] Reviewed and merged to `main`
+- [x] CI green on GitHub for the M3 branch (2026-11-17, pull request 3)
+- [x] Merged to `main` and tagged `v0.3-m3` (2026-11-17)
 
 Deferred from M3, with the milestone that picks each up:
 
 - Answer quality evaluation with the real model, and injection tests against it — M7
 - Chunk size and overlap comparison — M7
-- Shared-store rate limiting for the playground (in memory today) — M4
+- Shared-store rate limiting for the playground — done in M4
 - Sentiment detection (FR-030) — after the MVP
 
 ## M4 — Public chat widget and conversations
 
 Requirements: FR-020 to FR-024.
 
-- [ ] Public widget endpoints and scoped session tokens
-- [ ] Conversation and message persistence with citations
-- [ ] Rate limits and message idempotency
-- [ ] Pre-delivery state re-check and SSE streaming
-- [ ] Loader, iframe widget and two demo sites
-- [ ] Token-scope, origin, isolation and end-to-end tests passing
+- [x] Public widget endpoints and scoped session tokens ([ADR-017](architecture/adr/0017-public-widget-access-and-session-tokens.md))
+- [x] Conversation and message persistence with citations
+- [x] Rate limits in Redis and message idempotency
+- [x] Pre-delivery state re-check and SSE streaming ([ADR-014](architecture/adr/0014-server-sent-events-from-the-core-api-for-customer-streaming.md), amended: final message only)
+- [x] Loader, iframe widget and two demo sites
+- [x] Dashboard conversation list and read-only thread view
+- [x] Token-scope, origin, isolation and idempotency tests passing (137 core API, 13 widget, 49 dashboard, 45 AI service, 50 worker; local run 2026-11-17)
+- [x] Both demo sites checked by hand in a browser against the real stack: answers with citations from their own documents, TechStore abstains on a hotel question, handoff stops AI replies
+- [ ] Playwright end-to-end suite (not built; see deferrals)
+- [ ] CI green on GitHub for the M4 branch
+- [ ] Reviewed and merged to `main`
+
+Deferred from M4, with the milestone that picks each up:
+
+- Playwright end-to-end suite for the widget and dashboard — M7
+- Earlier turns of the conversation sent to the AI service as context (each question is answered on its own today) — M5
+- Resuming a conversation after the session token expires, or across devices — after the MVP
+- Token-by-token streaming of answers (see ADR-014) — revisit when real-model latency is measured
 
 ## M5 — Tickets and human agent workspace
 

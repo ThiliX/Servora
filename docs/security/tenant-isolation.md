@@ -52,6 +52,12 @@ It learns the tenant from a short-lived token signed by the core API (audience `
 
 The core API does not trust the AI service's reply. Before returning or storing an answer it checks, under Row-Level Security in the caller's tenant, that every chunk the reply names exists in that tenant, and that every citation is one of the chunks the reply says were given to the model. A reply that fails is discarded and the fallback message is returned instead.
 
+## The public widget
+
+Public requests have no user and start with no tenant. A widget key is resolved in a transaction that may read only the widget with that key (`app.widget_public_key`); the widget's tenant is then bound from that row. After a session starts, the tenant, customer and conversation come from the session token alone, which is signed with a key separate from the dashboard's. The public endpoints accept no tenant, workspace or conversation id in the request. See [ADR-017](../architecture/adr/0017-public-widget-access-and-session-tokens.md).
+
+An AI reply goes through the same verification as the playground: every chunk it names must exist in the conversation's tenant, and every citation must be one the AI service says it gave the model.
+
 ## Tables not under RLS
 
 `users`, `refresh_tokens`, `email_verification_tokens` and `platform_admins` are global identity tables, not tenant-owned. The runtime role can read `users` in full, so application code must expose users to a tenant only through a membership join. This is a known boundary that RLS does not defend.
@@ -138,15 +144,28 @@ Runs the real pipeline against PostgreSQL with the real migrations, connected as
 - Agents get `403`; members of another workspace get `404`; the AI service is not called in either case.
 - `ai_interactions` rows are invisible without a tenant and from another tenant, cannot be inserted for another tenant, and cannot be updated by the application role.
 
+### Widget and conversations — `WidgetConversationIntegrationTest` (core API)
+
+- Origins: exact match passes; look-alike, suffix, sibling-subdomain, scheme, port, `null`, missing and other-tenant origins are refused, with no CORS header.
+- Keys: unknown, malformed, rotated and disabled keys give the same `404`.
+- Tokens: a token reads only its own conversation; tampered, re-signed with another key, unsigned (`alg: none`), expired and dashboard tokens are rejected; a widget token is rejected by every dashboard endpoint tried.
+- A TechStore question answered by a faulty AI service with a HotelPro chunk returns the fallback, and no HotelPro identifier, text or citation appears in the response or the database.
+- Dashboard: agents get `403`, another workspace's owner gets `404`, and a conversation id from another workspace is not found.
+
 ### Role tests — `RoleEnforcementIntegrationTest`, `PermissionTest`
 
 The role matrix is asserted independently of its implementation, and enforced over HTTP for all four roles, including that an admin cannot change an owner or grant ownership.
 
 ## Results
 
-Recorded on 2026-11-17, local runs: core API 121 tests, AI service 45 tests, document worker 50 tests, dashboard 46 tests, all passing. CI results are on the repository's Actions page.
+Recorded on 2026-11-17, local runs: core API 137 tests, AI service 45 tests, document worker 50 tests, dashboard 49 tests, widget 13 tests, all passing. CI results are on the repository's Actions page.
 
-One manual end-to-end run on 2026-11-17 uploaded different documents to two workspaces through the real API and worker, then asked the same question in both through the playground: each was answered from its own documents only. An earlier run on 2026-11-16 covered ingestion, including a broken PDF failing with `PARSE_ERROR`.
+Manual end-to-end runs on 2026-11-17 against the real API, worker, AI service and embedding model, with the fake LLM provider:
+
+- Two workspaces with different documents, asked the same question through the playground: each answered from its own documents only.
+- The two demo websites on separate origins, in a browser: each widget answered from its own workspace's documents with citations. Asked about hotel check-in, the TechStore widget abstained; its retrieval contained no HotelPro chunk, and no HotelPro identifier appeared in the TechStore conversation's stored data or the API's reply log lines. The TechStore key used on the HotelPro site showed no widget.
+
+An earlier run on 2026-11-16 covered ingestion, including a broken PDF failing with `PARSE_ERROR`.
 
 ## Known gaps
 

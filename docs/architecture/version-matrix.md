@@ -42,6 +42,7 @@ Verified on **2026-11-16** against the sources named in each row. These are the 
 | Bouncy Castle (`bcprov-jdk18on`) | 1.87 | Maven Central; required by the Argon2 password encoder in Spring Security |
 | Maven (via wrapper) | 3.10.0 | Chosen by Spring Initializr for Boot 4.1.2 |
 | AWS SDK for Java v2 (`s3`) | 2.59.1 | Maven Central; S3-compatible document storage |
+| Spring Data Redis (`spring-boot-starter-data-redis`) | Boot BOM | Shared rate-limit counters, with the Lettuce client |
 
 ## AI service and document worker (Python)
 
@@ -96,6 +97,7 @@ Verified on **2026-11-16** against the sources named in each row. These are the 
 
 ## Known limits of this check
 
+- **M4 (2026-11-17):** Spring Data Redis was exercised against `redis:8.8.4-alpine` in the integration tests and the local stack. The widget app uses the dashboard's toolchain versions without React or Tailwind, and was built, tested and run in a browser.
 - **M3 (2026-11-17):** the AI service was installed, tested and run on Python 3.13 in a container: FastAPI, psycopg, PyJWT, the embedding model for queries, and `anthropic` 2.9.0. The Anthropic SDK was exercised against a stubbed client only; no call to the live API was made. The AI service image is about 1.7 GB and shares its model layers with the worker image.
 - **M2 (2026-11-16):** the Python worker rows were installed, tested and run on Python 3.13 in containers, including the real embedding model in an end-to-end upload. The storage emulator was exercised by both the Java and Python clients. FastAPI and sentence-transformers in the AI service (M3) remain unexercised beyond what the worker uses.
 - On the development machine, `pip` on the host fails certificate verification for PyPI, so Python work runs in containers. CI installs normally.

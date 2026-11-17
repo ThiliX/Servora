@@ -34,6 +34,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
@@ -67,7 +68,17 @@ public abstract class IntegrationTestBase {
             .withUsername(OWNER_USER)
             .withPassword(OWNER_PASSWORD);
 
+    /** Rate-limit counters, as in production. */
+    protected static final GenericContainer<?> REDIS =
+            new GenericContainer<>(DockerImageName.parse("redis:8.8.4-alpine")).withExposedPorts(6379);
+
+    protected static final int WIDGET_MESSAGES_PER_MINUTE = 5;
+    protected static final String WIDGET_APP_ORIGIN = "http://localhost:5174";
+    protected static final byte[] WIDGET_TOKEN_KEY = new byte[48];
+
     static {
+        REDIS.start();
+        new SecureRandom().nextBytes(WIDGET_TOKEN_KEY);
         POSTGRES.start();
         try (Connection connection = ownerConnection();
                 Statement statement = connection.createStatement()) {
@@ -106,6 +117,18 @@ public abstract class IntegrationTestBase {
         registry.add("servora.outbox.enabled", () -> false);
         registry.add("servora.outbox.max-attempts", () -> 3);
         registry.add("servora.outbox.retry-base-delay", () -> "PT0S");
+        registry.add("spring.data.redis.host", REDIS::getHost);
+        registry.add("spring.data.redis.port", () -> REDIS.getMappedPort(6379));
+        registry.add("servora.widget.token-secret", () -> Base64.getEncoder().encodeToString(WIDGET_TOKEN_KEY));
+        registry.add("servora.widget.app-origin", () -> WIDGET_APP_ORIGIN);
+        registry.add("servora.widget.reply-timeout", () -> "PT10S");
+        registry.add("servora.widget.messages-per-conversation-per-minute", () -> WIDGET_MESSAGES_PER_MINUTE);
+        // All tests share one client address, so the per-address limits are lifted here and the
+        // limiter itself is tested directly.
+        registry.add("servora.widget.config-per-ip-per-minute", () -> 100_000);
+        registry.add("servora.widget.sessions-per-ip-per-hour", () -> 100_000);
+        registry.add("servora.widget.messages-per-ip-per-minute", () -> 100_000);
+        registry.add("servora.widget.ai-replies-per-tenant-per-day", () -> 100_000);
     }
 
     protected static Connection ownerConnection() throws SQLException {
