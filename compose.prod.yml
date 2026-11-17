@@ -1,0 +1,178 @@
+# Production profile: the whole system in containers. Layered on the development file:
+#
+#   docker compose -f docker-compose.yml -f compose.prod.yml up -d --build --wait
+#
+# Differences from development:
+# - The core API, dashboard and widget run in containers too.
+# - Migrations run once, in their own container, with the database owner's password. The API
+#   connects only as the unprivileged runtime role and never sees the owner's password.
+# - Only the dashboard/API gateway and the widget host publish ports. The database, Redis, storage,
+#   worker and AI service publish none, and their network has no internet access; only the AI
+#   service has a second network for calls to the model provider.
+# - Application containers run as non-root users with read-only root filesystems, no Linux
+#   capabilities, no privilege escalation and memory and CPU limits.
+#
+# SERVORA_PUBLIC_BIND (default 127.0.0.1) is the address the two public ports bind to. Put a TLS
+# terminating proxy in front of them before exposing them beyond this machine.
+
+x-hardened: &hardened
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  tmpfs:
+    - /tmp
+
+services:
+  postgres:
+    ports: !reset []
+  redis:
+    ports: !reset []
+  storage:
+    ports: !reset []
+  worker-api:
+    ports: !reset []
+  ai-service:
+    ports: !reset []
+    networks:
+      - backend
+      - egress
+
+  # The core API image with a different entry point: applies the migrations and exits.
+  migrations:
+    image: servora/core-api:prod
+    restart: "no"
+    entrypoint:
+      - java
+      - -Dloader.main=com.servora.Migrate
+      - -cp
+      - /app/app.jar
+      - org.springframework.boot.loader.launch.PropertiesLauncher
+    environment:
+      SERVORA_POSTGRES_HOST: postgres
+      SERVORA_POSTGRES_PORT: "5432"
+      SERVORA_POSTGRES_DB: ${SERVORA_POSTGRES_DB:-servora}
+      SERVORA_POSTGRES_OWNER_USER: ${SERVORA_POSTGRES_OWNER_USER:-servora_owner}
+      SERVORA_POSTGRES_OWNER_PASSWORD: ${SERVORA_POSTGRES_OWNER_PASSWORD:?Set SERVORA_POSTGRES_OWNER_PASSWORD in .env}
+      SERVORA_POSTGRES_APP_USER: ${SERVORA_POSTGRES_APP_USER:-servora_app}
+      SERVORA_POSTGRES_WORKER_USER: ${SERVORA_POSTGRES_WORKER_USER:-servora_worker}
+      SERVORA_POSTGRES_AI_USER: ${SERVORA_POSTGRES_AI_USER:-servora_ai}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    <<: *hardened
+    networks:
+      - backend
+
+  core-api:
+    build:
+      context: ./services/core-api
+    image: servora/core-api:prod
+    restart: unless-stopped
+    environment:
+      SERVORA_POSTGRES_HOST: postgres
+      SERVORA_POSTGRES_PORT: "5432"
+      SERVORA_POSTGRES_DB: ${SERVORA_POSTGRES_DB:-servora}
+      SERVORA_POSTGRES_APP_USER: ${SERVORA_POSTGRES_APP_USER:-servora_app}
+      SERVORA_POSTGRES_APP_PASSWORD: ${SERVORA_POSTGRES_APP_PASSWORD:?Set SERVORA_POSTGRES_APP_PASSWORD in .env}
+      SERVORA_REDIS_HOST: redis
+      SERVORA_REDIS_PORT: "6379"
+      SERVORA_JWT_SECRET: ${SERVORA_JWT_SECRET:?Set SERVORA_JWT_SECRET in .env}
+      SERVORA_INTERNAL_TOKEN_SECRET: ${SERVORA_INTERNAL_TOKEN_SECRET:?Set SERVORA_INTERNAL_TOKEN_SECRET in .env}
+      SERVORA_WIDGET_TOKEN_SECRET: ${SERVORA_WIDGET_TOKEN_SECRET:?Set SERVORA_WIDGET_TOKEN_SECRET in .env}
+      SERVORA_STORAGE_ENDPOINT: http://storage:7070
+      SERVORA_STORAGE_REGION: ${SERVORA_STORAGE_REGION:-us-east-1}
+      SERVORA_STORAGE_BUCKET: ${SERVORA_STORAGE_BUCKET:-servora-documents}
+      SERVORA_STORAGE_ACCESS_KEY: ${SERVORA_STORAGE_ACCESS_KEY:?Set SERVORA_STORAGE_ACCESS_KEY in .env}
+      SERVORA_STORAGE_SECRET_KEY: ${SERVORA_STORAGE_SECRET_KEY:?Set SERVORA_STORAGE_SECRET_KEY in .env}
+      SERVORA_WORKER_ENQUEUE_URL: http://worker-api:8090/internal/v1/ingestion-jobs
+      SERVORA_AI_ANSWER_URL: http://ai-service:8091/internal/v1/answers
+      SERVORA_WEB_BASE_URL: ${SERVORA_PROD_WEB_ORIGIN:-http://localhost:8000}
+      # The widget host also forwards the public widget API, so this is both the iframe's origin and
+      # the only origin allowed to call the conversation endpoints.
+      SERVORA_WIDGET_APP_ORIGIN: ${SERVORA_PROD_WIDGET_ORIGIN:-http://localhost:8001}
+      SERVORA_REFRESH_COOKIE_SECURE: "true"
+      SERVORA_MAIL_LOG_LINKS: ${SERVORA_PROD_MAIL_LOG_LINKS:-false}
+      SERVORA_USAGE_INPUT_PRICE_PER_MTOK_USD: ${SERVORA_USAGE_INPUT_PRICE_PER_MTOK_USD:-0}
+      SERVORA_USAGE_OUTPUT_PRICE_PER_MTOK_USD: ${SERVORA_USAGE_OUTPUT_PRICE_PER_MTOK_USD:-0}
+      SERVORA_RETENTION_ENABLED: ${SERVORA_RETENTION_ENABLED:-true}
+      # Requests arrive only through the gateway, which replaces X-Forwarded-For with the client's
+      # address. Tomcat trusts that header only from private network addresses such as the gateway's.
+      SERVER_FORWARD_HEADERS_STRATEGY: native
+      # Not published, so the API documentation is reachable only from inside the network.
+      SPRINGDOC_API_DOCS_ENABLED: "false"
+      SPRINGDOC_SWAGGER_UI_ENABLED: "false"
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      storage:
+        condition: service_started
+      worker-api:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
+    healthcheck:
+      # The image has no curl; bash can open the TCP connection itself.
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET /actuator/health HTTP/1.0\\r\\n\\r\\n' >&3 && grep -q UP <&3"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    <<: *hardened
+    mem_limit: 1g
+    cpus: 2
+    networks:
+      - backend
+      - edge
+
+  web:
+    build:
+      context: ./apps/web
+    image: servora/web:prod
+    restart: unless-stopped
+    ports:
+      - "${SERVORA_PUBLIC_BIND:-127.0.0.1}:${SERVORA_WEB_PORT:-8000}:8080"
+    depends_on:
+      core-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+    <<: *hardened
+    mem_limit: 128m
+    cpus: 1
+    networks:
+      - edge
+
+  widget:
+    build:
+      context: ./apps/widget
+    image: servora/widget:prod
+    restart: unless-stopped
+    ports:
+      - "${SERVORA_PUBLIC_BIND:-127.0.0.1}:${SERVORA_WIDGET_PORT:-8001}:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/widget.html"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+    depends_on:
+      core-api:
+        condition: service_healthy
+    <<: *hardened
+    mem_limit: 128m
+    cpus: 1
+    networks:
+      - edge
+
+networks:
+  # No route to the internet for the data services.
+  backend:
+    internal: true
+  # Published entry points, and the core API's way in from the gateway.
+  edge: {}
+  # Outbound calls from the AI service to the model provider.
+  egress: {}

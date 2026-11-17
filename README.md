@@ -118,6 +118,14 @@ docker compose exec postgres psql -U servora_owner -d servora -c "INSERT INTO pl
 
 Replace the email, and the user and database names if you changed them in `.env`. Sign in again and a **Platform admin** link appears on the workspace list.
 
+### 7. Run everything in containers (production profile)
+
+```bash
+docker compose -p servora-prod -f docker-compose.yml -f compose.prod.yml up -d --build --wait
+```
+
+The dashboard and API on <http://localhost:8000> and the widget host on <http://localhost:8001>, with migrations run by a separate container, no published database or Redis ports, and hardened containers. See [docs/operations/production.md](docs/operations/production.md); backups in [docs/operations/backup-and-restore.md](docs/operations/backup-and-restore.md).
+
 ## Tests
 
 ```bash
@@ -171,8 +179,8 @@ No credentials are committed. There are no built-in accounts: register your own 
 ## Limitations
 
 - **No email delivery.** Links are written to the development log.
-- **The API runs migrations at startup** and therefore holds the database owner's credentials. Separating migration from runtime is part of M7.
-- **The API and dashboard are not containerised yet.** They run on the host; the infrastructure, worker and AI service run in Compose.
+- **In development the API runs migrations at startup** and holds the database owner's password. The production profile separates them ([docs/operations/production.md](docs/operations/production.md)).
+- **No TLS in the production profile.** It binds to 127.0.0.1; put a TLS-terminating proxy in front before exposing it.
 - **Answer quality is unmeasured.** Retrieval has a first baseline on 40 questions ([docs/ai/evaluation-baseline.md](docs/ai/evaluation-baseline.md)); answers from the real model have not been evaluated, the Gemini integration was checked once against the live API, and the Anthropic integration has been tested against a stub only.
 - **The evidence threshold is a trade-off, not a solved problem.** In the baseline no threshold separated answerable from unanswerable questions cleanly.
 - **With a real model, questions and retrieved passages are sent to Google or Anthropic.**

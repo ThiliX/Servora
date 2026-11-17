@@ -1,6 +1,8 @@
 # Servora local development stack.
-# Runs the infrastructure and the Python document worker. The core API and dashboard run on the
-# host against this stack; their containers are added when the Compose stack is hardened (M7).
+# Runs the infrastructure, the document worker and the AI service. In development the core API and
+# dashboard run on the host against this stack. For everything in containers, hardened, layer the
+# production profile on top: docker compose -f docker-compose.yml -f compose.prod.yml up -d
+# (see docs/operations/production.md).
 name: servora
 
 x-worker-environment: &worker-environment

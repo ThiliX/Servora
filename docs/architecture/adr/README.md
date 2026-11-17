@@ -23,4 +23,5 @@ Each record states the context, the decision and its consequences. Supersede a r
 | [ADR-017](0017-public-widget-access-and-session-tokens.md) | Public widget access, origins and session tokens | Accepted (decided in M4) |
 | [ADR-018](0018-human-handoff-escalation-and-takeover.md) | Human handoff: escalation, takeover and agent replies | Accepted (decided in M5) |
 | [ADR-019](0019-plans-usage-metering-and-platform-administration.md) | Plans, usage metering and platform administration | Accepted (decided in M6) |
-| [ADR-020](0020-retention-deletion-and-export.md) | Conversation retention, deletion and workspace export | Accepted (decided in M6) |
+| [ADR-020](0020-retention-deletion-and-export.md) | Conversation retention, deletion and workspace export | Accepted (decided in M6, amended in M7) |
+| [ADR-021](0021-production-deployment-profile.md) | Production deployment profile | Accepted (decided in M7) |

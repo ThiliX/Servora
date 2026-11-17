@@ -96,6 +96,22 @@ Verified on **2026-11-16** against the sources named in each row. These are the 
 | Object storage emulator | `versity/versitygw:v1.11.0` | Chosen in M2 because `minio/minio` is no longer published on Docker Hub. See ADR-004 |
 | Worker image | built from `python:3.13.18-slim-bookworm` | With CPU-only `torch==2.15.0` and the pinned embedding model; about 1.7 GB |
 
+## Container images (M7)
+
+Base images are pinned to tags at least two weeks old and receive the distribution's security updates at build time.
+
+| Image | Tag | Used for |
+|---|---|---|
+| Eclipse Temurin JDK / JRE | `25.0.4_7-jdk-noble` / `25.0.4_7-jre-noble` | Building and running the core API and the migrations container |
+| Node.js | `24.13.0-alpine3.22` | Building the dashboard and widget (not shipped) |
+| nginx (unprivileged) | `1.30.6-alpine3.24` | Serving the dashboard and gateway, and the widget host |
+| Python | `3.13.18-slim-bookworm` | Worker and AI service (unchanged) |
+| Alpine | `3.22.2` | Backup and restore of the storage volume |
+| Trivy | `aquasec/trivy:0.58.1` | Dependency and image scanning |
+| gitleaks | `zricethezav/gitleaks:v8.21.2` | Secret scanning |
+| k6 | `grafana/k6:1.3.0` | Load test |
+| Playwright | `@playwright/test` 1.64.1 | Browser tests |
+
 ## Known limits of this check
 
 - **M4 (2026-11-17):** Spring Data Redis was exercised against `redis:8.8.4-alpine` in the integration tests and the local stack. The widget app uses the dashboard's toolchain versions without React or Tailwind, and was built, tested and run in a browser.

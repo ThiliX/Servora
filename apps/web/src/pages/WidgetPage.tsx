@@ -14,8 +14,8 @@ export function parseOrigins(text: string): string[] {
     .filter((line) => line.length > 0);
 }
 
-export function embedSnippet(publicKey: string): string {
-  return `<script type="module" src="https://YOUR-SERVORA-HOST/servora-widget.js" data-widget-key="${publicKey}" async></script>`;
+export function embedSnippet(loaderUrl: string, publicKey: string): string {
+  return `<script type="module" src="${loaderUrl}" data-widget-key="${publicKey}" async></script>`;
 }
 
 function AppearanceForm({ widget, onSaved }: { widget: Widget; onSaved: () => void }) {
@@ -179,7 +179,7 @@ function KeyCard({ widget, onRotated }: { widget: Widget; onRotated: () => void 
           This key identifies your widget. It is not a password: it only works from the websites you allow below.
         </p>
         <pre className="overflow-x-auto rounded-md bg-slate-900 p-3 text-xs text-slate-100">
-          <code>{embedSnippet(widget.public_key)}</code>
+          <code>{embedSnippet(widget.loader_url, widget.public_key)}</code>
         </pre>
         <p className="text-xs text-slate-500">
           Paste this just before the closing body tag of your website. The chat button appears only on the websites listed
