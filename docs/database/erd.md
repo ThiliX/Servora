@@ -55,6 +55,7 @@ erDiagram
 | `outbox_events` | Tenant | M2 | Written with the change it describes; delivered by the dispatcher ([ADR-016](../architecture/adr/0016-outbox-dispatcher-reads-across-tenants.md)) |
 | `customers` | Tenant | M4 | Pseudonymous identity; optional name and email under privacy rules |
 | `conversations` | Tenant | M4 | Status, control mode, assigned agent, `version` for optimistic locking |
+| `ai_interactions` | Tenant | M3 | Append-only. One row per question put to the assistant: outcome, retrieved chunk ids and scores, cited chunk ids, provider, model, prompt version, latency and token usage |
 | `messages` | Tenant | M4 | Sender type, visibility, delivery status, model metadata, token usage |
 | `message_citations` | Tenant | M4 | References chunks that were actually retrieved |
 | `tickets` | Tenant | M5 | One per escalated conversation for the MVP; unique idempotency key |
@@ -109,10 +110,10 @@ A document becomes `READY` only in the transaction that writes its chunks. In th
 |---|---|---|
 | `servora_owner` | Flyway migrations | Owns all objects. Not used at runtime |
 | `servora_app` | Core API runtime | DML on application tables. Does not own tables, no `BYPASSRLS` |
-| `servora_ai` | AI service | `SELECT` on the knowledge tables needed for retrieval |
+| `servora_ai` | AI service | Read-only. `SELECT` on `document_chunks` and on four columns of `documents` (`id`, `tenant_id`, `original_filename`, `status`). Nothing else |
 | `servora_worker` | Document worker | `SELECT` on `documents`; `UPDATE` on its processing columns only (`status`, `error_code`, `chunk_count`, `processed_at`, `updated_at`); `SELECT`, `INSERT`, `DELETE` and `UPDATE (active)` on `document_chunks`. Nothing else |
 
-`servora_owner` is created by the Compose environment; `servora_app` and `servora_worker` by `infrastructure/database/init` when the volume is first initialised. `servora_ai` is created in M3. The runtime role has no `DELETE` privilege on any tenant-owned table.
+`servora_owner` is created by the Compose environment; `servora_app`, `servora_worker` and `servora_ai` by `infrastructure/database/init` when the volume is first initialised. The runtime role has no `DELETE` privilege on any tenant-owned table.
 
 ## Global tables and lookups without tenant context
 

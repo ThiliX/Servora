@@ -101,6 +101,9 @@ export function WorkspaceLayout() {
               <NavLink to="knowledge" className={linkClass}>
                 Knowledge
               </NavLink>
+              <NavLink to="playground" className={linkClass}>
+                Test
+              </NavLink>
               <NavLink to="widget" className={linkClass}>
                 Widget
               </NavLink>

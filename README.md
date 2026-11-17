@@ -4,9 +4,11 @@ Servora is a multi-tenant AI customer-support platform. Each business gets an is
 
 ## Status
 
-**Milestones M1 and M2 are implemented.** You can register, create workspaces, invite members with roles, configure the assistant and widget, and upload PDF, TXT and Markdown documents that are stored privately and indexed in the background. Tenant isolation is enforced by the application and by PostgreSQL Row-Level Security.
+**Milestones M1 to M3 are implemented.** You can register, create workspaces, invite members with roles, configure the assistant and widget, upload PDF, TXT and Markdown documents that are stored privately and indexed in the background, and ask the assistant questions in a private test page. It answers from that workspace's documents with citations, and gives a fallback message instead of guessing when it finds no evidence. Tenant isolation is enforced by the application and by PostgreSQL Row-Level Security.
 
-Not built yet: answering questions from the knowledge base, the chat widget, conversations, tickets and analytics. Uploaded documents are indexed but nothing reads the index until M3. See [docs/milestones.md](docs/milestones.md).
+Out of the box the assistant uses a built-in test model that only quotes the best matching passage and costs nothing. Real answers need an Anthropic API key (step 2 below).
+
+Not built yet: the chat widget, customer conversations, tickets and analytics. See [docs/milestones.md](docs/milestones.md).
 
 ## Architecture
 
@@ -60,15 +62,17 @@ Edit `.env`:
 
 `.env` is git-ignored. Docker Compose and the core API both read it.
 
-### 2. Start the infrastructure and worker
+### 2. Start the infrastructure, worker and AI service
 
 ```bash
 docker compose up -d --build --wait
 ```
 
-This starts PostgreSQL, Redis, the storage emulator and the document worker. The first build downloads PyTorch and the embedding model and produces an image of about 1.7 GB, so allow several minutes.
+This starts PostgreSQL, Redis, the storage emulator, the document worker and the AI service. The first build downloads PyTorch and the embedding model and produces two images of about 1.7 GB each, which share most of their layers, so allow several minutes.
 
-The first start also creates the unprivileged database roles `servora_app` and `servora_worker`. If your database volume predates M2, the worker role is missing; recreate the volume with `docker compose down -v` (this deletes local data) and start again.
+To get real answers instead of the built-in test model, set `SERVORA_LLM_PROVIDER=anthropic` and `SERVORA_ANTHROPIC_API_KEY` in `.env` and run `docker compose up -d ai-service`. Each test question is then a paid API call.
+
+The first start also creates the unprivileged database roles `servora_app`, `servora_worker` and `servora_ai`. If your database volume predates M3, the newer roles are missing; recreate the volume with `docker compose down -v` (this deletes local data) and start again.
 
 ### 3. Start the core API
 
@@ -108,7 +112,7 @@ Runs unit tests and integration tests. The integration tests need Docker: they s
 cd apps/web && npm run lint && npm run typecheck && npm test
 ```
 
-The document worker's tests are described in [workers/document-worker/README.md](workers/document-worker/README.md).
+The Python services' tests are described in [workers/document-worker/README.md](workers/document-worker/README.md) and [services/ai-service/README.md](services/ai-service/README.md).
 
 ## Stopping
 
@@ -149,13 +153,15 @@ No credentials are committed. There are no built-in accounts: register your own 
 - **No email delivery.** Links are written to the development log.
 - **Login rate limiting is in memory**, so it applies per API instance and resets on restart.
 - **The API runs migrations at startup** and therefore holds the database owner's credentials. Separating migration from runtime is part of M7.
-- **The API and dashboard are not containerised yet.** They run on the host; the infrastructure and the worker run in Compose.
-- **Indexed documents are not used yet.** Retrieval and answering arrive in M3, so chunk size, overlap and the embedding model are unevaluated.
+- **The API and dashboard are not containerised yet.** They run on the host; the infrastructure, worker and AI service run in Compose.
+- **Answer quality is unmeasured.** Retrieval has a first baseline on 40 questions ([docs/ai/evaluation-baseline.md](docs/ai/evaluation-baseline.md)); answers from the real model have not been evaluated, and the integration with the live Anthropic API has been tested against a stub only.
+- **The evidence threshold is a trade-off, not a solved problem.** In the baseline no threshold separated answerable from unanswerable questions cleanly.
+- **With the real model, questions and retrieved passages are sent to Anthropic's API.**
+- **The assistant is reachable only from the private test page** until the widget arrives in M4.
 - **No OCR.** Scanned PDFs without a text layer fail as empty. Encrypted PDFs are refused.
 - **No malware scanning of uploads.**
-- **The upload rate limit is in memory**, like the login limiter.
+- **The upload and test-question rate limits are in memory**, like the login limiter.
 - **No browser end-to-end test suite yet.** The flows were checked by hand in a browser; Playwright arrives with later milestones.
 - **Workspace logos are a URL**, not an upload.
 - **Platform administration has a table but no features** until M6.
-- The LLM provider is not chosen yet ([ADR-013](docs/architecture/adr/0013-llm-provider-behind-an-adapter.md)). It is needed for M3.
 - This is an engineering project, not legal advice; privacy and consumer-protection requirements need review before any real customer data is used.

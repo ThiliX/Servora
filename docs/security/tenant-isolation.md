@@ -44,6 +44,14 @@ The worker learns which tenant and document to process from a short-lived token 
 
 Stored files live under keys built only from server-generated IDs (`tenants/<tenant>/documents/<document>`). The bucket is private and nothing issues public URLs.
 
+## The AI service
+
+The AI service is a separate Python service with its own database role, `servora_ai`, which is read-only: it can select chunks and four columns of `documents`, and nothing else. It cannot read users, assistants, interactions or the storage key of a document, and it cannot write.
+
+It learns the tenant from a short-lived token signed by the core API (audience `servora-ai-service`); the request body has no tenant field. Each retrieval transaction sets `app.tenant_id` from that token and also filters by tenant in SQL.
+
+The core API does not trust the AI service's reply. Before returning or storing an answer it checks, under Row-Level Security in the caller's tenant, that every chunk the reply names exists in that tenant, and that every citation is one of the chunks the reply says were given to the model. A reply that fails is discarded and the fallback message is returned instead.
+
 ## Tables not under RLS
 
 `users`, `refresh_tokens`, `email_verification_tokens` and `platform_admins` are global identity tables, not tenant-owned. The runtime role can read `users` in full, so application code must expose users to a tenant only through a membership join. This is a known boundary that RLS does not defend.
@@ -115,20 +123,35 @@ Runs the real pipeline against PostgreSQL with the real migrations, connected as
 - Processing twice, or after a simulated crash, leaves exactly one set of chunks.
 - A new version retires the previous one in the same transaction; a failed new version leaves the previous one answering.
 
+### AI retrieval — `test_pipeline.py`, `test_api_and_provider.py` (AI service)
+
+- Two tenants with near-identical documents are each answered only from their own; the other tenant's chunk never appears in retrieval.
+- With no tenant set the AI role sees no chunks; with another tenant set it cannot see a known chunk id.
+- The AI role cannot update or delete chunks, read `storage_key`, or read users or interactions.
+- A token for one tenant with another tenant's id in the request body still retrieves only the token's tenant.
+- Inactive chunks, chunks of archived documents and chunks from another embedding profile are never retrieved.
+
+### Playground — `PlaygroundIntegrationTest` (core API)
+
+- A reply citing another tenant's chunk is rejected, and nothing from it reaches the response.
+- Citations that were not given to the model, or that do not exist, are rejected.
+- Agents get `403`; members of another workspace get `404`; the AI service is not called in either case.
+- `ai_interactions` rows are invisible without a tenant and from another tenant, cannot be inserted for another tenant, and cannot be updated by the application role.
+
 ### Role tests — `RoleEnforcementIntegrationTest`, `PermissionTest`
 
 The role matrix is asserted independently of its implementation, and enforced over HTTP for all four roles, including that an admin cannot change an owner or grant ownership.
 
 ## Results
 
-Recorded on 2026-11-16, local runs: core API 112 tests, document worker 50 tests, dashboard 40 tests, all passing. CI results are on the repository's Actions page.
+Recorded on 2026-11-17, local runs: core API 121 tests, AI service 45 tests, document worker 50 tests, dashboard 46 tests, all passing. CI results are on the repository's Actions page.
 
-One manual end-to-end run on the same date uploaded different documents to two workspaces through the real API, storage emulator, outbox, worker and embedding model. Each tenant's chunks were stored under its own `tenant_id`, and a deliberately broken PDF failed with `PARSE_ERROR`.
+One manual end-to-end run on 2026-11-17 uploaded different documents to two workspaces through the real API and worker, then asked the same question in both through the playground: each was answered from its own documents only. An earlier run on 2026-11-16 covered ingestion, including a broken PDF failing with `PARSE_ERROR`.
 
 ## Known gaps
 
 - No test yet races two owners demoting each other; the last-owner rule relies on a row lock that is reviewed but not exercised concurrently.
 - Global identity tables are outside RLS, as described above.
 - A valid access token keeps working for up to 15 minutes after a user is disabled. Membership changes take effect immediately.
-- Retrieval does not exist yet. The rule that only active chunks of the caller's tenant are returned is enforced by the schema and policies now, and is tested end to end in M3.
+- The core API's HTTP client for the AI service is exercised by the manual end-to-end run only; automated tests replace it with a scripted stand-in.
 - The storage emulator's bucket is shared by all tenants and separated by key prefix. Isolation there rests on the backend being the only client; there are no per-tenant storage credentials.

@@ -21,6 +21,7 @@ spring:
     placeholders:
       app_role: ${SERVORA_POSTGRES_APP_USER:servora_app}
       worker_role: ${SERVORA_POSTGRES_WORKER_USER:servora_worker}
+      ai_role: ${SERVORA_POSTGRES_AI_USER:servora_ai}
   jpa:
     open-in-view: false
     hibernate:
@@ -90,6 +91,11 @@ servora:
     token-secret: ${SERVORA_INTERNAL_TOKEN_SECRET}
     token-ttl: PT1M
     request-timeout: PT5S
+  ai:
+    # The AI service's internal answer endpoint. Calls are signed with the internal token key.
+    answer-url: ${SERVORA_AI_ANSWER_URL:http://localhost:8091/internal/v1/answers}
+    request-timeout: PT100S
+    tests-per-hour: 60
   outbox:
     enabled: true
     poll-interval: PT2S

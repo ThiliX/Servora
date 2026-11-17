@@ -3,6 +3,7 @@ package com.servora.support;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.jayway.jsonpath.JsonPath;
+import com.servora.assistant.AssistantService.AssistantView;
 import com.servora.common.mail.MailGateway;
 import com.servora.knowledge.DocumentStorage;
 import com.servora.knowledge.IngestionClient;
@@ -53,6 +54,9 @@ public abstract class IntegrationTestBase {
     protected static final String APP_PASSWORD = "app-" + UUID.randomUUID();
     protected static final String WORKER_USER = "servora_worker";
     protected static final String WORKER_PASSWORD = "worker-" + UUID.randomUUID();
+    protected static final String AI_USER = "servora_ai";
+    protected static final String AI_PASSWORD = "ai-" + UUID.randomUUID();
+    protected static final int PLAYGROUND_TESTS_PER_HOUR = 20;
     protected static final String PASSWORD = "correct-horse-battery-staple";
     protected static final long MAX_UPLOAD_BYTES = 1024 * 1024;
     protected static final int POOL_SIZE = 2;
@@ -70,6 +74,8 @@ public abstract class IntegrationTestBase {
             statement.execute("CREATE ROLE " + APP_USER + " LOGIN PASSWORD '" + APP_PASSWORD
                     + "' NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS");
             statement.execute("CREATE ROLE " + WORKER_USER + " LOGIN PASSWORD '" + WORKER_PASSWORD
+                    + "' NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS");
+            statement.execute("CREATE ROLE " + AI_USER + " LOGIN PASSWORD '" + AI_PASSWORD
                     + "' NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS");
         } catch (SQLException e) {
             throw new IllegalStateException(e);
@@ -89,6 +95,8 @@ public abstract class IntegrationTestBase {
         registry.add("spring.flyway.placeholders.app_role", () -> APP_USER);
         registry.add("servora.auth.jwt-secret", () -> Base64.getEncoder().encodeToString(key));
         registry.add("spring.flyway.placeholders.worker_role", () -> WORKER_USER);
+        registry.add("spring.flyway.placeholders.ai_role", () -> AI_USER);
+        registry.add("servora.ai.tests-per-hour", () -> PLAYGROUND_TESTS_PER_HOUR);
         registry.add("servora.ingestion.token-secret", () -> Base64.getEncoder().encodeToString(key));
         registry.add("servora.storage.access-key", () -> "unused-in-tests");
         registry.add("servora.storage.secret-key", () -> "unused-in-tests");
@@ -106,6 +114,10 @@ public abstract class IntegrationTestBase {
 
     protected static Connection workerConnection() throws SQLException {
         return DriverManager.getConnection(POSTGRES.getJdbcUrl(), WORKER_USER, WORKER_PASSWORD);
+    }
+
+    protected static Connection aiConnection() throws SQLException {
+        return DriverManager.getConnection(POSTGRES.getJdbcUrl(), AI_USER, AI_PASSWORD);
     }
 
     protected static Connection appConnection() throws SQLException {
@@ -137,6 +149,32 @@ public abstract class IntegrationTestBase {
         @Primary
         RecordingIngestion recordingIngestion() {
             return new RecordingIngestion();
+        }
+
+        @Bean
+        @Primary
+        ScriptedAi scriptedAi() {
+            return new ScriptedAi();
+        }
+    }
+
+    /** Stands in for the AI service: each test sets what it replies. */
+    public static final class ScriptedAi implements com.servora.ai.AiClient {
+
+        public interface Script {
+            com.servora.ai.AiAnswer reply(UUID tenantId, AssistantView assistant, String question);
+        }
+
+        public volatile Script script;
+        public final java.util.List<String> questions = new java.util.concurrent.CopyOnWriteArrayList<>();
+
+        @Override
+        public com.servora.ai.AiAnswer answer(UUID tenantId, AssistantView assistant, String question) {
+            questions.add(tenantId + ":" + question);
+            if (script == null) {
+                throw new AiUnavailableException("no script", null);
+            }
+            return script.reply(tenantId, assistant, question);
         }
     }
 

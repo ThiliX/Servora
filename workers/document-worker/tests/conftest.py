@@ -149,6 +149,7 @@ def database() -> Database:
             for role, password in (
                 ("servora_app", secrets.token_hex(12)),
                 ("servora_worker", worker_password),
+                ("servora_ai", secrets.token_hex(12)),
             ):
                 connection.execute(
                     f"CREATE ROLE {role} LOGIN PASSWORD '{password}' "
@@ -161,6 +162,7 @@ def database() -> Database:
             for migration in migrations:
                 sql = migration.read_text(encoding="utf-8")
                 sql = sql.replace("${app_role}", "servora_app").replace("${worker_role}", "servora_worker")
+                sql = sql.replace("${ai_role}", "servora_ai")
                 connection.execute(sql)
         yield db
 

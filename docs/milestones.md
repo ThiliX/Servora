@@ -14,7 +14,7 @@ Tasks, tests and exit gates for each milestone are in the [implementation plan](
 - [x] Compose stack verified healthy and `CREATE EXTENSION vector` succeeds (2026-11-16: PostgreSQL 18.7, pgvector 0.8.7, Redis 8.8.4)
 - [x] First commit pushed and CI green on GitHub (2026-11-16, commit 4c66556)
 - [ ] Branch protection enabled on `main`
-- [ ] LLM provider chosen (ADR-013) — required before M3, not before M1
+- [x] LLM provider chosen (ADR-013): Anthropic Claude, 2026-11-17
 
 ## M1 — Identity and tenant foundation
 
@@ -50,8 +50,8 @@ Requirements: FR-008, FR-009, FR-011 to FR-019.
 - [x] Dashboard: assistant, widget and knowledge pages
 - [x] Ingestion, idempotency and cross-tenant tests passing (112 core API, 50 worker, 40 dashboard; local run 2026-11-16)
 - [x] Real upload run end to end through the local stack (storage, outbox, worker, real embedding model)
-- [ ] CI green on GitHub for the M2 branch
-- [ ] Reviewed and merged to `main`
+- [x] CI green on GitHub for the M2 branch (2026-11-16, pull request 2)
+- [x] Merged to `main` and tagged `v0.2-m2` (2026-11-17)
 
 Deferred from M2, with the milestone that picks each up:
 
@@ -64,13 +64,25 @@ Deferred from M2, with the milestone that picks each up:
 
 Requirements: FR-010, FR-025 to FR-029, FR-031.
 
-- [ ] FastAPI service with internal authentication
-- [ ] Tenant-filtered retrieval and evidence gate
-- [ ] Provider adapter, real provider and fake provider
-- [ ] Structured output and citation verification
-- [ ] Admin playground
-- [ ] Evaluation dataset and recorded baseline
-- [ ] AI test cases passing on the fake provider
+- [x] FastAPI service with internal authentication
+- [x] Tenant-filtered retrieval and evidence gate, through the read-only `servora_ai` role
+- [x] Provider adapter, Anthropic Claude provider and fake provider
+- [x] Structured output and citation verification, in the AI service and again in the core API
+- [x] Admin playground: endpoint and dashboard page
+- [x] Interactions recorded with model, prompt version, latency, tokens, retrieval scores and outcome
+- [x] Evaluation dataset and recorded baseline ([docs/ai/evaluation-baseline.md](ai/evaluation-baseline.md))
+- [x] AI test cases passing on the fake provider (121 core API, 45 AI service, 50 worker, 46 dashboard; local run 2026-11-17)
+- [x] Real run end to end through the local stack with the real embedding model and the fake provider
+- [ ] One answer from the live Anthropic API checked by hand (needs an API key; not done)
+- [ ] CI green on GitHub for the M3 branch
+- [ ] Reviewed and merged to `main`
+
+Deferred from M3, with the milestone that picks each up:
+
+- Answer quality evaluation with the real model, and injection tests against it — M7
+- Chunk size and overlap comparison — M7
+- Shared-store rate limiting for the playground (in memory today) — M4
+- Sentiment detection (FR-030) — after the MVP
 
 ## M4 — Public chat widget and conversations
 

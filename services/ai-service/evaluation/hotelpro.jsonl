@@ -1,0 +1,20 @@
+{"question": "Until when can I cancel my reservation without paying?", "relevant": [{"document": "booking-and-cancellation.md", "phrase": "48 hours before the arrival date"}]}
+{"question": "I booked the cheap prepaid rate. Can I get my money back?", "relevant": [{"document": "booking-and-cancellation.md", "phrase": "cannot be refunded or cancelled"}]}
+{"question": "How do I move my stay to other dates?", "relevant": [{"document": "booking-and-cancellation.md", "phrase": "Manage booking"}]}
+{"question": "What happens if I just do not turn up?", "relevant": [{"document": "booking-and-cancellation.md", "phrase": "charged the full stay"}]}
+{"question": "How much is held on my card when I arrive?", "relevant": [{"document": "booking-and-cancellation.md", "phrase": "100 euros per room"}]}
+{"question": "What time can I get into my room?", "relevant": [{"document": "check-in-and-facilities.md", "phrase": "Check-in starts at 3 pm"}]}
+{"question": "Can I stay in the room a bit longer on my last day?", "relevant": [{"document": "check-in-and-facilities.md", "phrase": "Late check-out until 2 pm"}]}
+{"question": "When is the morning meal served and what does it cost?", "relevant": [{"document": "check-in-and-facilities.md", "phrase": "18 euros per adult"}]}
+{"question": "Is the swimming pool open late in the evening?", "relevant": [{"document": "check-in-and-facilities.md", "phrase": "7 am to 9 pm"}]}
+{"question": "Is internet included?", "relevant": [{"document": "check-in-and-facilities.md", "phrase": "Wi-Fi is free"}]}
+{"question": "How do I get from the airport to the hotel?", "relevant": [{"document": "check-in-and-facilities.md", "phrase": "every 30 minutes"}]}
+{"question": "Can I bring my dog?", "relevant": [{"document": "pets-and-parking.md", "phrase": "15 euros per pet per night"}]}
+{"question": "Is there somewhere to charge my electric car?", "relevant": [{"document": "pets-and-parking.md", "phrase": "electric vehicle charging points"}]}
+{"question": "Do you have rooms suitable for a wheelchair user?", "relevant": [{"document": "pets-and-parking.md", "phrase": "wheelchair accessible"}]}
+{"question": "I left my charger in the room. Do you still have it?", "relevant": [{"document": "pets-and-parking.md", "phrase": "kept for 3 months"}]}
+{"question": "Do you have a spa or offer massages?", "relevant": []}
+{"question": "Can you organise a wedding reception?", "relevant": []}
+{"question": "Is there a loyalty points programme?", "relevant": []}
+{"question": "Which museums are near the hotel?", "relevant": []}
+{"question": "How do I reset my laptop password?", "relevant": []}

@@ -5,6 +5,7 @@ import { useAuth } from "./lib/auth";
 import { AcceptInvitationPage } from "./pages/AcceptInvitationPage";
 import { AssistantPage } from "./pages/AssistantPage";
 import { KnowledgePage } from "./pages/KnowledgePage";
+import { PlaygroundPage } from "./pages/PlaygroundPage";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { SettingsPage } from "./pages/SettingsPage";
@@ -62,6 +63,7 @@ export function App() {
         <Route path="team" element={<TeamPage />} />
         <Route path="assistant" element={<AssistantPage />} />
         <Route path="knowledge" element={<KnowledgePage />} />
+        <Route path="playground" element={<PlaygroundPage />} />
         <Route path="widget" element={<WidgetPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
