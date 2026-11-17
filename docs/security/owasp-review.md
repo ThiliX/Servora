@@ -28,7 +28,7 @@ Test names refer to the core API (`services/core-api/src/test`), the AI service 
 
 - **Limits, all tested:** widget sessions and messages per address and per conversation, history polling, uploads per workspace, playground questions per workspace, a daily AI budget per workspace, monthly plan limits on AI requests, tokens, conversations and documents, exports per hour, and registrations per address and mailbox. Page sizes are capped at 100; uploads at 10 MB; model output at a configured token limit; AI calls time out and a circuit breaker stops calls to a failing provider.
 - **Behaviour when Redis is down:** limited operations are refused rather than left unlimited.
-- **Not done:** load test (M7 phase 2).
+- **Load:** at 100 concurrent users (418 requests per second) the non-AI endpoints stayed at a P95 of 15 ms with no failures ([load test](../testing/load-test.md)). Saturation was not measured.
 
 ### API5: Broken function level authorization
 
@@ -124,7 +124,7 @@ Local runs on 2026-11-17, now repeated by the CI job "Secret and dependency scan
 
 ## Not covered by this review
 
-- Load and abuse at volume (M7 phase 2).
+- Saturation and abuse at volume beyond the load test's 418 requests per second.
 - The production deployment: TLS, container image scanning, network exposure (M7 phase 3).
 - A live-model test of prompt injection and answer quality (M7 phase 4).
 - An external penetration test.

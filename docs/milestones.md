@@ -167,20 +167,26 @@ M7 is delivered in four phases, each its own pull request.
 - [x] Log review: unexpected errors logged without messages; playground questions covered by retention
 - [x] Secret scanning (gitleaks) and dependency scanning (Trivy, pip-audit, npm audit) in CI; vulnerable `setuptools` fixed in both Python images
 - [x] Tests passing (181 core API, 66 dashboard, 16 widget; local run 2026-11-17)
+- [x] CI green and merged (pull request 8)
+
+**Phase 2 — browser and load tests**
+
+- [x] Playwright suite for the MVP demonstration script against the real stack, including the M6 pages ([tests/e2e](../tests/e2e/README.md)); 11 of 11 steps passed in two consecutive local runs
+- [x] Load test of the non-AI endpoints with recorded machine and workload ([load-test.md](testing/load-test.md)): P95 11.6 ms at 20 virtual users and 15.0 ms at 100, target 500 ms
+- [ ] Browser suite in CI (needs the containerised API from phase 3)
 - [ ] CI green and merged
 
 **Remaining phases**
 
-- [ ] Phase 2: Playwright suite for the MVP demonstration script; load test with recorded conditions
 - [ ] Phase 3: production Compose profile, containerised API and dashboard, image scanning, observability, backup and restore drill
 - [ ] Phase 4: AI evaluation report, seed script, documentation and demo setup
 
 Original checklist, ticked as phases complete:
 
 - [x] Security review with test evidence (phase 1)
+- [x] End-to-end suite for the MVP demonstration script (phase 2, local; CI in phase 3)
+- [x] Load test with recorded conditions (phase 2)
 - [ ] AI evaluation report
-- [ ] End-to-end suite for the MVP demonstration script
-- [ ] Load test with recorded conditions
 - [ ] Compose production profile and CI for all stacks
 - [ ] Observability: logs, metrics, traces
 - [ ] Backup and restore drill performed

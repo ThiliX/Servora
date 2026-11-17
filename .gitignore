@@ -58,3 +58,6 @@ models/
 # Logs
 *.log
 logs/
+
+# Browser tests: the API log the harness reads
+tests/e2e/.artifacts/

@@ -1,0 +1,9 @@
+{
+  "date": "2026-11-17T14:23:59.990Z",
+  "os": "win32 10.0.26200",
+  "cpu": "AMD Ryzen 5 5600X 6-Core Processor (12 logical cores)",
+  "memory_gb": 16,
+  "virtual_users": 100,
+  "k6": "grafana/k6:1.3.0",
+  "notes": "API on the host (Java 25, JVM defaults), PostgreSQL and Redis in Docker Desktop, k6 in Docker reaching the host through host.docker.internal."
+}

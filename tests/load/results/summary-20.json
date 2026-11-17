@@ -1,0 +1,342 @@
+{
+    "metrics": {
+        "http_req_duration": {
+            "p(90)": 10.387534200000001,
+            "p(95)": 11.58299089999999,
+            "p(99)": 21.871277030000023,
+            "max": 41.117908,
+            "avg": 7.320233348296314,
+            "med": 6.607328,
+            "thresholds": {
+                "p(95)<500": false
+            }
+        },
+        "http_req_duration{name:messages}": {
+            "med": 7.096379,
+            "p(90)": 8.481981999999999,
+            "p(95)": 9.1212715,
+            "p(99)": 11.046999999999983,
+            "max": 23.37208,
+            "avg": 7.339635214587742,
+            "thresholds": {
+                "p(95)<500": false
+            }
+        },
+        "http_req_waiting": {
+            "avg": 7.224899772296298,
+            "med": 6.4923305,
+            "p(90)": 10.2912131,
+            "p(95)": 11.475063849999986,
+            "p(99)": 21.80379242000002,
+            "max": 41.045316
+        },
+        "http_req_failed": {
+            "passes": 0,
+            "fails": 6750,
+            "thresholds": {
+                "rate<0.01": false
+            },
+            "value": 0
+        },
+        "http_req_duration{name:add_note}": {
+            "p(95)": 23.597544349999996,
+            "p(99)": 26.167747079999998,
+            "max": 37.691341,
+            "avg": 13.263605212962965,
+            "med": 10.2133405,
+            "p(90)": 22.7218593,
+            "thresholds": {
+                "p(95)<500": false
+            }
+        },
+        "vus_max": {
+            "value": 20,
+            "min": 20,
+            "max": 20
+        },
+        "http_req_connecting": {
+            "p(95)": 0,
+            "p(99)": 1.0541946800000002,
+            "max": 1.544643,
+            "avg": 0.013679168888888892,
+            "med": 0,
+            "p(90)": 0
+        },
+        "iterations": {
+            "count": 6750,
+            "rate": 84.19085288875418
+        },
+        "http_req_duration{name:tickets}": {
+            "med": 6.173747,
+            "p(90)": 7.469845800000001,
+            "p(95)": 8.278491999999996,
+            "p(99)": 10.531698600000002,
+            "max": 16.83977,
+            "avg": 6.441670723109688,
+            "thresholds": {
+                "p(95)<500": false
+            }
+        },
+        "http_req_duration{name:workspace}": {
+            "avg": 4.981522254086181,
+            "med": 4.77118,
+            "p(90)": 5.8569304,
+            "p(95)": 6.599220199999999,
+            "p(99)": 8.342706879999998,
+            "max": 12.541743,
+            "thresholds": {
+                "p(95)<500": false
+            }
+        },
+        "http_req_duration{name:widget_config}": {
+            "med": 9.866543,
+            "p(90)": 11.187954,
+            "p(95)": 12.048284999999998,
+            "p(99)": 14.490087239999985,
+            "max": 41.117908,
+            "avg": 10.15973905100463,
+            "thresholds": {
+                "p(95)<500": false
+            }
+        },
+        "data_sent": {
+            "count": 2894881,
+            "rate": 36107.03709651105
+        },
+        "iteration_duration": {
+            "avg": 208.03116695214842,
+            "med": 207.341532,
+            "p(90)": 211.1269599,
+            "p(95)": 212.45068544999998,
+            "p(99)": 222.59148414,
+            "max": 241.626368
+        },
+        "http_req_duration{name:usage}": {
+            "p(95)": 10.42659985,
+            "p(99)": 12.438573390000004,
+            "max": 24.452059,
+            "avg": 8.581353804347831,
+            "med": 8.3465125,
+            "p(90)": 9.720107700000002,
+            "thresholds": {
+                "p(95)<500": false
+            }
+        },
+        "http_req_duration{name:audit}": {
+            "med": 5.96142,
+            "p(90)": 7.269878,
+            "p(95)": 8.0569185,
+            "p(99)": 10.659166699999995,
+            "max": 11.697385,
+            "avg": 6.215043398791542,
+            "thresholds": {
+                "p(95)<500": false
+            }
+        },
+        "checks": {
+            "passes": 6750,
+            "fails": 0,
+            "value": 1
+        },
+        "http_req_duration{name:documents}": {
+            "avg": 6.1399430098360686,
+            "med": 5.973475,
+            "p(90)": 6.9993954,
+            "p(95)": 7.6510092000000025,
+            "p(99)": 9.305543359999998,
+            "max": 15.45391,
+            "thresholds": {
+                "p(95)<500": false
+            }
+        },
+        "vus": {
+            "value": 1,
+            "min": 1,
+            "max": 20
+        },
+        "http_req_tls_handshaking": {
+            "p(99)": 0,
+            "max": 0,
+            "avg": 0,
+            "med": 0,
+            "p(90)": 0,
+            "p(95)": 0
+        },
+        "http_req_sending": {
+            "avg": 0.01890239792592591,
+            "med": 0.01331,
+            "p(90)": 0.032332,
+            "p(95)": 0.03743749999999998,
+            "p(99)": 0.05476480000000006,
+            "max": 0.301637
+        },
+        "data_received": {
+            "count": 13975875,
+            "rate": 174317.16090616552
+        },
+        "http_req_duration{name:notifications}": {
+            "med": 5.830271,
+            "p(90)": 7.083736700000001,
+            "p(95)": 7.814122649999998,
+            "p(99)": 9.540101110000002,
+            "max": 11.878635,
+            "avg": 6.060482936983475,
+            "thresholds": {
+                "p(95)<500": false
+            }
+        },
+        "http_req_duration{name:conversations}": {
+            "avg": 7.005713197549767,
+            "med": 6.786644,
+            "p(90)": 8.0658378,
+            "p(95)": 8.8025992,
+            "p(99)": 10.973993080000003,
+            "max": 15.175533,
+            "thresholds": {
+                "p(95)<500": false
+            }
+        },
+        "http_reqs": {
+            "count": 6750,
+            "rate": 84.19085288875418
+        },
+        "http_req_receiving": {
+            "med": 0.0571615,
+            "p(90)": 0.119827,
+            "p(95)": 0.19138554999999985,
+            "p(99)": 0.4547525700000003,
+            "max": 0.987408,
+            "avg": 0.07643117807407422
+        },
+        "http_req_duration{name:workspaces}": {
+            "p(95)": 4.8207406,
+            "p(99)": 6.269022820000003,
+            "max": 30.03663,
+            "avg": 3.8898901926605483,
+            "med": 3.643733,
+            "p(90)": 4.4076228,
+            "thresholds": {
+                "p(95)<500": false
+            }
+        },
+        "http_req_duration{expected_response:true}": {
+            "med": 6.607328,
+            "p(90)": 10.387534200000001,
+            "p(95)": 11.58299089999999,
+            "p(99)": 21.871277030000023,
+            "max": 41.117908,
+            "avg": 7.320233348296314
+        },
+        "http_req_blocked": {
+            "med": 0.00367,
+            "p(90)": 0.00509,
+            "p(95)": 0.005950549999999999,
+            "p(99)": 1.118075490000001,
+            "max": 2.642944,
+            "avg": 0.018708693629629625
+        },
+        "http_req_duration{name:analytics}": {
+            "max": 32.734258,
+            "avg": 12.031420460317452,
+            "med": 11.488274,
+            "p(90)": 14.110599400000002,
+            "p(95)": 15.209481,
+            "p(99)": 18.70102882,
+            "thresholds": {
+                "p(95)<500": false
+            }
+        }
+    },
+    "root_group": {
+        "groups": {},
+        "checks": {
+                "messages ok": {
+                    "name": "messages ok",
+                    "path": "::messages ok",
+                    "id": "c09722aa3edba53feb7ba68c6addb827",
+                    "passes": 946,
+                    "fails": 0
+                },
+                "documents ok": {
+                    "passes": 305,
+                    "fails": 0,
+                    "name": "documents ok",
+                    "path": "::documents ok",
+                    "id": "a36ee36c0e261f8a71577e0458805b38"
+                },
+                "conversations ok": {
+                    "id": "8dc6efdee9f4d7f9c6208a75ff9d7578",
+                    "passes": 653,
+                    "fails": 0,
+                    "name": "conversations ok",
+                    "path": "::conversations ok"
+                },
+                "add_note ok": {
+                    "passes": 324,
+                    "fails": 0,
+                    "name": "add_note ok",
+                    "path": "::add_note ok",
+                    "id": "913d0fdeebe418450a855491342c791e"
+                },
+                "widget_config ok": {
+                    "name": "widget_config ok",
+                    "path": "::widget_config ok",
+                    "id": "9b4475b647ec3b6c5920e1d0cefaf96f",
+                    "passes": 647,
+                    "fails": 0
+                },
+                "usage ok": {
+                    "name": "usage ok",
+                    "path": "::usage ok",
+                    "id": "72d9edc832ba754f4e4ff868c0d7d92b",
+                    "passes": 322,
+                    "fails": 0
+                },
+                "audit ok": {
+                    "name": "audit ok",
+                    "path": "::audit ok",
+                    "id": "c524759e6a311bd6de8f5260b1035c57",
+                    "passes": 331,
+                    "fails": 0
+                },
+                "workspace ok": {
+                    "fails": 0,
+                    "name": "workspace ok",
+                    "path": "::workspace ok",
+                    "id": "a47055cca2a8501be786091c240e5a83",
+                    "passes": 673
+                },
+                "analytics ok": {
+                    "id": "c4919b247308a4d402d91e14f5df38b2",
+                    "passes": 315,
+                    "fails": 0,
+                    "name": "analytics ok",
+                    "path": "::analytics ok"
+                },
+                "notifications ok": {
+                    "name": "notifications ok",
+                    "path": "::notifications ok",
+                    "id": "6076ee084cb67969777678f0c95c88de",
+                    "passes": 968,
+                    "fails": 0
+                },
+                "tickets ok": {
+                    "id": "bb5e0657e5074105f0fbafea6042f91e",
+                    "passes": 939,
+                    "fails": 0,
+                    "name": "tickets ok",
+                    "path": "::tickets ok"
+                },
+                "workspaces ok": {
+                    "id": "07e475f86d9127929511ea23312a4919",
+                    "passes": 327,
+                    "fails": 0,
+                    "name": "workspaces ok",
+                    "path": "::workspaces ok"
+                }
+            },
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e"
+    }
+}
