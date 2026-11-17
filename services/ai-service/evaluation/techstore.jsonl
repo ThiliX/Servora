@@ -1,0 +1,20 @@
+{"question": "How long do I have to send something back?", "relevant": [{"document": "returns-and-refunds.md", "phrase": "within 30 days of delivery"}]}
+{"question": "When will the money show up in my account after I return an item?", "relevant": [{"document": "returns-and-refunds.md", "phrase": "5 to 7 business days"}]}
+{"question": "Is there a charge if I threw away the box?", "relevant": [{"document": "returns-and-refunds.md", "phrase": "15 percent restocking fee"}]}
+{"question": "Can I swap my laptop for a different model?", "relevant": [{"document": "returns-and-refunds.md", "phrase": "do not swap items directly"}]}
+{"question": "How do I get a return label?", "relevant": [{"document": "returns-and-refunds.md", "phrase": "prepaid shipping label"}]}
+{"question": "How fast is next day delivery and what is the cutoff time?", "relevant": [{"document": "shipping.md", "phrase": "before 2 pm"}]}
+{"question": "What do you charge for postage?", "relevant": [{"document": "shipping.md", "phrase": "4.99 euros"}]}
+{"question": "Do you send orders to Switzerland?", "relevant": [{"document": "shipping.md", "phrase": "Norway and Switzerland"}]}
+{"question": "My package says delivered but I never got it. What now?", "relevant": [{"document": "shipping.md", "phrase": "within 14 days of the delivery date"}]}
+{"question": "Where can I see where my order is?", "relevant": [{"document": "shipping.md", "phrase": "tracking link"}]}
+{"question": "How long is a refurbished phone guaranteed for?", "relevant": [{"document": "warranty-and-repairs.md", "phrase": "12 month warranty"}]}
+{"question": "I dropped my tablet and the display broke. Is that covered?", "relevant": [{"document": "warranty-and-repairs.md", "phrase": "cracked screens"}]}
+{"question": "Can I buy extra cover against accidents, and by when?", "relevant": [{"document": "warranty-and-repairs.md", "phrase": "within 60 days"}]}
+{"question": "How long does fixing a device take?", "relevant": [{"document": "warranty-and-repairs.md", "phrase": "within 10 business days"}]}
+{"question": "Will my files be safe when I send my computer for repair?", "relevant": [{"document": "warranty-and-repairs.md", "phrase": "Back up your data"}]}
+{"question": "Do you offer student discounts?", "relevant": []}
+{"question": "What are your store opening hours on Sunday?", "relevant": []}
+{"question": "Can I pay in monthly instalments?", "relevant": []}
+{"question": "Do you buy used phones for trade-in?", "relevant": []}
+{"question": "What is the capital of France?", "relevant": []}

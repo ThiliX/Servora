@@ -58,6 +58,7 @@ Verified on **2026-11-16** against the sources named in each row. These are the 
 | PyTorch | 2.15.0 | >=3.11 |
 | pypdf | 7.1.0 | >=3.10 |
 | boto3 | 1.44.3 | |
+| anthropic | 2.9.0 | >=3.10. LLM provider SDK for the AI service (ADR-013); default model `claude-opus-5-5` |
 | PyJWT | 2.15.1 | |
 | pydantic-settings | 2.16.3 | |
 | pytest | 9.2.0 | >=3.10 |
@@ -95,6 +96,7 @@ Verified on **2026-11-16** against the sources named in each row. These are the 
 
 ## Known limits of this check
 
+- **M3 (2026-11-17):** the AI service was installed, tested and run on Python 3.13 in a container: FastAPI, psycopg, PyJWT, the embedding model for queries, and `anthropic` 2.9.0. The Anthropic SDK was exercised against a stubbed client only; no call to the live API was made. The AI service image is about 1.7 GB and shares its model layers with the worker image.
 - **M2 (2026-11-16):** the Python worker rows were installed, tested and run on Python 3.13 in containers, including the real embedding model in an end-to-end upload. The storage emulator was exercised by both the Java and Python clients. FastAPI and sentence-transformers in the AI service (M3) remain unexercised beyond what the worker uses.
 - On the development machine, `pip` on the host fails certificate verification for PyPI, so Python work runs in containers. CI installs normally.
 - **M1 (2026-11-16):** the core API and dashboard versions above were installed, built and tested together: Java 25 with Spring Boot 4.1.2, Flyway, Hibernate, Testcontainers 2.0.5 against the pgvector image, and the frontend toolchain except Playwright. The Python rows remain unexercised.

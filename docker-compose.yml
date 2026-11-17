@@ -30,6 +30,8 @@ services:
       SERVORA_POSTGRES_APP_PASSWORD: ${SERVORA_POSTGRES_APP_PASSWORD:?Set SERVORA_POSTGRES_APP_PASSWORD in .env}
       SERVORA_POSTGRES_WORKER_USER: ${SERVORA_POSTGRES_WORKER_USER:-servora_worker}
       SERVORA_POSTGRES_WORKER_PASSWORD: ${SERVORA_POSTGRES_WORKER_PASSWORD:?Set SERVORA_POSTGRES_WORKER_PASSWORD in .env}
+      SERVORA_POSTGRES_AI_USER: ${SERVORA_POSTGRES_AI_USER:-servora_ai}
+      SERVORA_POSTGRES_AI_PASSWORD: ${SERVORA_POSTGRES_AI_PASSWORD:?Set SERVORA_POSTGRES_AI_PASSWORD in .env}
     ports:
       # Loopback only; never publish the database on all interfaces.
       - "127.0.0.1:${SERVORA_POSTGRES_PORT:-5432}:5432"
@@ -113,6 +115,39 @@ services:
       storage:
         condition: service_started
     # Bounds what a hostile or oversized document can consume.
+    mem_limit: 2g
+    cpus: 2
+    networks:
+      - backend
+
+  # Retrieval and answer generation. Called only by the core API, with a signed internal token.
+  ai-service:
+    build:
+      context: ./services/ai-service
+    image: servora/ai-service:dev
+    restart: unless-stopped
+    environment:
+      SERVORA_POSTGRES_HOST: postgres
+      SERVORA_POSTGRES_PORT: 5432
+      SERVORA_POSTGRES_DB: ${SERVORA_POSTGRES_DB:-servora}
+      SERVORA_POSTGRES_AI_USER: ${SERVORA_POSTGRES_AI_USER:-servora_ai}
+      SERVORA_POSTGRES_AI_PASSWORD: ${SERVORA_POSTGRES_AI_PASSWORD:?Set SERVORA_POSTGRES_AI_PASSWORD in .env}
+      SERVORA_INTERNAL_TOKEN_SECRET: ${SERVORA_INTERNAL_TOKEN_SECRET:?Set SERVORA_INTERNAL_TOKEN_SECRET in .env}
+      # "fake" makes no paid calls. Set to "anthropic" with a key to get real answers.
+      SERVORA_LLM_PROVIDER: ${SERVORA_LLM_PROVIDER:-fake}
+      SERVORA_ANTHROPIC_API_KEY: ${SERVORA_ANTHROPIC_API_KEY:-}
+      SERVORA_LLM_MODEL: ${SERVORA_LLM_MODEL:-claude-opus-5-5}
+    ports:
+      - "127.0.0.1:${SERVORA_AI_SERVICE_PORT:-8091}:8091"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8091/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
     mem_limit: 2g
     cpus: 2
     networks:

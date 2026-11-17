@@ -85,6 +85,27 @@ Upload rules: PDF, TXT or Markdown; 10 MB by default; the content must match the
 
 Allowed origins must be plain origins such as `https://shop.example.com`: no path, query, wildcard or credentials, and https except for localhost. The server stores and returns the canonical form.
 
+## Endpoints implemented in M3
+
+| Method | Path | Roles | Purpose |
+|---|---|---|---|
+| POST | `/workspaces/{workspaceId}/assistant/test` | Owner, Admin | Ask the assistant a question privately. Body: `{"question": "..."}`, at most 2,000 characters |
+
+The response always has status `200` when the question was accepted, whatever the assistant did with it. `outcome` says what happened:
+
+| Outcome | Meaning | `answer` contains |
+|---|---|---|
+| `ANSWERED` | Answered from the knowledge base, with at least one verified citation | The model's reply |
+| `ESCALATED` | The model replied but asked for a person (for example conflicting sources) | The model's reply |
+| `NO_EVIDENCE` | Nothing matched well enough; the model was not called | The fallback message |
+| `PROVIDER_UNAVAILABLE` | The model timed out, was rate limited or is failing | The fallback message |
+| `INVALID_OUTPUT`, `INVALID_CITATION`, `UNGROUNDED`, `REFUSED` | The model's reply was unusable, cited something it was not given, cited nothing, or declined | The fallback message |
+| `SERVICE_UNAVAILABLE` | The AI service could not be reached | The fallback message |
+
+Other fields: `id`, `intent`, `needs_escalation`, `escalation_reason`, `citations` (`chunk_id`, `document_id`, `filename`, `page_number`, `heading`, `snippet`), `retrieval` (every retrieved chunk with its `score` and whether it was `used`), `provider`, `model`, `prompt_version`, `evidence_threshold`, `latency_ms`, `input_tokens`, `output_tokens`.
+
+Errors: `VALIDATION_FAILED` (400) for an empty or over-long question, `PLAYGROUND_RATE_LIMITED` (429) after 60 questions per workspace per hour.
+
 ## Idempotency
 
 - Registration, verification and invitation acceptance are safe to retry: a repeat either does nothing or returns a clear conflict (`INVITATION_NOT_PENDING`, `ALREADY_MEMBER`).
@@ -97,7 +118,6 @@ Allowed origins must be plain origins such as `https://shop.example.com`: no pat
 
 | Group | Base path | Milestone |
 |---|---|---|
-| Assistant playground | `/workspaces/{workspaceId}/assistant/test` | M3 |
 | Conversations | `/workspaces/{workspaceId}/conversations` | M4, M5 |
 | Tickets | `/workspaces/{workspaceId}/tickets` | M5 |
 | Analytics | `/workspaces/{workspaceId}/analytics` | M6 |

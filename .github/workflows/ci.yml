@@ -79,6 +79,28 @@ jobs:
       # runs the pipeline as the unprivileged worker role.
       - run: pytest -q
 
+  ai-service:
+    name: AI service (lint and test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/ai-service
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: services/ai-service/pyproject.toml
+      # The dev extra excludes PyTorch: tests use a deterministic fake embedder and a fake LLM
+      # provider, so no model is downloaded and no paid call is made.
+      - run: pip install -e ".[dev]"
+      - run: ruff check .
+      - run: ruff format --check .
+      # Starts PostgreSQL (pgvector) through Testcontainers, applies the core API migrations and
+      # runs retrieval as the read-only AI role.
+      - run: pytest -q
+
   compose:
     name: Validate and start Compose stack
     runs-on: ubuntu-latest
@@ -91,7 +113,7 @@ jobs:
           sed -i "s/^SERVORA_POSTGRES_APP_PASSWORD=.*/SERVORA_POSTGRES_APP_PASSWORD=ci-$(openssl rand -hex 12)/" .env
       - name: Validate Compose configuration
         run: docker compose config --quiet
-      # Builds the worker image, including the pinned embedding model.
+      # Builds the worker and AI service images; they share the layers holding the embedding model.
       - name: Build images
         run: docker compose build
       - name: Start stack and wait for health
@@ -106,8 +128,12 @@ jobs:
           test "$result" = "f"
           result=$(docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U servora_owner -d servora -Atc "SELECT rolsuper OR rolbypassrls OR rolcreaterole OR rolcreatedb FROM pg_roles WHERE rolname = 'servora_worker'")
           test "$result" = "f"
+          result=$(docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U servora_owner -d servora -Atc "SELECT rolsuper OR rolbypassrls OR rolcreaterole OR rolcreatedb FROM pg_roles WHERE rolname = 'servora_ai'")
+          test "$result" = "f"
       - name: Verify the worker API is healthy
         run: curl --fail --silent http://127.0.0.1:8090/health
+      - name: Verify the AI service is healthy
+        run: curl --fail --silent http://127.0.0.1:8091/health
       - name: Verify Redis
         run: docker compose exec -T redis redis-cli ping
       - name: Stop stack

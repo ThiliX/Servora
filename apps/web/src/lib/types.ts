@@ -103,3 +103,49 @@ export interface Page<T> {
   size: number;
   total: number;
 }
+
+export type AnswerOutcome =
+  | "ANSWERED"
+  | "ESCALATED"
+  | "NO_EVIDENCE"
+  | "PROVIDER_UNAVAILABLE"
+  | "INVALID_OUTPUT"
+  | "INVALID_CITATION"
+  | "UNGROUNDED"
+  | "REFUSED"
+  | "SERVICE_UNAVAILABLE";
+
+export interface AnswerCitation {
+  chunk_id: string;
+  document_id: string;
+  filename: string;
+  page_number: number | null;
+  heading: string | null;
+  snippet: string;
+}
+
+export interface RetrievalHit {
+  chunk_id: string;
+  document_id: string;
+  filename: string;
+  score: number;
+  used: boolean;
+}
+
+export interface PlaygroundResult {
+  id: string;
+  outcome: AnswerOutcome;
+  answer: string;
+  intent: string | null;
+  needs_escalation: boolean;
+  escalation_reason: string | null;
+  citations: AnswerCitation[];
+  retrieval: RetrievalHit[];
+  provider: string;
+  model: string | null;
+  prompt_version: string;
+  evidence_threshold: number;
+  latency_ms: number;
+  input_tokens: number;
+  output_tokens: number;
+}

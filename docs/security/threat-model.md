@@ -63,6 +63,17 @@ Review checklists: [OWASP API Security Top 10](https://owasp.org/www-project-api
 - **Widget origins:** stored canonically and compared by exact equality. Enforcement at session issue is M4.
 - **Not yet addressed:** malware scanning; per-tenant storage credentials; the internal token is not bound to a single use.
 
+## Additional M3 notes
+
+- **Prompt injection:** retrieved text and the customer's message are escaped and wrapped in labelled tags, and the system prompt tells the model to treat them as content, not instructions. This lowers the risk; it does not remove it. The controls that do not depend on the model behaving are: the model has no tools and no access to other tenants' data, its output must match a fixed schema, and every citation is checked against what was retrieved. Tests cover the escaping and the citation check with a fake model; behaviour of the real model under attack is unmeasured.
+- **Hallucinated answers:** no evidence means no model call. An answer that cites nothing, or cites something it was not given, is replaced by the fallback message.
+- **Untrusted AI service:** the core API re-verifies every chunk id in a reply against the caller's tenant before returning it.
+- **Provider failure:** timeout, bounded retry, and a circuit breaker; every failure path returns the fallback message and asks for a person. Provider error details are logged as a short code and never returned.
+- **Cost abuse:** the playground is limited to owners and admins and to 60 questions per workspace per hour (in memory). The default provider is a fake that costs nothing.
+- **Data sent to the provider:** with the real provider, the customer's question and the retrieved passages leave the system for Anthropic's API. Tenants must be told this before M4 exposes the assistant to customers.
+- **Logging:** the AI service logs tenant id, outcome, counts and latency. It does not log questions, prompts or document text. Questions and answers are stored in `ai_interactions` under Row-Level Security; retention is decided in M7.
+- **Not yet addressed:** the provider key is a plain environment variable; no per-tenant spend cap.
+
 ## File upload checklist (M2)
 
 - Allow only PDF, TXT and Markdown; determine the real content type, not just the extension.
