@@ -42,7 +42,7 @@ public final class EscalationPolicy {
     /** Outcomes where the customer got the fallback message because the reply was unusable. */
     static final Set<String> UNUSABLE = Set.of("NO_EVIDENCE", "UNGROUNDED", "INVALID_OUTPUT", "INVALID_CITATION");
 
-    private static final Set<String> FAILED = Set.of("PROVIDER_UNAVAILABLE", "SERVICE_UNAVAILABLE", "REFUSED");
+    private static final Set<String> FAILED = Set.of("PROVIDER_UNAVAILABLE", "SERVICE_UNAVAILABLE", "REFUSED", "OVER_LIMIT");
 
     // English only for the MVP. Matched on whole words, case-insensitively.
     private static final Pattern RISK = Pattern.compile(

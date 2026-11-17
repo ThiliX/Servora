@@ -19,6 +19,7 @@ import com.servora.ticket.EscalationPolicy.Decision;
 import com.servora.ticket.EscalationService;
 import com.servora.ticket.EscalationService.Escalation;
 import com.servora.ticket.TicketService;
+import com.servora.usage.UsageService;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Duration;
@@ -79,6 +80,7 @@ public class ConversationService {
     private final WidgetProperties properties;
     private final EscalationService escalation;
     private final TicketService tickets;
+    private final UsageService usage;
     private final TransactionTemplate transactions;
 
     public ConversationService(
@@ -91,6 +93,7 @@ public class ConversationService {
             WidgetProperties properties,
             EscalationService escalation,
             TicketService tickets,
+            UsageService usage,
             PlatformTransactionManager transactionManager) {
         this.jdbc = jdbc;
         this.tenantContext = tenantContext;
@@ -101,6 +104,7 @@ public class ConversationService {
         this.properties = properties;
         this.escalation = escalation;
         this.tickets = tickets;
+        this.usage = usage;
         this.transactions = new TransactionTemplate(transactionManager);
     }
 
@@ -108,7 +112,7 @@ public class ConversationService {
         limit("history-conversation:" + session.conversationId(),
                 properties.historyPerConversationPerMinute(), Duration.ofMinutes(1));
         return transactions.execute(status -> {
-            tenantContext.bindTenant(session.tenantId());
+            bindActiveTenant(session);
             return view(session);
         });
     }
@@ -118,7 +122,7 @@ public class ConversationService {
                 properties.messagesPerConversationPerMinute(), Duration.ofMinutes(1));
         limit("messages-ip:" + RateLimiter.hashed(clientAddress), properties.messagesPerIpPerMinute(), Duration.ofMinutes(1));
         return transactions.execute(status -> {
-            tenantContext.bindTenant(session.tenantId());
+            bindActiveTenant(session);
             ConversationState state = state(session, false);
             if ("CLOSED".equals(state.status())) {
                 throw ApiException.conflict("CONVERSATION_CLOSED", "This conversation has ended. Start a new one.");
@@ -177,24 +181,34 @@ public class ConversationService {
 
     /** Asks the AI service, verifies the reply, and stores it as delivered only if the conversation is unchanged. */
     public Reply generateReply(WidgetSession session, Submission submission) {
-        AssistantView assistant = transactions.execute(status -> {
-            tenantContext.bindTenant(session.tenantId());
-            return assistant(session.tenantId());
+        record Prepared(AssistantView assistant, boolean withinPlan) {}
+        Prepared prepared = transactions.execute(status -> {
+            bindActiveTenant(session);
+            return new Prepared(assistant(session.tenantId()), usage.aiAllowed(session.tenantId()));
         });
+        AssistantView assistant = prepared.assistant();
         String question = submission.customerMessage().body();
 
-        AiAnswer answer = null;
-        if (withinTenantBudget(session.tenantId())) {
-            try {
-                answer = ai.answer(session.tenantId(), assistant, question);
-            } catch (AiUnavailableException e) {
-                log.warn("AI service unavailable: {}", e.getMessage());
+        AiAnswer received;
+        if (!prepared.withinPlan()) {
+            // Over the plan's monthly AI limit: the model is not asked, and the customer is offered a
+            // person instead, through the normal escalation path.
+            log.warn("Plan AI limit reached for tenant {}", session.tenantId());
+            received = AnswerVerifier.fallback(assistant.fallbackMessage(), AnswerVerifier.OVER_LIMIT, "plan_limit_reached", null);
+        } else {
+            AiAnswer answer = null;
+            if (withinTenantBudget(session.tenantId())) {
+                try {
+                    answer = ai.answer(session.tenantId(), assistant, question);
+                } catch (AiUnavailableException e) {
+                    log.warn("AI service unavailable: {}", e.getMessage());
+                }
             }
+            received = AnswerVerifier.normalise(answer, assistant.fallbackMessage());
         }
-        AiAnswer received = AnswerVerifier.normalise(answer, assistant.fallbackMessage());
 
         Reply reply = transactions.execute(status -> {
-            tenantContext.bindTenant(session.tenantId());
+            bindActiveTenant(session);
             AiAnswer verified = verifier.verify(session.tenantId(), assistant.fallbackMessage(), received);
             UUID interactionId = recorder.record(
                     session.tenantId(), Source.WIDGET, assistant.currentVersion(), null, question, verified);
@@ -268,7 +282,7 @@ public class ConversationService {
     /** Stops AI replies and asks for a person. Repeating it changes nothing. */
     public ConversationView requestHuman(WidgetSession session) {
         return transactions.execute(status -> {
-            tenantContext.bindTenant(session.tenantId());
+            bindActiveTenant(session);
             ConversationState state = state(session, false);
             if ("CLOSED".equals(state.status())) {
                 throw ApiException.conflict("CONVERSATION_CLOSED", "This conversation has ended. Start a new one.");
@@ -281,7 +295,7 @@ public class ConversationService {
     /** The customer's rating of a resolved conversation. Accepted once. */
     public ConversationView feedback(WidgetSession session, int rating, String comment) {
         return transactions.execute(status -> {
-            tenantContext.bindTenant(session.tenantId());
+            bindActiveTenant(session);
             ConversationState state = state(session, false);
             if (!"CLOSED".equals(state.status())) {
                 throw ApiException.conflict("CONVERSATION_NOT_RESOLVED", "You can rate the conversation once it is resolved.");
@@ -359,6 +373,22 @@ public class ConversationService {
         MessageView reply = replyId.map(id -> message(session.tenantId(), id)).orElse(null);
         String notice = reply != null ? null : "AI_ACTIVE".equals(state.controlMode()) ? "REPLY_PENDING" : "HUMAN_PENDING";
         return new Submission(message(session.tenantId(), customerMessageId), true, reply, false, notice, state.version(), null);
+    }
+
+    /**
+     * Binds the session's workspace and refuses to continue if it has been suspended since the
+     * session token was issued. Tokens live for hours; suspension takes effect at once.
+     */
+    private void bindActiveTenant(WidgetSession session) {
+        tenantContext.bindTenant(session.tenantId());
+        boolean active = jdbc.sql("SELECT count(*) FROM tenants WHERE id = :tenantId AND status = 'ACTIVE'")
+                        .param("tenantId", session.tenantId())
+                        .query(Long.class)
+                        .single()
+                == 1;
+        if (!active) {
+            throw ApiException.forbidden("WIDGET_UNAVAILABLE", "This chat is not available right now.");
+        }
     }
 
     private boolean withinTenantBudget(UUID tenantId) {

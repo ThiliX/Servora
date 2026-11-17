@@ -12,6 +12,7 @@ import com.servora.membership.WorkspaceAccess;
 import com.servora.membership.WorkspaceContext;
 import com.servora.membership.WorkspaceRole;
 import com.servora.widget.WidgetService;
+import com.servora.usage.UsageService;
 import java.time.Clock;
 import java.time.DateTimeException;
 import java.time.Instant;
@@ -36,6 +37,7 @@ public class WorkspaceService {
             String industry,
             String logoUrl,
             WorkspaceRole role,
+            Integer conversationRetentionDays,
             Instant createdAt) {
 
         static WorkspaceView of(Tenant tenant, WorkspaceRole role) {
@@ -49,6 +51,7 @@ public class WorkspaceService {
                     tenant.getIndustry(),
                     tenant.getLogoUrl(),
                     role,
+                    tenant.getConversationRetentionDays(),
                     tenant.getCreatedAt());
         }
     }
@@ -63,6 +66,7 @@ public class WorkspaceService {
     private final AssistantService assistants;
     private final WidgetService widgets;
     private final DocumentService documents;
+    private final UsageService usage;
     private final Clock clock;
 
     public WorkspaceService(
@@ -74,6 +78,7 @@ public class WorkspaceService {
             AssistantService assistants,
             WidgetService widgets,
             DocumentService documents,
+            UsageService usage,
             Clock clock) {
         this.tenantContext = tenantContext;
         this.access = access;
@@ -83,6 +88,7 @@ public class WorkspaceService {
         this.assistants = assistants;
         this.widgets = widgets;
         this.documents = documents;
+        this.usage = usage;
         this.clock = clock;
     }
 
@@ -107,6 +113,7 @@ public class WorkspaceService {
             // Other tenants' slugs are invisible under RLS, so uniqueness is detected by the constraint.
             throw ApiException.conflict("SLUG_TAKEN", "That workspace address is already in use.");
         }
+        usage.createSubscription(tenantId);
         Membership owner = memberships.save(new Membership(tenantId, userId, WorkspaceRole.OWNER, now));
         WorkspaceContext ctx = new WorkspaceContext(tenantId, userId, owner.getId(), WorkspaceRole.OWNER);
         // Every workspace starts with a default assistant and widget (handbook journey 4.1).
@@ -120,7 +127,7 @@ public class WorkspaceService {
     @Transactional(readOnly = true)
     public List<WorkspaceSummary> listMine(UUID userId) {
         tenantContext.bindUser(userId);
-        return tenants.findActiveWorkspacesOf(userId);
+        return tenants.findWorkspacesOf(userId);
     }
 
     @Transactional(readOnly = true)

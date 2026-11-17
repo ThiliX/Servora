@@ -22,14 +22,16 @@ export interface WorkspaceSummary {
   name: string;
   slug: string;
   role: WorkspaceRole;
+  status: "ACTIVE" | "SUSPENDED";
+  suspended_reason?: string | null;
 }
 
 export interface Workspace extends WorkspaceSummary {
-  status: string;
   timezone: string;
   default_language: string;
   industry: string | null;
   logo_url: string | null;
+  conversation_retention_days?: number | null;
   created_at: string;
 }
 
@@ -240,4 +242,95 @@ export interface NotificationList {
     created_at: string;
     read: boolean;
   }>;
+}
+
+export interface Plan {
+  code: string;
+  name: string;
+  monthly_ai_requests: number;
+  monthly_tokens: number;
+  monthly_conversations: number;
+  max_documents: number;
+}
+
+export interface UsageReport {
+  plan: Plan;
+  period_start: string;
+  period_end: string;
+  used: {
+    ai_requests: number;
+    input_tokens: number;
+    output_tokens: number;
+    tokens: number;
+    estimated_cost_usd: number | null;
+    conversations: number;
+    documents: number;
+  };
+  cost_configured: boolean;
+  by_source: { source: string; requests: number; tokens: number; estimated_cost_usd: number | null }[];
+  daily: { date: string; ai_requests: number; tokens: number; conversations: number }[];
+  plans: Plan[];
+}
+
+export interface CountRow {
+  key: string;
+  count: number;
+}
+
+export interface Analytics {
+  range: { from: string; to: string; days: number };
+  conversations: { total: number; resolved_by_ai: number; escalated: number; unanswered: number };
+  daily: { date: string; conversations: number; escalated: number }[];
+  queue: {
+    open: number;
+    in_progress: number;
+    waiting_for_customer: number;
+    unassigned: number;
+    by_priority: Record<string, number>;
+  };
+  responses: {
+    tickets_created: number;
+    tickets_resolved: number;
+    median_first_response_seconds: number | null;
+    median_resolution_seconds: number | null;
+    median_ai_latency_ms: number | null;
+  };
+  intents: CountRow[];
+  ai_outcomes: CountRow[];
+  escalation_reasons: CountRow[];
+  resolution_outcomes: CountRow[];
+  satisfaction: { average: number | null; count: number; distribution: Record<string, number> };
+}
+
+export interface AuditEvent {
+  id: string;
+  actor_user_id: string | null;
+  actor_name: string | null;
+  action: string;
+  resource_type: string;
+  resource_id: string | null;
+  metadata: Record<string, string>;
+  created_at: string;
+}
+
+export interface PlatformTenant {
+  id: string;
+  name: string;
+  slug: string;
+  status: "ACTIVE" | "SUSPENDED";
+  suspended_reason: string | null;
+  plan_code: string | null;
+  ai_requests_this_month: number;
+  conversations_this_month: number;
+  created_at: string;
+}
+
+export interface PlatformAuditEvent {
+  id: string;
+  actor_name: string;
+  action: string;
+  target_tenant_id: string | null;
+  target_tenant_name: string | null;
+  metadata: Record<string, string>;
+  created_at: string;
 }

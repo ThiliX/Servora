@@ -5,6 +5,7 @@ import com.servora.common.ratelimit.RateLimiter;
 import com.servora.common.tenant.TenantContext;
 import com.servora.conversation.WidgetTokens.IssuedToken;
 import com.servora.conversation.WidgetTokens.WidgetSession;
+import com.servora.usage.UsageService;
 import com.servora.widget.Origins;
 import java.time.Duration;
 import java.time.Instant;
@@ -44,6 +45,7 @@ public class PublicWidgetService {
     private final WidgetTokens tokens;
     private final RateLimiter rateLimiter;
     private final WidgetProperties properties;
+    private final UsageService usage;
     private final TransactionTemplate transactions;
 
     public PublicWidgetService(
@@ -52,12 +54,14 @@ public class PublicWidgetService {
             WidgetTokens tokens,
             RateLimiter rateLimiter,
             WidgetProperties properties,
+            UsageService usage,
             PlatformTransactionManager transactionManager) {
         this.jdbc = jdbc;
         this.tenantContext = tenantContext;
         this.tokens = tokens;
         this.rateLimiter = rateLimiter;
         this.properties = properties;
+        this.usage = usage;
         this.transactions = new TransactionTemplate(transactionManager);
     }
 
@@ -80,6 +84,10 @@ public class PublicWidgetService {
         return transactions.execute(status -> {
             Resolved widget = resolve(publicKey).orElseThrow(PublicWidgetService::notFound);
             requireOrigin(widget, origin);
+            if (!usage.conversationAllowed(widget.tenantId())) {
+                // The customer is not told about the workspace's plan; the team sees it on its usage page.
+                throw UsageService.limitReached("Chat is not available right now. Please try again later.");
+            }
             UUID customerId = UUID.randomUUID();
             UUID conversationId = UUID.randomUUID();
             jdbc.sql("INSERT INTO customers (id, tenant_id, widget_id) VALUES (:id, :tenantId, :widgetId)")
@@ -97,6 +105,7 @@ public class PublicWidgetService {
                     .param("widgetId", widget.widgetId())
                     .param("origin", Origins.canonical(origin).orElseThrow())
                     .update();
+            usage.recordConversationStarted(widget.tenantId(), conversationId);
             IssuedToken token = tokens.issue(
                     new WidgetSession(widget.tenantId(), widget.widgetId(), customerId, conversationId));
             return new SessionView(token.token(), token.expiresAt(), conversationId, widget.config());

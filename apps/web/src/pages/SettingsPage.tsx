@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Button, Card, Field, FormError, Notice } from "../components/ui";
 import { api, type ApiError } from "../lib/api";
-import { canManageSettings } from "../lib/permissions";
+import { canManageData, canManageSettings } from "../lib/permissions";
 import type { Workspace } from "../lib/types";
 import { toApiError } from "../lib/useAsync";
 import { useWorkspace } from "./WorkspaceLayout";
@@ -77,6 +77,85 @@ export function SettingsPage() {
           </Button>
         </form>
       </Card>
+      {canManageData(workspace.role) && <DataControls workspace={workspace} onSaved={reloadWorkspace} />}
     </>
+  );
+}
+
+/** Owner-only: how long conversations are kept, and a full export of the workspace's data. */
+function DataControls({ workspace, onSaved }: { workspace: Workspace; onSaved: () => void }) {
+  const [days, setDays] = useState(workspace.conversation_retention_days?.toString() ?? "");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<ApiError | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<ApiError | null>(null);
+  const parsed = days.trim() === "" ? null : Number(days);
+  const valid = parsed === null || (Number.isInteger(parsed) && parsed >= 30 && parsed <= 3650);
+
+  async function saveRetention(event: FormEvent) {
+    event.preventDefault();
+    setSaving(true);
+    setSaved(false);
+    setError(null);
+    try {
+      await api(`/workspaces/${workspace.id}/retention`, { method: "PUT", body: { conversation_retention_days: parsed } });
+      setSaved(true);
+      onSaved();
+    } catch (caught) {
+      setError(toApiError(caught));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function download() {
+    setExporting(true);
+    setExportError(null);
+    try {
+      const data = await api<unknown>(`/workspaces/${workspace.id}/export`);
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `servora-export-${workspace.slug}-${new Date().toISOString().slice(0, 10)}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (caught) {
+      setExportError(toApiError(caught));
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  return (
+    <Card title="Data and privacy">
+      <form onSubmit={saveRetention} className="max-w-lg space-y-3" noValidate>
+        <FormError error={error} />
+        {saved && <Notice tone="success">Retention period saved.</Notice>}
+        <Field
+          id="settings-retention"
+          label="Delete conversations after (days)"
+          inputMode="numeric"
+          hint="Between 30 and 3650 days after the last message. Leave empty to keep conversations. Conversations with an open ticket are kept until it is resolved. Deletion cannot be undone."
+          value={days}
+          onChange={(e) => setDays(e.target.value)}
+        />
+        <Button type="submit" disabled={saving || !valid}>
+          {saving ? "Saving…" : "Save retention period"}
+        </Button>
+      </form>
+      <div className="mt-6 max-w-lg space-y-2 border-t border-slate-200 pt-4">
+        <h3 className="text-sm font-semibold">Export workspace data</h3>
+        <p className="text-sm text-slate-600">
+          Downloads a JSON file with your settings, team, configuration, document list, conversations, tickets, notes,
+          ratings, audit log and monthly usage. Document files themselves are not included.
+        </p>
+        <FormError error={exportError} />
+        <Button variant="secondary" disabled={exporting} onClick={() => void download()}>
+          {exporting ? "Preparing…" : "Download export"}
+        </Button>
+      </div>
+    </Card>
   );
 }

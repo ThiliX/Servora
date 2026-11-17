@@ -26,7 +26,11 @@ public enum Permission {
     VIEW_ALL_CONVERSATIONS(OWNER, ADMIN, SUPERVISOR),
     ASSIGN_TICKETS(OWNER, ADMIN, SUPERVISOR),
     REPLY_TO_CUSTOMERS(OWNER, ADMIN, SUPERVISOR, AGENT),
-    MANAGE_SUBSCRIPTION(OWNER);
+    VIEW_ANALYTICS(OWNER, ADMIN, SUPERVISOR),
+    VIEW_USAGE(OWNER, ADMIN),
+    MANAGE_SUBSCRIPTION(OWNER),
+    // Exporting workspace data, deleting conversations and setting the retention period.
+    MANAGE_DATA(OWNER);
 
     private final Set<WorkspaceRole> roles;
 

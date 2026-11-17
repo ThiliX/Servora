@@ -26,6 +26,8 @@ public class AuditService {
     public record AuditEventView(
             UUID id,
             UUID actorUserId,
+            // Null for actions taken by the system, such as the retention job.
+            String actorName,
             String action,
             String resourceType,
             UUID resourceId,
@@ -49,13 +51,24 @@ public class AuditService {
     @Transactional(propagation = Propagation.MANDATORY)
     public void record(
             WorkspaceContext ctx, String action, String resourceType, UUID resourceId, Map<String, String> metadata) {
+        recordFor(ctx.tenantId(), ctx.userId(), action, resourceType, resourceId, metadata);
+    }
+
+    /**
+     * For actions that are not taken by a member of the workspace: a platform operator, or the system
+     * itself ({@code actorUserId} null). The workspace must already be bound.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void recordFor(
+            UUID tenantId, UUID actorUserId, String action, String resourceType, UUID resourceId,
+            Map<String, String> metadata) {
         jdbc.sql("""
                         INSERT INTO audit_events (id, tenant_id, actor_user_id, action, resource_type, resource_id, metadata)
                         VALUES (:id, :tenantId, :actorUserId, :action, :resourceType, :resourceId, CAST(:metadata AS jsonb))
                         """)
                 .param("id", UUID.randomUUID())
-                .param("tenantId", ctx.tenantId())
-                .param("actorUserId", ctx.userId())
+                .param("tenantId", tenantId)
+                .param("actorUserId", actorUserId)
                 .param("action", action)
                 .param("resourceType", resourceType)
                 .param("resourceId", resourceId)
@@ -70,10 +83,11 @@ public class AuditService {
         int safeSize = Math.min(Math.max(size, 1), PageResponse.MAX_SIZE);
 
         List<AuditEventView> items = jdbc.sql("""
-                        SELECT id, actor_user_id, action, resource_type, resource_id, metadata::text AS metadata, created_at
-                        FROM audit_events
-                        WHERE tenant_id = :tenantId
-                        ORDER BY created_at DESC, id
+                        SELECT a.id, a.actor_user_id, u.display_name AS actor_name, a.action, a.resource_type,
+                               a.resource_id, a.metadata::text AS metadata, a.created_at
+                        FROM audit_events a LEFT JOIN users u ON u.id = a.actor_user_id
+                        WHERE a.tenant_id = :tenantId
+                        ORDER BY a.created_at DESC, a.id
                         LIMIT :limit OFFSET :offset
                         """)
                 .param("tenantId", ctx.tenantId())
@@ -82,6 +96,7 @@ public class AuditService {
                 .query((rs, rowNum) -> new AuditEventView(
                         rs.getObject("id", UUID.class),
                         rs.getObject("actor_user_id", UUID.class),
+                        rs.getString("actor_name"),
                         rs.getString("action"),
                         rs.getString("resource_type"),
                         rs.getObject("resource_id", UUID.class),

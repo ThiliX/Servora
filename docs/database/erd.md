@@ -40,8 +40,9 @@ erDiagram
 | `platform_admins` | Global | M1 | Platform role, kept apart from workspace roles |
 | `refresh_tokens` | Global (per user) | M1 | Stored hashed; rotation family for reuse detection |
 | `email_verification_tokens` | Global (per user) | M1 | Stored hashed; single use; expires |
-| `tenants` | Tenant root | M1 | Unique slug, status, timezone, default language, industry, logo URL, plan code. Under RLS, keyed on its own `id` |
-| `plans` | Global | M6 | Plan catalogue and limits |
+| `tenants` | Tenant root | M1 | Unique slug, status, suspension reason, timezone, default language, industry, logo URL, conversation retention days (M6). The plan moved to `subscriptions` in M6. Under RLS, keyed on its own `id` |
+| `plans` | Global | M6 | Plan catalogue: monthly AI requests, tokens and conversations, and documents held |
+| `platform_audit_events` | Global | M6 | Platform operators' actions. Readable and writable only by platform admins under RLS |
 | `memberships` | Tenant | M1 | Unique `(tenant_id, user_id)`; role and status |
 | `invitations` | Tenant | M1 | Hashed token, expiry, status; one pending invitation per email per tenant; inviter referenced by `(tenant_id, membership_id)` |
 | `audit_events` | Tenant | M1 | Append-only: the runtime role has `SELECT` and `INSERT` only |
@@ -63,8 +64,8 @@ erDiagram
 | `internal_notes` | Tenant | M5 | Append-only, in their own table so no customer-facing query can return one |
 | `conversation_feedback` | Tenant | M5 | One rating (1 to 5) and optional comment per conversation, after resolution |
 | `notification_events` | Tenant | M5 | Per recipient: ticket assigned, customer message. Only `read_at` can change |
-| `usage_events` | Tenant | M6 | Append-only |
-| `subscriptions` | Tenant | M6 | |
+| `usage_events` | Tenant | M6 | Append-only. AI requests (source, provider, model, tokens, estimated cost in micro-dollars), uploaded documents, started conversations. No foreign key to what was measured |
+| `subscriptions` | Tenant | M6 | One per workspace: the plan. Only a platform admin can change it |
 
 ## Rules for every tenant-scoped table
 
@@ -126,7 +127,10 @@ Some lookups happen before a tenant is known. As built in M1 ([ADR-015](../archi
 | Accepting an invitation by token | A policy exposes the one row matching the transaction-local `app.invitation_token_hash` |
 | Outbox dispatch (background job, no tenant) | A policy exposes `outbox_events` rows when the transaction-local `app.outbox_dispatcher` is on ([ADR-016](../architecture/adr/0016-outbox-dispatcher-reads-across-tenants.md)) |
 
-These settings unlock reads only; every write policy requires `app.tenant_id`. Resolving a widget public key is designed in M4.
+| Platform administration | `app.platform_admin` plus a `platform_admins` row exposes `tenants`, `subscriptions` and `usage_events` across tenants ([ADR-019](../architecture/adr/0019-plans-usage-metering-and-platform-administration.md)) |
+| Retention job | `app.retention_job` exposes the `tenants` rows that have a retention period ([ADR-020](../architecture/adr/0020-retention-deletion-and-export.md)) |
+
+These settings unlock reads only, with one exception: platform admins may update `tenants` and `subscriptions` across tenants. Every other write policy requires `app.tenant_id`. Conversation data is deleted only through the `delete_conversation_data` function, which acts on the bound workspace.
 
 ## Indexes
 

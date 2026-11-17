@@ -157,6 +157,31 @@ Design: [ADR-018](../architecture/adr/0018-human-handoff-escalation-and-takeover
 
 Public widget changes: message streams may include a `system_message` event; the history includes `feedback_submitted`; handoff now creates a ticket; and the history is limited to 60 requests per conversation per minute. Errors: `TICKET_NOT_FOUND` (404), `NOT_ASSIGNED` and `TAKEOVER_NOT_ALLOWED` (403), `CONVERSATION_CHANGED`, `TAKEOVER_REQUIRED`, `TICKET_NOT_ACTIVE`, `TICKET_NOT_RESOLVED`, `INVALID_TRANSITION`, `CONVERSATION_NOT_RESOLVED`, `FEEDBACK_EXISTS` (409), `INVALID_STATUS`, `INVALID_ASSIGNEE` (400).
 
+## Endpoints implemented in M6
+
+Design: [ADR-019](../architecture/adr/0019-plans-usage-metering-and-platform-administration.md) and [ADR-020](../architecture/adr/0020-retention-deletion-and-export.md).
+
+| Method | Path | Roles | Purpose |
+|---|---|---|---|
+| GET | `/workspaces/{workspaceId}/analytics?days=7\|30\|90` | Owner, Admin, Supervisor | Metrics for the last N UTC days. The ticket queue is a snapshot of now |
+| GET | `/workspaces/{workspaceId}/usage` | Owner, Admin | This month's usage against the plan, by source and by day, and the plan catalogue. `estimated_cost_usd` is `null` when no price is configured |
+| GET | `/workspaces/{workspaceId}/audit-events` | Owner, Admin | Now includes `actor_name` (`null` for system actions) |
+| PUT | `/workspaces/{workspaceId}/retention` | Owner | `{"conversation_retention_days": 30-3650}`, or `null` to keep conversations |
+| DELETE | `/workspaces/{workspaceId}/conversations/{conversationId}` | Owner | Deletes the conversation and everything belonging to it. `204` |
+| GET | `/workspaces/{workspaceId}/export` | Owner | JSON download of the workspace's data. Five per hour |
+| GET | `/platform/access` | Any signed-in user | `{"platform_admin": true}` or `false`, to decide whether to show the link |
+| GET | `/platform/tenants?query=&page=&size=` | Platform admin | Workspaces with plan and this month's AI requests and conversations. No content |
+| POST | `/platform/tenants/{tenantId}/suspend` | Platform admin | `{"reason": "..."}`, shown to the workspace's members |
+| POST | `/platform/tenants/{tenantId}/reactivate` | Platform admin | |
+| PUT | `/platform/tenants/{tenantId}/plan` | Platform admin | `{"plan_code": "FREE"}`, `"STARTER"` or `"GROWTH"` |
+| GET | `/platform/audit-events` | Platform admin | Platform actions, newest first |
+
+Everyone who is not a platform admin gets `404` from `/platform/*`, except `/platform/access`.
+
+**Analytics definitions.** A conversation counts in the range by its start time. *Escalated*: it has a ticket. *Resolved by AI*: no ticket, and at least one AI reply was delivered with outcome `ANSWERED`. *Unanswered*: neither. Median first response runs from ticket creation to the first agent reply; median resolution from ticket creation to resolution, for tickets resolved in the range. Intents and AI outcomes come from widget replies only.
+
+**Plan limits.** Monthly, in UTC. The playground, suggestions, uploads and new widget sessions return `PLAN_LIMIT_REACHED` (403). Over the AI limit the widget instead receives the fallback message and a handoff to a person (AI outcome `OVER_LIMIT`). Other new errors: `INVALID_RANGE`, `INVALID_RETENTION`, `UNKNOWN_PLAN` (400), `ALREADY_SUSPENDED`, `ALREADY_ACTIVE` (409), `EXPORT_RATE_LIMITED` (429), and `WIDGET_UNAVAILABLE` (403) on any widget call made with a session token of a suspended workspace.
+
 ## Idempotency
 
 - Registration, verification and invitation acceptance are safe to retry: a repeat either does nothing or returns a clear conflict (`INVITATION_NOT_PENDING`, `ALREADY_MEMBER`).
@@ -172,4 +197,3 @@ Public widget changes: message streams may include a `system_message` event; the
 
 | Group | Base path | Milestone |
 |---|---|---|
-| Analytics | `/workspaces/{workspaceId}/analytics` | M6 |

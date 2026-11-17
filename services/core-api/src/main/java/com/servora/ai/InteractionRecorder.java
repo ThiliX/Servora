@@ -1,5 +1,6 @@
 package com.servora.ai;
 
+import com.servora.usage.UsageService;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,15 +22,23 @@ public class InteractionRecorder {
         AGENT_SUGGESTION
     }
 
+    /** Outcomes where no request reached the AI service's model, so nothing is metered. */
+    private static final java.util.Set<String> NOT_METERED = java.util.Set.of("OVER_LIMIT", "SERVICE_UNAVAILABLE");
+
     private final JdbcClient jdbc;
     private final ObjectMapper json;
+    private final UsageService usage;
 
-    public InteractionRecorder(JdbcClient jdbc, ObjectMapper json) {
+    public InteractionRecorder(JdbcClient jdbc, ObjectMapper json, UsageService usage) {
         this.jdbc = jdbc;
         this.json = json;
+        this.usage = usage;
     }
 
-    /** Must run inside a transaction with {@code tenantId} bound. Returns the new row's id. */
+    /**
+     * Must run inside a transaction with {@code tenantId} bound. Returns the new row's id. Also
+     * appends the usage event for the request, unless the model was never asked.
+     */
     @Transactional(propagation = Propagation.MANDATORY)
     public UUID record(
             UUID tenantId, Source source, int assistantVersion, UUID userId, String question, AiAnswer answer) {
@@ -80,6 +89,10 @@ public class InteractionRecorder {
                 .param("inputTokens", answer.inputTokens())
                 .param("outputTokens", answer.outputTokens())
                 .update();
+        if (!NOT_METERED.contains(answer.outcome())) {
+            usage.recordAiRequest(tenantId, source.name(), id, answer.provider(), answer.model(),
+                    answer.inputTokens(), answer.outputTokens());
+        }
         return id;
     }
 }

@@ -82,7 +82,8 @@ servora:
     base-url: ${SERVORA_WEB_BASE_URL:http://localhost:5173}
   knowledge:
     max-upload-bytes: ${SERVORA_MAX_UPLOAD_BYTES:10485760}
-    max-documents-per-workspace: 200
+    # Hard ceiling for every plan. Each plan sets its own, lower document limit.
+    max-documents-per-workspace: 1000
     uploads-per-hour: 60
   storage:
     # Private S3-compatible object storage for uploaded documents.
@@ -115,6 +116,20 @@ servora:
     messages-per-ip-per-minute: 30
     history-per-conversation-per-minute: 60
     ai-replies-per-tenant-per-day: 2000
+  usage:
+    # Estimated provider cost, in US dollars per million tokens, for the configured model. Zero means
+    # "not configured": usage is still counted, and the cost shows as unknown. Take the figures from
+    # the provider's pricing page; they are an estimate, not a bill.
+    input-price-per-million-tokens-usd: ${SERVORA_USAGE_INPUT_PRICE_PER_MTOK_USD:0}
+    output-price-per-million-tokens-usd: ${SERVORA_USAGE_OUTPUT_PRICE_PER_MTOK_USD:0}
+  retention:
+    # Deletes conversations older than each workspace's retention period, in batches.
+    enabled: ${SERVORA_RETENTION_ENABLED:true}
+    interval: PT1H
+    batch-size: 200
+  export:
+    per-workspace-per-hour: 5
+    max-conversations: 5000
   outbox:
     enabled: true
     poll-interval: PT2S

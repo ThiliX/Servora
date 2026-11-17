@@ -20,12 +20,11 @@ public interface TenantRepository extends Repository<Tenant, UUID> {
     Optional<Tenant> findById(UUID id);
 
     @Query("""
-            select new com.servora.workspace.WorkspaceSummary(t.id, t.name, t.slug, m.role)
+            select new com.servora.workspace.WorkspaceSummary(t.id, t.name, t.slug, m.role, t.status, t.suspendedReason)
             from Membership m join Tenant t on t.id = m.tenantId
             where m.userId = :userId
               and m.status = com.servora.membership.Membership.Status.ACTIVE
-              and t.status = com.servora.workspace.Tenant.Status.ACTIVE
             order by t.name, t.id
             """)
-    List<WorkspaceSummary> findActiveWorkspacesOf(@Param("userId") UUID userId);
+    List<WorkspaceSummary> findWorkspacesOf(@Param("userId") UUID userId);
 }
