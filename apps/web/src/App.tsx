@@ -4,6 +4,7 @@ import { Loading } from "./components/ui";
 import { useAuth } from "./lib/auth";
 import { AcceptInvitationPage } from "./pages/AcceptInvitationPage";
 import { AssistantPage } from "./pages/AssistantPage";
+import { ConversationPage, ConversationsPage } from "./pages/ConversationsPage";
 import { KnowledgePage } from "./pages/KnowledgePage";
 import { PlaygroundPage } from "./pages/PlaygroundPage";
 import { LoginPage } from "./pages/LoginPage";
@@ -61,6 +62,8 @@ export function App() {
       >
         <Route index element={<Navigate to="team" replace />} />
         <Route path="team" element={<TeamPage />} />
+        <Route path="conversations" element={<ConversationsPage />} />
+        <Route path="conversations/:conversationId" element={<ConversationPage />} />
         <Route path="assistant" element={<AssistantPage />} />
         <Route path="knowledge" element={<KnowledgePage />} />
         <Route path="playground" element={<PlaygroundPage />} />

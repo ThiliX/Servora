@@ -1,0 +1,399 @@
+import type { FromLoader, FromWidget, SessionGrant, WidgetConfig } from "./protocol";
+import { readEvents } from "./sse";
+
+export interface Citation {
+  filename: string;
+  page_number: number | null;
+  heading: string | null;
+  snippet: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  sender_type: "CUSTOMER" | "ASSISTANT" | "AGENT" | "SYSTEM";
+  body: string;
+  created_at: string;
+  citations: Citation[];
+}
+
+interface ConversationView {
+  conversation_id: string;
+  status: string;
+  control_mode: string;
+  messages: ChatMessage[];
+}
+
+export interface ChatDeps {
+  root: HTMLElement;
+  fetch: typeof fetch;
+  postToParent: (message: FromWidget) => void;
+  newKey: () => string;
+}
+
+const MAX_LENGTH = 2000;
+
+export const NOTICES: Record<string, string> = {
+  HUMAN_PENDING: "A member of our team will reply here.",
+  AUTOMATION_OFF: "A member of our team will reply here.",
+  SUPPRESSED: "A member of our team has joined the conversation and will reply.",
+  REPLY_PENDING: "Your message was received. The reply will appear here shortly.",
+};
+
+/** Describes where a cited passage came from, in words a customer understands. */
+export function describeCitation(citation: Citation): string {
+  const parts = [citation.filename];
+  if (citation.page_number !== null) {
+    parts.push(`page ${citation.page_number}`);
+  }
+  if (citation.heading) {
+    parts.push(citation.heading);
+  }
+  return parts.join(", ");
+}
+
+function el<K extends keyof HTMLElementTagNameMap>(
+  tag: K,
+  attributes: Record<string, string> = {},
+  text?: string,
+): HTMLElementTagNameMap[K] {
+  const node = document.createElement(tag);
+  for (const [name, value] of Object.entries(attributes)) {
+    node.setAttribute(name, value);
+  }
+  if (text !== undefined) {
+    // Always text, never markup: customer and model text is untrusted.
+    node.textContent = text;
+  }
+  return node;
+}
+
+/**
+ * The chat UI inside the iframe. All text from the customer, the model or the server is inserted
+ * with textContent, so nothing it contains is ever interpreted as HTML.
+ */
+export class ChatWidget {
+  private readonly deps: ChatDeps;
+  private config: WidgetConfig | null = null;
+  private apiBase = "";
+  private session: SessionGrant | null = null;
+  private sessionWaiters: Array<(session: SessionGrant | null) => void> = [];
+  private messages: ChatMessage[] = [];
+  private controlMode = "AI_ACTIVE";
+  private open = false;
+  private sending = false;
+  private typing = false;
+  private status: { text: string; tone: "info" | "error" } | null = null;
+
+  private launcher!: HTMLButtonElement;
+  private panel!: HTMLElement;
+  private log!: HTMLElement;
+  private statusLine!: HTMLElement;
+  private input!: HTMLTextAreaElement;
+  private sendButton!: HTMLButtonElement;
+  private humanButton!: HTMLButtonElement;
+
+  constructor(deps: ChatDeps) {
+    this.deps = deps;
+  }
+
+  handleLoaderMessage(message: FromLoader): void {
+    if (message.type === "init") {
+      this.config = message.config;
+      this.apiBase = message.apiBase.replace(/\/$/, "");
+      this.build();
+    } else {
+      const grant = message.type === "session" ? message.session : null;
+      if (message.type === "session-error") {
+        this.setStatus("The chat is not available right now. Please try again later.", "error");
+      }
+      this.session = grant;
+      const waiters = this.sessionWaiters;
+      this.sessionWaiters = [];
+      waiters.forEach((resolve) => resolve(grant));
+    }
+  }
+
+  private build(): void {
+    const config = this.config!;
+    const root = this.deps.root;
+    root.replaceChildren();
+    root.style.setProperty("--servora-accent", config.theme_color);
+    root.dataset.position = config.position === "BOTTOM_LEFT" ? "left" : "right";
+
+    this.launcher = el("button", { type: "button", class: "launcher", "aria-label": `Open chat: ${config.title}`, "aria-expanded": "false" });
+    this.launcher.append(el("span", { "aria-hidden": "true", class: "launcher-icon" }, "💬"));
+    this.launcher.addEventListener("click", () => void this.openPanel());
+
+    this.panel = el("section", { class: "panel", role: "dialog", "aria-label": config.title, hidden: "" });
+    const header = el("header", { class: "header" });
+    header.append(el("h1", {}, config.title));
+    const close = el("button", { type: "button", class: "close", "aria-label": "Close chat" }, "×");
+    close.addEventListener("click", () => this.closePanel());
+    header.append(close);
+
+    this.log = el("ol", { class: "log", role: "log", "aria-live": "polite", "aria-label": "Conversation" });
+    this.statusLine = el("p", { class: "status", role: "status" });
+
+    const form = el("form", { class: "composer" });
+    const label = el("label", { for: "servora-input", class: "visually-hidden" }, "Your message");
+    this.input = el("textarea", { id: "servora-input", rows: "2", maxlength: String(MAX_LENGTH), placeholder: "Type your question…" });
+    this.input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        void this.send();
+      }
+    });
+    this.sendButton = el("button", { type: "submit", class: "send" }, "Send");
+    form.append(label, this.input, this.sendButton);
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      void this.send();
+    });
+
+    this.humanButton = el("button", { type: "button", class: "human" }, "Talk to a person");
+    this.humanButton.addEventListener("click", () => void this.requestHuman());
+
+    this.panel.append(header, this.log, this.statusLine, form, this.humanButton);
+    if (config.show_branding) {
+      this.panel.append(el("p", { class: "branding" }, "Powered by Servora"));
+    }
+    this.panel.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        this.closePanel();
+      }
+    });
+
+    root.append(this.launcher, this.panel);
+    this.render();
+  }
+
+  async openPanel(): Promise<void> {
+    this.open = true;
+    this.deps.postToParent({ source: "servora-widget", type: "open" });
+    this.render();
+    this.input.focus();
+    if (!this.session) {
+      const session = await this.requestSession(false);
+      if (session) {
+        await this.loadHistory();
+      }
+    }
+  }
+
+  closePanel(): void {
+    this.open = false;
+    this.deps.postToParent({ source: "servora-widget", type: "close" });
+    this.render();
+    this.launcher.focus();
+  }
+
+  private requestSession(renew: boolean): Promise<SessionGrant | null> {
+    return new Promise((resolve) => {
+      this.sessionWaiters.push(resolve);
+      this.deps.postToParent({ source: "servora-widget", type: "session-request", renew });
+    });
+  }
+
+  private async call(path: string, init: RequestInit = {}): Promise<Response> {
+    const headers = new Headers(init.headers);
+    headers.set("Authorization", `Bearer ${this.session?.token ?? ""}`);
+    return this.deps.fetch(`${this.apiBase}/api/v1/public${path}`, { ...init, headers, credentials: "omit" });
+  }
+
+  private async loadHistory(): Promise<void> {
+    try {
+      const response = await this.call("/conversation");
+      if (response.status === 401) {
+        await this.renewSession();
+        return;
+      }
+      if (response.ok) {
+        this.applyConversation((await response.json()) as ConversationView);
+      }
+    } catch {
+      this.setStatus("You appear to be offline. Check your connection.", "error");
+    }
+  }
+
+  private applyConversation(view: ConversationView): void {
+    this.messages = view.messages;
+    this.controlMode = view.control_mode;
+    this.render();
+  }
+
+  private async renewSession(): Promise<boolean> {
+    this.session = null;
+    this.messages = [];
+    this.controlMode = "AI_ACTIVE";
+    const session = await this.requestSession(true);
+    if (session) {
+      this.setStatus("Your previous chat session ended, so a new chat has started.", "info");
+    }
+    return session !== null;
+  }
+
+  async send(): Promise<void> {
+    const text = this.input.value.trim();
+    if (!text || this.sending) {
+      return;
+    }
+    this.sending = true;
+    this.status = null;
+    this.render();
+    try {
+      if (!this.session && !(await this.requestSession(false))) {
+        return;
+      }
+      const key = this.deps.newKey();
+      let response = await this.postMessage(text, key);
+      if (response.status === 401 && (await this.renewSession())) {
+        response = await this.postMessage(text, key);
+      }
+      if (!response.ok) {
+        this.setStatus(await this.errorText(response), "error");
+        return;
+      }
+      this.input.value = "";
+      await readEvents(response, (event) => this.onEvent(event.event, event.data));
+    } catch {
+      this.setStatus("The connection was interrupted. Your message may have been sent; reopen the chat to check.", "error");
+    } finally {
+      this.sending = false;
+      this.typing = false;
+      this.render();
+    }
+  }
+
+  private postMessage(text: string, key: string): Promise<Response> {
+    return this.call("/conversation/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Idempotency-Key": key, Accept: "text/event-stream" },
+      body: JSON.stringify({ text }),
+    });
+  }
+
+  private onEvent(name: string, data: string): void {
+    const payload = data ? (JSON.parse(data) as unknown) : {};
+    switch (name) {
+      case "customer_message":
+      case "assistant_message":
+        this.typing = false;
+        this.upsert(payload as ChatMessage);
+        break;
+      case "assistant_typing":
+        this.typing = true;
+        break;
+      case "notice": {
+        const code = (payload as { code?: string }).code ?? "";
+        if (code === "HUMAN_PENDING" || code === "SUPPRESSED" || code === "AUTOMATION_OFF") {
+          this.controlMode = "HUMAN_PENDING";
+        }
+        this.status = { text: NOTICES[code] ?? "", tone: "info" };
+        break;
+      }
+      case "error":
+        this.status = { text: "Sorry, something went wrong. Please try again.", tone: "error" };
+        break;
+      default:
+        break;
+    }
+    this.render();
+  }
+
+  private upsert(message: ChatMessage): void {
+    const index = this.messages.findIndex((m) => m.id === message.id);
+    if (index === -1) {
+      this.messages = [...this.messages, message];
+    } else {
+      this.messages = this.messages.map((m, i) => (i === index ? message : m));
+    }
+  }
+
+  async requestHuman(): Promise<void> {
+    if (!this.session && !(await this.requestSession(false))) {
+      return;
+    }
+    try {
+      const response = await this.call("/conversation/handoff", { method: "POST" });
+      if (response.ok) {
+        // The conversation now ends with the server's own notice, so no status line is added.
+        this.status = null;
+        this.applyConversation((await response.json()) as ConversationView);
+      } else {
+        this.setStatus(await this.errorText(response), "error");
+      }
+    } catch {
+      this.setStatus("You appear to be offline. Check your connection.", "error");
+    }
+  }
+
+  private async errorText(response: Response): Promise<string> {
+    if (response.status === 429) {
+      return "You are sending messages very quickly. Please wait a moment.";
+    }
+    try {
+      const body = (await response.json()) as { error?: { message?: string } };
+      if (body.error?.message) {
+        return body.error.message;
+      }
+    } catch {
+      // Not JSON.
+    }
+    return "Sorry, something went wrong. Please try again.";
+  }
+
+  private setStatus(text: string, tone: "info" | "error"): void {
+    this.status = { text, tone };
+    this.render();
+  }
+
+  private render(): void {
+    if (!this.config) {
+      return;
+    }
+    this.launcher.hidden = this.open;
+    this.launcher.setAttribute("aria-expanded", String(this.open));
+    this.panel.hidden = !this.open;
+    this.sendButton.disabled = this.sending;
+    this.humanButton.hidden = this.controlMode !== "AI_ACTIVE";
+
+    const items: HTMLElement[] = [];
+    if (this.config.welcome_message) {
+      items.push(this.bubble("ASSISTANT", this.config.welcome_message, []));
+    }
+    for (const message of this.messages) {
+      items.push(this.bubble(message.sender_type, message.body, message.citations));
+    }
+    if (this.typing) {
+      items.push(el("li", { class: "message typing", "aria-label": "The assistant is typing" }, "…"));
+    }
+    this.log.replaceChildren(...items);
+    this.log.scrollTop = this.log.scrollHeight;
+
+    this.statusLine.textContent = this.status?.text ?? "";
+    this.statusLine.dataset.tone = this.status?.tone ?? "info";
+  }
+
+  private bubble(sender: string, body: string, citations: Citation[]): HTMLElement {
+    const item = el("li", { class: `message ${sender.toLowerCase()}` });
+    const who = sender === "CUSTOMER" ? "You" : sender === "SYSTEM" ? "Notice" : sender === "AGENT" ? "Team" : "Assistant";
+    item.append(el("span", { class: "visually-hidden" }, `${who}: `), el("p", { class: "body" }, body));
+    if (citations.length > 0) {
+      const sources = el("div", { class: "sources" });
+      sources.append(el("p", { class: "sources-title" }, "Sources"));
+      const list = el("ul");
+      for (const citation of citations) {
+        const entry = el("li", { title: citation.snippet }, describeCitation(citation));
+        list.append(entry);
+      }
+      sources.append(list);
+      item.append(sources);
+    }
+    return item;
+  }
+
+  /** For tests. */
+  get state() {
+    return { open: this.open, messages: this.messages, controlMode: this.controlMode, status: this.status };
+  }
+}

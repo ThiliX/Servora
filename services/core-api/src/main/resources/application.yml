@@ -22,6 +22,12 @@ spring:
       app_role: ${SERVORA_POSTGRES_APP_USER:servora_app}
       worker_role: ${SERVORA_POSTGRES_WORKER_USER:servora_worker}
       ai_role: ${SERVORA_POSTGRES_AI_USER:servora_ai}
+  data:
+    redis:
+      # Shared rate-limit counters.
+      host: ${SERVORA_REDIS_HOST:localhost}
+      port: ${SERVORA_REDIS_PORT:6379}
+      timeout: 2s
   jpa:
     open-in-view: false
     hibernate:
@@ -96,6 +102,18 @@ servora:
     answer-url: ${SERVORA_AI_ANSWER_URL:http://localhost:8091/internal/v1/answers}
     request-timeout: PT100S
     tests-per-hour: 60
+  widget:
+    # Base64 HMAC key for widget session tokens, at least 32 bytes. Must differ from the user JWT key.
+    token-secret: ${SERVORA_WIDGET_TOKEN_SECRET}
+    token-ttl: PT2H
+    # The origin serving the widget iframe; conversation endpoints accept browser calls only from it.
+    app-origin: ${SERVORA_WIDGET_APP_ORIGIN:http://localhost:5174}
+    reply-timeout: PT100S
+    config-per-ip-per-minute: 120
+    sessions-per-ip-per-hour: 30
+    messages-per-conversation-per-minute: 10
+    messages-per-ip-per-minute: 30
+    ai-replies-per-tenant-per-day: 2000
   outbox:
     enabled: true
     poll-interval: PT2S

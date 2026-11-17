@@ -106,19 +106,47 @@ Other fields: `id`, `intent`, `needs_escalation`, `escalation_reason`, `citation
 
 Errors: `VALIDATION_FAILED` (400) for an empty or over-long question, `PLAYGROUND_RATE_LIMITED` (429) after 60 questions per workspace per hour.
 
+## Endpoints implemented in M4
+
+### Public widget
+
+No dashboard token is accepted here. The widget key names the widget; after that, the session token names the conversation. See [ADR-017](../architecture/adr/0017-public-widget-access-and-session-tokens.md).
+
+| Method | Path | Credential | Purpose |
+|---|---|---|---|
+| GET | `/public/widgets/{key}/config` | Website `Origin` | Title, colour, position, branding and welcome message |
+| POST | `/public/widgets/{key}/sessions` | Website `Origin` | Start an anonymous conversation. Returns `token`, `expires_at`, `conversation_id`, `config` |
+| GET | `/public/conversation` | Session token | The conversation's status, control mode and public messages (latest 200) |
+| POST | `/public/conversation/messages` | Session token, `Idempotency-Key` | Send a message. Body: `{"text": "..."}`, at most 2,000 characters. The response is an event stream ([ADR-014](../architecture/adr/0014-server-sent-events-from-the-core-api-for-customer-streaming.md)) |
+| POST | `/public/conversation/handoff` | Session token | Ask for a person. Stops AI replies; repeating it changes nothing |
+
+Errors: `WIDGET_NOT_FOUND` (404, for unknown, rotated and disabled keys alike), `ORIGIN_NOT_ALLOWED` (403), `WIDGET_SESSION_INVALID` (401), `IDEMPOTENCY_KEY_REQUIRED` (400), `IDEMPOTENCY_KEY_REUSED` and `CONVERSATION_CLOSED` (409), `WIDGET_RATE_LIMITED` (429), `SERVICE_UNAVAILABLE` (503, when the rate-limit store is down).
+
+Message events: `customer_message`, `assistant_typing`, `assistant_message` (with `citations`: `filename`, `page_number`, `heading`, `snippet`), `notice` (`code`: `HUMAN_PENDING`, `AUTOMATION_OFF`, `SUPPRESSED`, `REPLY_PENDING`), `error`, `done`.
+
+Default limits: config 120 per address per minute; sessions 30 per address per hour; messages 10 per conversation and 30 per address per minute; 2,000 AI replies per workspace per day, after which customers get the fallback message.
+
+### Conversations (dashboard)
+
+| Method | Path | Roles | Purpose |
+|---|---|---|---|
+| GET | `/workspaces/{workspaceId}/conversations` | Owner, Admin, Supervisor | Conversations with at least one message, latest first. Paged |
+| GET | `/workspaces/{workspaceId}/conversations/{conversationId}` | Owner, Admin, Supervisor | One conversation's summary |
+| GET | `/workspaces/{workspaceId}/conversations/{conversationId}/messages` | Owner, Admin, Supervisor | Every message, oldest first, including internal and suppressed ones, with citations and the AI outcome. Paged |
+
 ## Idempotency
 
 - Registration, verification and invitation acceptance are safe to retry: a repeat either does nothing or returns a clear conflict (`INVITATION_NOT_PENDING`, `ALREADY_MEMBER`).
 - Creating a duplicate pending invitation returns `409 INVITATION_EXISTS`.
 - Uploading content identical to a live document returns `409 DUPLICATE_DOCUMENT`, so a retried upload does not create a second copy.
 - Archive, reprocess and delete can be repeated safely; a repeat returns the current state or a clear conflict.
-- Idempotency keys for message submission and ticket creation arrive with those endpoints in M4 and M5.
+- Customer messages require an `Idempotency-Key` header. A retry with the same key and text stores nothing new and replays the stored message and reply; the same key with different text returns `409 IDEMPOTENCY_KEY_REUSED`.
+- Idempotency keys for ticket creation arrive with that endpoint in M5.
 
 ## Planned endpoint groups
 
 | Group | Base path | Milestone |
 |---|---|---|
-| Conversations | `/workspaces/{workspaceId}/conversations` | M4, M5 |
+| Conversation replies and assignment | `/workspaces/{workspaceId}/conversations` | M5 |
 | Tickets | `/workspaces/{workspaceId}/tickets` | M5 |
 | Analytics | `/workspaces/{workspaceId}/analytics` | M6 |
-| Public widget | `/public` | M4 |

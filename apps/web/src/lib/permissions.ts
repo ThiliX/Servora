@@ -49,3 +49,8 @@ export const ROLE_LABELS: Record<WorkspaceRole, string> = {
   SUPERVISOR: "Supervisor",
   AGENT: "Agent",
 };
+
+/** Reading every conversation in the workspace. Agents get their own assigned conversations in M5. */
+export function canViewConversations(role: WorkspaceRole): boolean {
+  return role === "OWNER" || role === "ADMIN" || role === "SUPERVISOR";
+}

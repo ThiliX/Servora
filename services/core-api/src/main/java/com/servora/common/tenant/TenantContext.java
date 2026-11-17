@@ -44,6 +44,14 @@ public class TenantContext {
     }
 
     /**
+     * Lets the transaction read the single widget whose public key was presented by a public
+     * widget request. The widget's own tenant is bound afterwards, from that row (ADR-017).
+     */
+    public void bindWidgetKey(String publicKey) {
+        set("app.widget_public_key", publicKey);
+    }
+
+    /**
      * Lets the outbox dispatcher read pending events of every tenant. Call only from the outbox
      * dispatcher: it runs outside any request and must bind the event tenant before writing.
      */
