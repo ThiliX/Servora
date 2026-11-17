@@ -2,6 +2,7 @@ package com.servora.auth;
 
 import com.servora.common.error.ApiException;
 import com.servora.common.mail.MailGateway;
+import com.servora.common.ratelimit.RateLimiter;
 import com.servora.common.security.AuthProperties;
 import com.servora.common.security.Tokens;
 import java.time.Clock;
@@ -38,6 +39,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtEncoder jwtEncoder;
     private final LoginAttemptLimiter loginLimiter;
+    private final RateLimiter rateLimiter;
     private final MailGateway mail;
     private final AuthProperties properties;
     private final Clock clock;
@@ -51,6 +53,7 @@ public class AuthService {
             PasswordEncoder passwordEncoder,
             JwtEncoder jwtEncoder,
             LoginAttemptLimiter loginLimiter,
+            RateLimiter rateLimiter,
             MailGateway mail,
             AuthProperties properties,
             Clock clock,
@@ -61,6 +64,7 @@ public class AuthService {
         this.passwordEncoder = passwordEncoder;
         this.jwtEncoder = jwtEncoder;
         this.loginLimiter = loginLimiter;
+        this.rateLimiter = rateLimiter;
         this.mail = mail;
         this.properties = properties;
         this.clock = clock;
@@ -74,8 +78,18 @@ public class AuthService {
      * or not the email is already registered, so the endpoint cannot be used to enumerate accounts.
      */
     @Transactional
-    public void register(String email, String password, String displayName) {
+    public void register(String email, String password, String displayName, String clientAddress) {
         String normalized = Tokens.normalizeEmail(email);
+        // Limits account creation from one address, and verification emails to one mailbox. The
+        // answer is the same whether or not the address is registered.
+        boolean allowed = rateLimiter.tryAcquire("register-address:" + RateLimiter.hashed(clientAddress),
+                        properties.registrationsPerAddressPerHour(), java.time.Duration.ofHours(1))
+                && rateLimiter.tryAcquire("register-email:" + RateLimiter.hashed(normalized),
+                        properties.registrationsPerEmailPerHour(), java.time.Duration.ofHours(1));
+        if (!allowed) {
+            throw new ApiException(
+                    HttpStatus.TOO_MANY_REQUESTS, "REGISTRATION_RATE_LIMITED", "Too many sign-up attempts. Try again later.");
+        }
         if (users.findByEmail(normalized).isPresent()) {
             return;
         }
@@ -105,8 +119,14 @@ public class AuthService {
     @Transactional
     public IssuedSession login(String email, String password, String clientAddress) {
         String normalized = Tokens.normalizeEmail(email);
-        String limiterKey = normalized + "|" + clientAddress;
-        if (loginLimiter.isBlocked(limiterKey)) {
+        // Three limits: this account from this address; this account from any address, against
+        // guessing from many addresses; and this address against any account, against stuffing.
+        String limiterKey = "pair:" + normalized + "|" + clientAddress;
+        String accountKey = "account:" + normalized;
+        String addressKey = "address:" + clientAddress;
+        if (loginLimiter.isBlocked(limiterKey, properties.loginMaxFailures())
+                || loginLimiter.isBlocked(accountKey, properties.loginAccountMaxFailures())
+                || loginLimiter.isBlocked(addressKey, properties.loginAddressMaxFailures())) {
             throw new ApiException(
                     HttpStatus.TOO_MANY_REQUESTS, "TOO_MANY_ATTEMPTS", "Too many failed attempts. Try again later.");
         }
@@ -117,6 +137,8 @@ public class AuthService {
 
         if (found.isEmpty() || !passwordMatches || found.get().getStatus() == User.Status.DISABLED) {
             loginLimiter.recordFailure(limiterKey);
+            loginLimiter.recordFailure(accountKey);
+            loginLimiter.recordFailure(addressKey);
             throw ApiException.unauthorized("INVALID_CREDENTIALS", "The email or password is incorrect.");
         }
         User user = found.get();
@@ -125,6 +147,7 @@ public class AuthService {
             throw ApiException.forbidden("EMAIL_NOT_VERIFIED", "Verify your email address before signing in.");
         }
         loginLimiter.reset(limiterKey);
+        loginLimiter.reset(accountKey);
         return issueSession(user, UUID.randomUUID(), clock.instant());
     }
 

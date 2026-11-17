@@ -97,6 +97,8 @@ jobs:
       # Starts PostgreSQL (pgvector) through Testcontainers, applies the core API migrations and
       # runs the pipeline as the unprivileged worker role.
       - run: pytest -q
+      # Known vulnerabilities in the installed dependencies. The package itself is local.
+      - run: pip install pip-audit==2.7.3 && pip-audit --skip-editable --progress-spinner off
 
   ai-service:
     name: AI service (lint and test)
@@ -119,6 +121,34 @@ jobs:
       # Starts PostgreSQL (pgvector) through Testcontainers, applies the core API migrations and
       # runs retrieval as the read-only AI role.
       - run: pytest -q
+      # Known vulnerabilities in the installed dependencies. The package itself is local.
+      - run: pip install pip-audit==2.7.3 && pip-audit --skip-editable --progress-spinner off
+
+  security:
+    name: Secret and dependency scanning
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # The whole history, so a secret committed and later removed is still found.
+          fetch-depth: 0
+      # Tools run from pinned images rather than third-party actions.
+      - name: Scan the history for secrets
+        run: docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.21.2 detect --source /repo --redact --no-banner
+      - name: Scan dependencies for known vulnerabilities
+        run: >-
+          docker run --rm -v "$PWD:/repo" aquasec/trivy:0.58.1 fs --quiet --scanners vuln
+          --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 /repo
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+      # Shipped dependencies only. Development tooling advisories are triaged in docs/security.
+      - name: Audit the dashboard's production dependencies
+        working-directory: apps/web
+        run: npm audit --omit=dev --audit-level=high
+      - name: Audit the widget's production dependencies
+        working-directory: apps/widget
+        run: npm audit --omit=dev --audit-level=high
 
   compose:
     name: Validate and start Compose stack

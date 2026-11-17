@@ -24,6 +24,8 @@ ENV HF_HUB_OFFLINE=1     TRANSFORMERS_OFFLINE=1
 COPY pyproject.toml ./
 COPY servora_worker ./servora_worker
 RUN pip install ".[model]"
+# torch pulls in setuptools 78.1.0, which has known vulnerabilities (pip-audit, M7).
+RUN pip install "setuptools==84.1.0"
 
 RUN useradd --system --uid 10001 --home-dir /app worker && chown -R worker /opt/huggingface
 USER worker

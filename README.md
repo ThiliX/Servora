@@ -169,7 +169,6 @@ No credentials are committed. There are no built-in accounts: register your own 
 ## Limitations
 
 - **No email delivery.** Links are written to the development log.
-- **Login rate limiting is in memory**, so it applies per API instance and resets on restart. The other rate limits are shared in Redis.
 - **The API runs migrations at startup** and therefore holds the database owner's credentials. Separating migration from runtime is part of M7.
 - **The API and dashboard are not containerised yet.** They run on the host; the infrastructure, worker and AI service run in Compose.
 - **Answer quality is unmeasured.** Retrieval has a first baseline on 40 questions ([docs/ai/evaluation-baseline.md](docs/ai/evaluation-baseline.md)); answers from the real model have not been evaluated, the Gemini integration was checked once against the live API, and the Anthropic integration has been tested against a stub only.

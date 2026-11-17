@@ -57,8 +57,8 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    ResponseEntity<MessageResponse> register(@Valid @RequestBody RegisterRequest request) {
-        auth.register(request.email(), request.password(), request.displayName());
+    ResponseEntity<MessageResponse> register(@Valid @RequestBody RegisterRequest request, HttpServletRequest http) {
+        auth.register(request.email(), request.password(), request.displayName(), http.getRemoteAddr());
         return ResponseEntity.status(HttpStatus.ACCEPTED)
                 .body(new MessageResponse("If the address can be registered, a verification email has been sent."));
     }

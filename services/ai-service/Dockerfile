@@ -25,6 +25,8 @@ COPY pyproject.toml ./
 COPY servora_ai ./servora_ai
 COPY evaluation ./evaluation
 RUN pip install ".[model]"
+# torch pulls in setuptools 78.1.0, which has known vulnerabilities (pip-audit, M7).
+RUN pip install "setuptools==84.1.0"
 
 RUN useradd --system --uid 10001 --home-dir /app ai && chown -R ai /opt/huggingface
 USER ai

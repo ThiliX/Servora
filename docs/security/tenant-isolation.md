@@ -69,6 +69,16 @@ An AI reply goes through the same verification as the playground: every chunk it
 
 All of these run in `./mvnw verify` and in CI. They use a real PostgreSQL started by Testcontainers. The application connects as `servora_app`, created exactly as in production: no superuser, no `BYPASSRLS`, owner of nothing.
 
+### Every endpoint at once — `CrossTenantMatrixIntegrationTest` (M7)
+
+Tenant A gets one of every resource: a conversation with a ticket, an assignment notification, an internal note, a pending invitation and a document. Tenant B's owner then calls every tenant-scoped endpoint:
+
+- through tenant A's workspace path: every call returns `404 WORKSPACE_NOT_FOUND`;
+- with tenant A's object IDs inside tenant B's own workspace path: every call returns `404`, and never the code for an unknown route, so a mistyped path cannot pass by accident;
+- after both, a fingerprint of tenant A's data (settings, assistant, widget, origins, members, invitations, documents, conversations, tickets, notes, messages, audit log) is unchanged.
+
+Marking tenant A's notification as read from tenant B leaves it unread, and none of tenant B's lists or its export contain tenant A's identifiers. A new endpoint must be added to the inventory in this test.
+
 ### Cross-tenant negative tests over HTTP — `TenantIsolationIntegrationTest`
 
 Fixture: tenants TechStore and HotelPro, each with an owner and an agent.
@@ -177,7 +187,7 @@ The role matrix is asserted independently of its implementation, and enforced ov
 
 ## Results
 
-Recorded on 2026-11-17, local runs: core API 169 tests (after M6), AI service 45 tests, document worker 50 tests, dashboard 66 tests (after M6), widget 16 tests, all passing. CI results are on the repository's Actions page.
+Recorded on 2026-11-17, local runs: core API 181 tests (after M7 phase 1), AI service 45 tests, document worker 50 tests, dashboard 66 tests (after M6), widget 16 tests, all passing. CI results are on the repository's Actions page.
 
 Manual end-to-end runs on 2026-11-17 against the real API, worker, AI service and embedding model, with the fake LLM provider:
 
