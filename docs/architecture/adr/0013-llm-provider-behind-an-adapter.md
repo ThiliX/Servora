@@ -1,6 +1,6 @@
 # ADR-013: LLM provider behind an adapter
 
-- **Status:** Accepted (provider chosen by the project owner on 2026-11-17)
+- **Status:** Accepted (provider chosen by the project owner on 2026-11-17; Google Gemini added the same day)
 - **Date:** 2026-11-16, decided 2026-11-17
 
 ## Context
@@ -21,6 +21,15 @@ How the real provider is called:
 - **Refusals.** The request opts into the API's server-side fallback (`fallbacks: "default"`), so a policy decline is first re-run on the API's default fallback model. A refusal that survives that is treated like any other failure: the customer gets the fallback message and a person.
 - **Circuit breaker.** After three consecutive provider failures the service stops calling the provider for 30 seconds and answers with the fallback at once. State is in memory, per process.
 - **No sampling or thinking parameters are sent.** Current Claude models reject sampling parameters and manage thinking themselves.
+
+### Amendment: Google Gemini as a second real provider (2026-11-17)
+
+The project owner asked for a provider with a free tier for development and demos. `GeminiProvider` calls Google Gemini through the official `google-genai` SDK (3.4.0) with the same structured-output schema, and is selected with `SERVORA_LLM_PROVIDER=gemini` and `SERVORA_GEMINI_API_KEY`. The default model is `gemini-3.5-flash-lite`, the cheapest stable Flash-Lite model, which is available on Google's free tier (`SERVORA_GEMINI_MODEL`).
+
+- Same failure handling: 429 is a rate limit, 401 and 403 are authentication errors, 5xx are server errors, timeouts and connection errors are unavailable; a blocked or safety-stopped response is a refusal; a truncated or unparsable one is malformed. The SDK retries with its own bounded retry (`SERVORA_LLM_MAX_RETRIES`).
+- Google's pricing page states that free-tier content is used to improve Google's products, and paid-tier content is not. The free tier is therefore for development and demos with sample data only; real customer conversations need the paid tier or another provider.
+- Free-tier rate limits are low, so a busy demo may see `PROVIDER_UNAVAILABLE` outcomes, which fall back to the assistant's fallback message and a person, as designed.
+- Tested against a stubbed SDK client in CI. Checked once against the live Gemini API on 2026-11-17 with `gemini-3.5-flash-lite`: a TechStore returns question with one source passage returned the correct answer, cited that source, and parsed as valid structured output (519 input, 76 output tokens).
 
 ## Consequences
 

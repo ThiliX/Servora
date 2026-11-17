@@ -6,7 +6,7 @@ Servora is a multi-tenant AI customer-support platform. Each business gets an is
 
 **Milestones M1 to M5 are implemented.** You can register, create workspaces, invite members with roles, configure the assistant and widget, and upload PDF, TXT and Markdown documents that are stored privately and indexed in the background. Customers chat with the assistant through a widget on the workspace's own website: it answers from that workspace's documents with citations, gives a fallback message instead of guessing, and hands the conversation to a person when the customer asks or the assistant cannot help. The team works from an inbox: tickets are assigned, a person takes over the conversation, replies, keeps internal notes, can ask the assistant for a draft, and resolves the ticket, after which the customer can rate it. Tenant isolation is enforced by the application and by PostgreSQL Row-Level Security.
 
-Out of the box the assistant uses a built-in test model that only quotes the best matching passage and costs nothing. Real answers need an Anthropic API key (step 2 below).
+Out of the box the assistant uses a built-in test model that only quotes the best matching passage and costs nothing. Real answers need a Google Gemini key (free tier available) or an Anthropic key (step 2 below).
 
 Not built yet: analytics, usage metering and platform administration. See [docs/milestones.md](docs/milestones.md).
 
@@ -70,7 +70,7 @@ docker compose up -d --build --wait
 
 This starts PostgreSQL, Redis, the storage emulator, the document worker and the AI service. The first build downloads PyTorch and the embedding model and produces two images of about 1.7 GB each, which share most of their layers, so allow several minutes.
 
-To get real answers instead of the built-in test model, set `SERVORA_LLM_PROVIDER=anthropic` and `SERVORA_ANTHROPIC_API_KEY` in `.env` and run `docker compose up -d ai-service`. Each test question is then a paid API call.
+To get real answers instead of the built-in test model, set either `SERVORA_LLM_PROVIDER=gemini` and `SERVORA_GEMINI_API_KEY` (free tier, from <https://aistudio.google.com/apikey>), or `SERVORA_LLM_PROVIDER=anthropic` and `SERVORA_ANTHROPIC_API_KEY` (paid), in `.env`, then run `docker compose up -d ai-service`. On Gemini's free tier Google may use what is sent to improve its products, so use demo data only.
 
 The first start also creates the unprivileged database roles `servora_app`, `servora_worker` and `servora_ai`. If your database volume predates M3, the newer roles are missing; recreate the volume with `docker compose down -v` (this deletes local data) and start again.
 
@@ -162,9 +162,9 @@ No credentials are committed. There are no built-in accounts: register your own 
 - **Login rate limiting is in memory**, so it applies per API instance and resets on restart. The other rate limits are shared in Redis.
 - **The API runs migrations at startup** and therefore holds the database owner's credentials. Separating migration from runtime is part of M7.
 - **The API and dashboard are not containerised yet.** They run on the host; the infrastructure, worker and AI service run in Compose.
-- **Answer quality is unmeasured.** Retrieval has a first baseline on 40 questions ([docs/ai/evaluation-baseline.md](docs/ai/evaluation-baseline.md)); answers from the real model have not been evaluated, and the integration with the live Anthropic API has been tested against a stub only.
+- **Answer quality is unmeasured.** Retrieval has a first baseline on 40 questions ([docs/ai/evaluation-baseline.md](docs/ai/evaluation-baseline.md)); answers from the real model have not been evaluated, the Gemini integration was checked once against the live API, and the Anthropic integration has been tested against a stub only.
 - **The evidence threshold is a trade-off, not a solved problem.** In the baseline no threshold separated answerable from unanswerable questions cleanly.
-- **With the real model, questions and retrieved passages are sent to Anthropic's API.**
+- **With a real model, questions and retrieved passages are sent to Google or Anthropic.**
 - **Each customer question is answered on its own**, without the earlier turns of the conversation.
 - **A chat lasts at most two hours.** When the session expires the widget starts a new conversation; visitors cannot resume a chat on another device.
 - **Answers are shown when complete**, not word by word, so they can be checked before the customer sees them.

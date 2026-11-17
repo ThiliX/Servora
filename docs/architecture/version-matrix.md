@@ -59,6 +59,7 @@ Verified on **2026-11-16** against the sources named in each row. These are the 
 | PyTorch | 2.15.0 | >=3.11 |
 | pypdf | 7.1.0 | >=3.10 |
 | boto3 | 1.44.3 | |
+| google-genai | 3.4.0 | >=3.10. Google Gemini provider SDK (ADR-013 amendment); default model `gemini-3.5-flash-lite` |
 | anthropic | 2.9.0 | >=3.10. LLM provider SDK for the AI service (ADR-013); default model `claude-opus-5-5` |
 | PyJWT | 2.15.1 | |
 | pydantic-settings | 2.16.3 | |

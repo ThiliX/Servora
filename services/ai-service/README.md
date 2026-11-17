@@ -10,7 +10,7 @@ It is an internal service. Only the core API calls it, with a short-lived signed
 | `auth.py` | Internal token verification |
 | `retrieval.py` | Exact vector search under Row-Level Security, and the evidence gate |
 | `prompt.py` | The versioned prompt; labels and escapes untrusted text |
-| `providers.py` | Provider interface, Anthropic Claude, the fake provider, circuit breaker |
+| `providers.py` | Provider interface, Anthropic Claude, Google Gemini, the fake provider, circuit breaker |
 | `pipeline.py` | Retrieve, gate, generate, verify; the fixed set of outcomes |
 | `embeddings.py` | The model-backed embedder and the deterministic test embedder (same profile as the worker) |
 | `evaluation.py` | Retrieval evaluation harness |
@@ -24,12 +24,23 @@ The service runs in Docker Compose from the repository root, on port 8091:
 docker compose up -d --build --wait
 ```
 
-By default it uses the fake provider, which quotes the best matching source and makes no network call. For real answers set these in `.env` and restart the service:
+By default it uses the fake provider, which quotes the best matching source and makes no network call. For real answers, choose a provider in `.env` and restart the service with `docker compose up -d ai-service`.
+
+Google Gemini, which has a free tier (get a key at <https://aistudio.google.com/apikey>):
+
+```text
+SERVORA_LLM_PROVIDER=gemini
+SERVORA_GEMINI_API_KEY=<your key>
+```
+
+Anthropic Claude (paid):
 
 ```text
 SERVORA_LLM_PROVIDER=anthropic
 SERVORA_ANTHROPIC_API_KEY=<your key>
 ```
+
+On Gemini's free tier, Google may use the content sent to improve its products, so use it with demo data only.
 
 ## Test
 

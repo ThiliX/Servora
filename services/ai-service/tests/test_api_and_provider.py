@@ -11,13 +11,15 @@ import jwt
 import pytest
 from conftest import TOKEN_SECRET, make_deps
 from fastapi.testclient import TestClient
+from google.genai import errors as genai_errors
 
-from servora_ai.api import app, get_dependencies
+from servora_ai.api import app, build_provider, get_dependencies
 from servora_ai.auth import AUDIENCE, ISSUER, verify_token
 from servora_ai.config import Settings
 from servora_ai.prompt import Prompt
 from servora_ai.providers import (
     AnthropicProvider,
+    GeminiProvider,
     LlmAnswer,
     ProviderMalformedOutput,
     ProviderRefused,
@@ -212,3 +214,86 @@ def test_anthropic_malformed_truncated_and_refused_outputs():
         provider(message(ANSWER, stop_reason="max_tokens")).generate(PROMPT)
     with pytest.raises(ProviderRefused):
         provider(message(None, stop_reason="refusal")).generate(PROMPT)
+
+
+# --- Gemini adapter, with a stub client: no network, no key. ---
+
+
+class GeminiStub:
+    def __init__(self, outcome):
+        self.kwargs = None
+        self.models = SimpleNamespace(generate_content=self._generate)
+        self._outcome = outcome
+
+    def _generate(self, **kwargs):
+        self.kwargs = kwargs
+        if isinstance(self._outcome, Exception):
+            raise self._outcome
+        return self._outcome
+
+
+def gemini_response(parsed, finish="STOP", blocked=None):
+    return SimpleNamespace(
+        prompt_feedback=SimpleNamespace(block_reason=blocked) if blocked else None,
+        candidates=[SimpleNamespace(finish_reason=SimpleNamespace(name=finish))],
+        parsed=parsed,
+        model_version="gemini-3.5-flash-lite",
+        usage_metadata=SimpleNamespace(prompt_token_count=100, candidates_token_count=20),
+    )
+
+
+def test_gemini_request_shape_and_result():
+    stub = GeminiStub(gemini_response(ANSWER))
+
+    result = GeminiProvider(stub, "gemini-3.5-flash-lite", 4000).generate(PROMPT)
+
+    assert stub.kwargs["model"] == "gemini-3.5-flash-lite"
+    assert stub.kwargs["contents"] == "user"
+    config = stub.kwargs["config"]
+    assert config.system_instruction == "system"
+    assert config.response_mime_type == "application/json"
+    assert config.response_schema is LlmAnswer
+    assert config.max_output_tokens == 4000
+    assert result.answer == ANSWER
+    assert (result.model, result.input_tokens, result.output_tokens) == ("gemini-3.5-flash-lite", 100, 20)
+
+
+@pytest.mark.parametrize(
+    ("error", "reason"),
+    [
+        (genai_errors.ClientError(429, {"error": {"message": "quota"}}), "rate_limited"),
+        (genai_errors.ClientError(403, {"error": {"message": "bad key"}}), "authentication"),
+        (genai_errors.ClientError(400, {"error": {"message": "bad request"}}), "request_rejected"),
+        (genai_errors.ServerError(503, {"error": {"message": "overloaded"}}), "server_error"),
+        (type("ReadTimeout", (Exception,), {})("slow"), "timeout"),
+        (ConnectionError("refused"), "connection"),
+    ],
+)
+def test_gemini_failures_become_provider_unavailable(error, reason):
+    with pytest.raises(ProviderUnavailable) as caught:
+        GeminiProvider(GeminiStub(error), "m", 4000).generate(PROMPT)
+    assert caught.value.reason == reason
+
+
+def test_gemini_blocked_truncated_and_unparsable_outputs():
+    provider = lambda outcome: GeminiProvider(GeminiStub(outcome), "m", 4000)  # noqa: E731
+
+    with pytest.raises(ProviderRefused):
+        provider(gemini_response(None, blocked="SAFETY")).generate(PROMPT)
+    with pytest.raises(ProviderRefused):
+        provider(gemini_response(None, finish="SAFETY")).generate(PROMPT)
+    with pytest.raises(ProviderMalformedOutput):
+        provider(gemini_response(ANSWER, finish="MAX_TOKENS")).generate(PROMPT)
+    with pytest.raises(ProviderMalformedOutput):
+        provider(gemini_response(None)).generate(PROMPT)
+    with pytest.raises(ProviderMalformedOutput):
+        provider(ValueError("not json")).generate(PROMPT)
+
+
+def test_gemini_needs_a_key_and_builds_a_client_without_network():
+    with pytest.raises(ValueError, match="SERVORA_GEMINI_API_KEY"):
+        Settings(llm_provider="gemini")
+    settings = Settings(llm_provider="gemini", gemini_api_key="test-key-not-real")
+    provider = build_provider(settings)
+    assert isinstance(provider, GeminiProvider)
+    assert provider.name == "gemini"

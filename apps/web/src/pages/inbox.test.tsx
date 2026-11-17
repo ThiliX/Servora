@@ -172,14 +172,19 @@ describe("agent inbox", () => {
   });
 
   it("lets the person working on it resolve with an outcome", async () => {
-    const { calls } = api(() =>
-      detail({ can_work: true, assigned_to_me: true }, { control_mode: "HUMAN_ACTIVE", status: "IN_PROGRESS", assignee_name: "Sam" }),
-    );
+    let current = detail({ can_work: true, assigned_to_me: true }, { control_mode: "HUMAN_ACTIVE", status: "IN_PROGRESS", assignee_name: "Sam" });
+    const { calls } = api(() => current);
     const user = userEvent.setup();
     renderInbox("/w/w1/inbox/t1");
 
     await user.selectOptions(await screen.findByLabelText("Outcome"), "DUPLICATE");
-    await user.click(screen.getByRole("button", { name: "Resolve" }));
+    const resolve = screen.getByRole("button", { name: "Resolve" });
+    // From now on the server reports the resolved state, as it would after resolving.
+    current = detail(
+      { can_work: true, assigned_to_me: true },
+      { control_mode: "HUMAN_ACTIVE", status: "RESOLVED", conversation_status: "CLOSED", resolution_outcome: "DUPLICATE", assignee_name: "Sam" },
+    );
+    await user.click(resolve);
 
     await waitFor(() => expect(calls.some((c) => c.url.endsWith("/resolve"))).toBe(true));
     expect(JSON.parse(calls.find((c) => c.url.endsWith("/resolve"))!.init.body as string)).toEqual({ outcome: "DUPLICATE", note: "" });
