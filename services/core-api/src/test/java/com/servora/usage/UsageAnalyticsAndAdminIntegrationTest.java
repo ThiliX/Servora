@@ -291,7 +291,16 @@ class UsageAnalyticsAndAdminIntegrationTest extends IntegrationTestBase {
         send("PUT", base(tenants.techStore()) + "/retention", "{\"conversation_retention_days\": 30}",
                 tenants.ownerA().accessToken());
 
-        assertThat(retention.purgeExpired()).isEqualTo(1);
+        // A playground question from before the period, and one from today.
+        post(base(tenants.techStore()) + "/assistant/test", "{\"question\": \"Old test?\"}", tenants.ownerA());
+        post(base(tenants.techStore()) + "/assistant/test", "{\"question\": \"New test?\"}", tenants.ownerA());
+        agePlayground("Old test?", 40);
+
+        assertThat(retention.purgeExpired()).isEqualTo(2);
+        assertThat(count("SELECT count(*) FROM ai_interactions WHERE source = 'PLAYGROUND' AND question = ?", "Old test?"))
+                .isZero();
+        assertThat(count("SELECT count(*) FROM ai_interactions WHERE source = 'PLAYGROUND' AND question = ?", "New test?"))
+                .isEqualTo(1);
 
         assertThat(count("SELECT count(*) FROM conversations WHERE id = ?", old)).isZero();
         assertThat(count("SELECT count(*) FROM messages WHERE conversation_id = ?", old)).isZero();
@@ -578,6 +587,16 @@ class UsageAnalyticsAndAdminIntegrationTest extends IntegrationTestBase {
             statement.setTimestamp(2, then);
             statement.setObject(3, conversationId);
             statement.executeUpdate();
+        }
+    }
+
+    private static void agePlayground(String question, int days) throws SQLException {
+        try (Connection connection = ownerConnection();
+                PreparedStatement statement = connection.prepareStatement(
+                        "UPDATE ai_interactions SET created_at = ? WHERE question = ? AND source = 'PLAYGROUND'")) {
+            statement.setTimestamp(1, Timestamp.from(Instant.now().minus(Duration.ofDays(days))));
+            statement.setString(2, question);
+            assertThat(statement.executeUpdate()).isEqualTo(1);
         }
     }
 

@@ -1,5 +1,6 @@
 package com.servora.conversation;
 
+import com.servora.common.error.SafeErrors;
 import com.servora.common.error.ApiException;
 import com.servora.conversation.ConversationService.ConversationView;
 import com.servora.conversation.ConversationService.Reply;
@@ -149,7 +150,7 @@ public class PublicWidgetController {
             }
             events.send("done", Map.of());
         } catch (RuntimeException e) {
-            log.error("Widget reply failed for conversation {}", session.conversationId(), e);
+            log.error("Widget reply failed for conversation {}: {}", session.conversationId(), SafeErrors.describe(e));
             events.send("error", Map.of("code", "REPLY_FAILED"));
         } finally {
             events.complete();

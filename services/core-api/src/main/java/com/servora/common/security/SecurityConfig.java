@@ -27,6 +27,19 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 class SecurityConfig {
 
+    /** The OpenAPI document and Swagger UI: public, with a policy that lets the UI load its own assets. */
+    @Bean
+    @Order(0)
+    SecurityFilterChain apiDocsFilterChain(HttpSecurity http) throws Exception {
+        http.securityMatcher("/v3/api-docs", "/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**")
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .requestCache(AbstractHttpConfigurer::disable)
+                .headers(ApiHeaders.docs())
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
+        return http.build();
+    }
+
     /** Every endpoint except the public widget endpoints, which have their own chain (ADR-017). */
     @Bean
     @Order(2)
@@ -37,6 +50,7 @@ class SecurityConfig {
                 // endpoints are protected by SameSite=Strict and a required custom header.
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .headers(ApiHeaders.strict())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 HttpMethod.POST,
@@ -47,8 +61,6 @@ class SecurityConfig {
                                 "/api/v1/auth/logout")
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/health/**")
-                        .permitAll()
-                        .requestMatchers(HttpMethod.GET, "/v3/api-docs", "/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**")
                         .permitAll()
                         .anyRequest()
                         .authenticated())

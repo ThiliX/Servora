@@ -85,6 +85,42 @@ class AuthFlowIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
+    void signUpsToOneMailboxAreLimitedTheSameWayWhetherOrNotItIsRegistered() {
+        String fresh = uniqueEmail("signup-limit");
+        String existing = newUser("signup-existing").email();
+        for (int i = 0; i < 2; i++) {
+            assertThat(register(fresh, PASSWORD).status()).isEqualTo(202);
+            assertThat(register(existing, PASSWORD).status()).isEqualTo(202);
+        }
+        // newUser already registered the existing address once.
+        assertThat(register(fresh, PASSWORD).status()).isEqualTo(202);
+        Response freshBlocked = register(fresh, PASSWORD);
+        Response existingBlocked = register(existing, PASSWORD);
+
+        assertThat(freshBlocked.status()).isEqualTo(429);
+        assertThat(existingBlocked.status()).isEqualTo(429);
+        assertThat(freshBlocked.body()).isEqualTo(existingBlocked.body().replace(existingBlocked.<String>json("$.error.trace_id"),
+                freshBlocked.<String>json("$.error.trace_id")));
+    }
+
+    @Test
+    void aForgedForwardedForHeaderDoesNotEscapeTheLimit() {
+        Session user = newUser("forged-address");
+        for (int i = 0; i < 5; i++) {
+            Response failed = send("POST", "/api/v1/auth/login",
+                    "{\"email\": \"" + user.email() + "\", \"password\": \"wrong-" + i + "\"}", null,
+                    "X-Forwarded-For", "203.0.113." + i);
+            assertThat(failed.status()).isEqualTo(401);
+        }
+
+        Response blocked = send("POST", "/api/v1/auth/login",
+                "{\"email\": \"" + user.email() + "\", \"password\": \"" + PASSWORD + "\"}", null,
+                "X-Forwarded-For", "198.51.100.7");
+
+        assertThat(blocked.status()).isEqualTo(429);
+    }
+
+    @Test
     void refreshCookieIsHttpOnlySecureAndScopedToTheAuthPath() {
         String email = newUser("cookie").email();
 

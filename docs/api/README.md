@@ -182,6 +182,12 @@ Everyone who is not a platform admin gets `404` from `/platform/*`, except `/pla
 
 **Plan limits.** Monthly, in UTC. The playground, suggestions, uploads and new widget sessions return `PLAN_LIMIT_REACHED` (403). Over the AI limit the widget instead receives the fallback message and a handoff to a person (AI outcome `OVER_LIMIT`). Other new errors: `INVALID_RANGE`, `INVALID_RETENTION`, `UNKNOWN_PLAN` (400), `ALREADY_SUSPENDED`, `ALREADY_ACTIVE` (409), `EXPORT_RATE_LIMITED` (429), and `WIDGET_UNAVAILABLE` (403) on any widget call made with a session token of a suspended workspace.
 
+## Changes in M7
+
+- `POST /auth/register` is limited per client address (10 an hour) and per mailbox (3 an hour) and returns `429 REGISTRATION_RATE_LIMITED` beyond that, whether or not the address is already registered.
+- Sign-in is limited per account and address (5 failures in 15 minutes), per account from any address (20) and per address across accounts (50), and returns `429 TOO_MANY_ATTEMPTS`.
+- Every API response carries `Content-Security-Policy: default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer` and a `Permissions-Policy`. The OpenAPI document and Swagger UI get a policy that allows their own assets.
+
 ## Idempotency
 
 - Registration, verification and invitation acceptance are safe to retry: a repeat either does nothing or returns a clear conflict (`INVITATION_NOT_PENDING`, `ALREADY_MEMBER`).

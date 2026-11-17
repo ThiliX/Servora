@@ -1,5 +1,6 @@
 package com.servora.privacy;
 
+import com.servora.common.error.SafeErrors;
 import com.servora.audit.AuditService;
 import com.servora.common.tenant.TenantContext;
 import java.sql.Timestamp;
@@ -18,7 +19,8 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * Deletes conversations whose last activity is older than their workspace's retention period.
+ * Deletes conversations whose last activity is older than their workspace's retention period, and
+ * playground questions older than that period.
  * A conversation with a ticket that is still being worked on is kept until the ticket is resolved.
  * Each workspace is handled in its own transaction, at most one batch per run.
  */
@@ -59,7 +61,10 @@ public class RetentionJob {
         }
     }
 
-    /** Runs one pass over every workspace with a retention period. Returns the number of conversations deleted. */
+    /**
+     * Runs one pass over every workspace with a retention period. Returns the number of
+     * conversations and playground questions deleted.
+     */
     public int purgeExpired() {
         List<Policy> policies = transactions.execute(status -> {
             tenantContext.enableRetentionJob();
@@ -76,7 +81,7 @@ public class RetentionJob {
                 total += purge(policy);
             } catch (RuntimeException e) {
                 // One workspace's failure must not stop the others.
-                log.error("Retention purge failed for tenant {}", policy.tenantId(), e);
+                log.error("Retention purge failed for tenant {}: {}", policy.tenantId(), SafeErrors.describe(e));
             }
         }
         return total;
@@ -111,11 +116,19 @@ public class RetentionJob {
                     count++;
                 }
             }
-            if (count > 0) {
+            // Playground questions belong to no conversation, so they are purged separately.
+            Integer playground = jdbc.sql("SELECT delete_expired_playground_interactions(:limit)")
+                    .param("limit", properties.batchSize())
+                    .query(Integer.class)
+                    .single();
+            int playgroundCount = playground == null ? 0 : playground;
+            if (count > 0 || playgroundCount > 0) {
                 audit.recordFor(policy.tenantId(), null, "CONVERSATIONS_PURGED", "workspace", policy.tenantId(),
-                        Map.of("count", String.valueOf(count), "retention_days", String.valueOf(policy.days())));
+                        Map.of("count", String.valueOf(count),
+                                "playground_questions", String.valueOf(playgroundCount),
+                                "retention_days", String.valueOf(policy.days())));
             }
-            return count;
+            return count + playgroundCount;
         });
         if (deleted != null && deleted > 0) {
             log.info("Retention purge tenant={} deleted={}", policy.tenantId(), deleted);

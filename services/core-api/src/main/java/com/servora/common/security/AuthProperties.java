@@ -19,8 +19,14 @@ public record AuthProperties(
         @NotNull Duration verificationTokenTtl,
         @NotNull Duration invitationTtl,
         boolean refreshCookieSecure,
+        // Failed sign-ins allowed within the window: for one account from one address, for one
+        // account from all addresses, and from one address across all accounts.
         @Min(1) int loginMaxFailures,
-        @NotNull Duration loginFailureWindow) {
+        @Min(1) int loginAccountMaxFailures,
+        @Min(1) int loginAddressMaxFailures,
+        @NotNull Duration loginFailureWindow,
+        @Min(1) int registrationsPerAddressPerHour,
+        @Min(1) int registrationsPerEmailPerHour) {
 
     private static final int MIN_KEY_BYTES = 32;
 

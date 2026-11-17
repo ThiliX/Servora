@@ -142,8 +142,8 @@ Requirements: FR-038, FR-039, FR-041, FR-042, FR-043 (post-MVP).
 - [x] Retention period, owner deletion of a conversation, and workspace export ([ADR-020](architecture/adr/0020-retention-deletion-and-export.md))
 - [x] Platform admin: list workspaces, suspend, reactivate, change plan, with a platform audit log; suspension also stops existing widget sessions
 - [x] Tests passing (169 core API, 66 dashboard; local run 2026-11-17), including cross-tenant checks for usage, analytics, audit, deletion and export, and suspension at dashboard and widget
-- [ ] CI green on GitHub for the M6 branch
-- [ ] Reviewed and merged to `main`
+- [x] CI green on GitHub for the M6 branch (pull request 7)
+- [x] Reviewed and merged to `main` (2026-11-17), tagged `v0.6-m6`
 
 Deferred from M6, with the milestone that picks each up:
 
@@ -156,7 +156,28 @@ Deferred from M6, with the milestone that picks each up:
 
 Requirements: FR-044, FR-045, non-functional targets.
 
-- [ ] Security review with test evidence
+M7 is delivered in four phases, each its own pull request.
+
+**Phase 1 — security hardening**
+
+- [x] Review against the OWASP API and LLM top-10 lists with test evidence ([owasp-review.md](security/owasp-review.md)); threat model updated
+- [x] Cross-tenant ID-substitution suite for every tenant-scoped endpoint (`CrossTenantMatrixIntegrationTest`)
+- [x] Security response headers on every API response
+- [x] Login limits in Redis, per account and address, per account, and per address; sign-up limits per address and mailbox
+- [x] Log review: unexpected errors logged without messages; playground questions covered by retention
+- [x] Secret scanning (gitleaks) and dependency scanning (Trivy, pip-audit, npm audit) in CI; vulnerable `setuptools` fixed in both Python images
+- [x] Tests passing (181 core API, 66 dashboard, 16 widget; local run 2026-11-17)
+- [ ] CI green and merged
+
+**Remaining phases**
+
+- [ ] Phase 2: Playwright suite for the MVP demonstration script; load test with recorded conditions
+- [ ] Phase 3: production Compose profile, containerised API and dashboard, image scanning, observability, backup and restore drill
+- [ ] Phase 4: AI evaluation report, seed script, documentation and demo setup
+
+Original checklist, ticked as phases complete:
+
+- [x] Security review with test evidence (phase 1)
 - [ ] AI evaluation report
 - [ ] End-to-end suite for the MVP demonstration script
 - [ ] Load test with recorded conditions

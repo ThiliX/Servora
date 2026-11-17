@@ -77,7 +77,11 @@ servora:
     invitation-ttl: P7D
     refresh-cookie-secure: ${SERVORA_REFRESH_COOKIE_SECURE:true}
     login-max-failures: 5
+    login-account-max-failures: 20
+    login-address-max-failures: 50
     login-failure-window: PT15M
+    registrations-per-address-per-hour: 10
+    registrations-per-email-per-hour: 3
   web:
     base-url: ${SERVORA_WEB_BASE_URL:http://localhost:5173}
   knowledge:
