@@ -121,6 +121,92 @@ class AnthropicProvider:
         )
 
 
+class GeminiProvider:
+    """Google Gemini through the official ``google-genai`` SDK, with structured output.
+
+    The response is constrained to the LlmAnswer schema and parsed by the SDK. A blocked or
+    safety-stopped response is a refusal; a truncated or unparsable one is malformed output.
+    """
+
+    name = "gemini"
+
+    # Finish reasons meaning the model or a safety filter declined to answer.
+    _REFUSED = {"SAFETY", "PROHIBITED_CONTENT", "BLOCKLIST", "SPII", "RECITATION", "IMAGE_SAFETY"}
+
+    def __init__(self, client, model: str, max_tokens: int) -> None:
+        self._client = client
+        self._model = model
+        self._max_tokens = max_tokens
+
+    @classmethod
+    def create(
+        cls, api_key: str, model: str, max_tokens: int, timeout: float, max_retries: int
+    ) -> "GeminiProvider":
+        from google import genai
+        from google.genai import types
+
+        client = genai.Client(
+            api_key=api_key,
+            http_options=types.HttpOptions(
+                # Milliseconds in this SDK.
+                timeout=int(timeout * 1000),
+                retry_options=types.HttpRetryOptions(attempts=max_retries + 1),
+            ),
+        )
+        return cls(client, model, max_tokens)
+
+    def generate(self, prompt: Prompt) -> ProviderResult:
+        from google.genai import errors, types
+
+        try:
+            response = self._client.models.generate_content(
+                model=self._model,
+                contents=prompt.user,
+                config=types.GenerateContentConfig(
+                    system_instruction=prompt.system,
+                    response_mime_type="application/json",
+                    response_schema=LlmAnswer,
+                    max_output_tokens=self._max_tokens,
+                ),
+            )
+        except errors.ClientError as error:
+            if error.code == 429:
+                raise ProviderUnavailable("rate_limited") from error
+            if error.code in (401, 403):
+                raise ProviderUnavailable("authentication") from error
+            raise ProviderUnavailable("request_rejected") from error
+        except errors.ServerError as error:
+            raise ProviderUnavailable("server_error") from error
+        except (ValidationError, ValueError) as error:
+            raise ProviderMalformedOutput(type(error).__name__) from error
+        except errors.APIError as error:
+            raise ProviderUnavailable("request_rejected") from error
+        except Exception as error:
+            # Transport failures come from the SDK's HTTP client; classify them by type name
+            # rather than importing that client here.
+            reason = "timeout" if "Timeout" in type(error).__name__ else "connection"
+            raise ProviderUnavailable(reason) from error
+
+        feedback = getattr(response, "prompt_feedback", None)
+        if feedback is not None and getattr(feedback, "block_reason", None):
+            raise ProviderRefused()
+        candidates = response.candidates or []
+        finish = getattr(candidates[0], "finish_reason", None) if candidates else None
+        finish_name = getattr(finish, "name", str(finish) if finish is not None else "")
+        if finish_name in self._REFUSED:
+            raise ProviderRefused()
+        parsed = response.parsed
+        if finish_name == "MAX_TOKENS" or not isinstance(parsed, LlmAnswer):
+            raise ProviderMalformedOutput("incomplete")
+        usage = response.usage_metadata
+        return ProviderResult(
+            answer=parsed,
+            model=response.model_version or self._model,
+            input_tokens=(usage.prompt_token_count or 0) if usage else 0,
+            output_tokens=(usage.candidates_token_count or 0) if usage else 0,
+        )
+
+
 class FakeProvider:
     """Deterministic stand-in: quotes the best source and cites it. Makes no network calls.
 

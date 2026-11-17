@@ -34,9 +34,12 @@ class Settings(BaseSettings):
 
     # "fake" is a deterministic stand-in that makes no network calls. It is the default so the
     # stack and the tests never spend money by accident.
-    llm_provider: Literal["fake", "anthropic"] = "fake"
+    llm_provider: Literal["fake", "anthropic", "gemini"] = "fake"
     anthropic_api_key: SecretStr | None = None
     llm_model: str = "claude-opus-5-5"
+    # Google Gemini. The default is the cheapest stable Flash-Lite model, which has a free tier.
+    gemini_api_key: SecretStr | None = None
+    gemini_model: str = "gemini-3.5-flash-lite"
     llm_max_tokens: int = Field(default=4_000, ge=256)
     llm_timeout_seconds: float = Field(default=30.0, gt=0)
     llm_max_retries: int = Field(default=2, ge=0, le=5)
@@ -51,6 +54,10 @@ class Settings(BaseSettings):
             self.anthropic_api_key is None or not self.anthropic_api_key.get_secret_value().strip()
         ):
             raise ValueError("SERVORA_ANTHROPIC_API_KEY is required when SERVORA_LLM_PROVIDER=anthropic")
+        if self.llm_provider == "gemini" and (
+            self.gemini_api_key is None or not self.gemini_api_key.get_secret_value().strip()
+        ):
+            raise ValueError("SERVORA_GEMINI_API_KEY is required when SERVORA_LLM_PROVIDER=gemini")
         return self
 
     @property

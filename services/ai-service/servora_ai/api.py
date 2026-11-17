@@ -12,7 +12,7 @@ from .config import Settings, get_settings
 from .embeddings import SentenceTransformerEmbedder
 from .pipeline import AnswerResult, Dependencies, answer_question
 from .prompt import AssistantProfile
-from .providers import AnthropicProvider, CircuitBreaker, FakeProvider, LlmProvider
+from .providers import AnthropicProvider, CircuitBreaker, FakeProvider, GeminiProvider, LlmProvider
 
 
 class AssistantInput(BaseModel):
@@ -33,6 +33,14 @@ def build_provider(settings: Settings) -> LlmProvider:
         return AnthropicProvider.create(
             api_key=settings.anthropic_api_key.get_secret_value(),  # validated in Settings
             model=settings.llm_model,
+            max_tokens=settings.llm_max_tokens,
+            timeout=settings.llm_timeout_seconds,
+            max_retries=settings.llm_max_retries,
+        )
+    if settings.llm_provider == "gemini":
+        return GeminiProvider.create(
+            api_key=settings.gemini_api_key.get_secret_value(),  # validated in Settings
+            model=settings.gemini_model,
             max_tokens=settings.llm_max_tokens,
             timeout=settings.llm_timeout_seconds,
             max_retries=settings.llm_max_retries,
