@@ -75,13 +75,20 @@ function useInterval(reload: () => void, ms: number) {
 
 type QueueView = "MINE" | "UNASSIGNED" | "ALL";
 
-function Queue({ selected }: { selected: string | undefined }) {
+function Queue({ selected, reloadKey }: { selected: string | undefined; reloadKey: number }) {
   const { workspace } = useWorkspace();
   const [view, setView] = useState<QueueView>("ALL");
   const [state, setState] = useState<"ACTIVE" | "DONE">("ACTIVE");
   const path = `/workspaces/${workspace.id}/tickets?view=${view}&state=${state}&size=50`;
   const queue = useAsync(() => api<Page<TicketSummary>>(path), path);
   useInterval(queue.reload, QUEUE_REFRESH_MS);
+  // Refresh at once after an action on the open ticket, so the list never shows a stale assignee or status.
+  const { reload: reloadQueue } = queue;
+  useEffect(() => {
+    if (reloadKey > 0) {
+      reloadQueue();
+    }
+  }, [reloadKey, reloadQueue]);
 
   return (
     <section aria-label="Ticket queue" className="rounded-lg border border-slate-200 bg-white p-3">
@@ -302,7 +309,10 @@ function MessageItem({ message, onUse }: { message: ThreadMessage; onUse?: () =>
       </p>
       <p className="whitespace-pre-wrap">{message.body}</p>
       {message.citations.length > 0 && (
-        <p className="mt-1 text-xs text-slate-500">Sources: {message.citations.map((c) => c.filename).join(", ")}</p>
+        <p className="mt-1 text-xs text-slate-500">
+          {/* Two passages from one document are one source here. */}
+          Sources: {[...new Set(message.citations.map((c) => c.filename))].join(", ")}
+        </p>
       )}
       {onUse && (
         <Button variant="secondary" className="mt-2" onClick={onUse}>
@@ -490,7 +500,7 @@ export function InboxPage() {
     <>
       <h1 className="text-xl font-bold">Inbox</h1>
       <div className="grid gap-3 lg:grid-cols-[15rem_minmax(0,1fr)_16rem]">
-        <Queue selected={ticketId} />
+        <Queue selected={ticketId} reloadKey={reloadKey} />
         {!ticketId && <Notice tone="info">Choose a ticket to see the conversation.</Notice>}
         {ticketId && detail.state.status === "loading" && !current && <Loading label="Loading ticket" />}
         {ticketId && detail.state.status === "error" && <ErrorState error={detail.state.error} onRetry={detail.reload} />}
