@@ -11,8 +11,10 @@ from dataclasses import dataclass
 from typing import Literal
 from uuid import UUID
 
+from opentelemetry import trace
 from pydantic import BaseModel
 
+from . import metrics
 from .config import Settings
 from .embeddings import Embedder
 from .prompt import PROMPT_VERSION, AssistantProfile, build_prompt
@@ -26,6 +28,7 @@ from .providers import (
 from .retrieval import ConnectionFactory, RetrievedChunk, retrieve, select_evidence
 
 log = logging.getLogger(__name__)
+tracer = trace.get_tracer("servora_ai.pipeline")
 
 Outcome = Literal[
     "ANSWERED",
@@ -97,10 +100,25 @@ def answer_question(
     deps: Dependencies, tenant_id: UUID, assistant: AssistantProfile, question: str
 ) -> AnswerResult:
     started = time.monotonic()
+    # The server span the API instrumentation opened for this request; the outcome is recorded on it.
+    request_span = trace.get_current_span()
     settings = deps.settings
     threshold = threshold_for(settings, assistant.confidence_policy)
-    chunks = retrieve(deps.connect, deps.embedder, tenant_id, question, settings.retrieval_top_k)
-    evidence = select_evidence(chunks, threshold, settings.max_context_chars)
+    with tracer.start_as_current_span("retrieve") as span:
+        retrieval_started = time.monotonic()
+        chunks = retrieve(deps.connect, deps.embedder, tenant_id, question, settings.retrieval_top_k)
+        evidence = select_evidence(chunks, threshold, settings.max_context_chars)
+        metrics.RETRIEVAL_SECONDS.observe(time.monotonic() - retrieval_started)
+        top_score = max((chunk.score for chunk in chunks), default=0.0)
+        # Counts and scores only: never the question or chunk text.
+        span.set_attribute("servora.retrieval.top_k", settings.retrieval_top_k)
+        span.set_attribute("servora.retrieval.retrieved", len(chunks))
+        span.set_attribute("servora.retrieval.evidence", len(evidence))
+        span.set_attribute("servora.retrieval.top_score", round(top_score, 4))
+        span.set_attribute("servora.retrieval.threshold", threshold)
+    metrics.RETRIEVED_CHUNKS.labels("retrieved").observe(len(chunks))
+    metrics.RETRIEVED_CHUNKS.labels("used").observe(len(evidence))
+    metrics.TOP_SCORE.observe(top_score)
     used = {chunk.chunk_id for chunk in evidence}
 
     def finish(
@@ -114,7 +132,17 @@ def answer_question(
         model: str | None = None,
         tokens: tuple[int, int] = (0, 0),
     ) -> AnswerResult:
-        latency_ms = int((time.monotonic() - started) * 1000)
+        elapsed = time.monotonic() - started
+        latency_ms = int(elapsed * 1000)
+        metrics.ANSWERS.labels(outcome).inc()
+        metrics.ANSWER_SECONDS.labels(outcome).observe(elapsed)
+        metrics.CIRCUIT_OPEN.set(0 if deps.breaker.allows() else 1)
+        if tokens[0]:
+            metrics.TOKENS.labels(deps.provider.name, "input").inc(tokens[0])
+        if tokens[1]:
+            metrics.TOKENS.labels(deps.provider.name, "output").inc(tokens[1])
+        request_span.set_attribute("servora.ai.outcome", outcome)
+        request_span.set_attribute("servora.ai.prompt_version", PROMPT_VERSION)
         # Identifiers, counts and timings only: never the question, the prompt or document text.
         log.info(
             "answer tenant=%s outcome=%s retrieved=%d evidence=%d cited=%d latency_ms=%d",
@@ -169,19 +197,39 @@ def answer_question(
         return finish("PROVIDER_UNAVAILABLE", reason="provider_unavailable")
 
     prompt = build_prompt(assistant, question, evidence)
-    try:
-        result = deps.provider.generate(prompt)
-    except ProviderUnavailable as error:
-        deps.breaker.record_failure()
-        log.warning("provider unavailable reason=%s", error.reason)
-        return finish("PROVIDER_UNAVAILABLE", reason="provider_unavailable")
-    except ProviderMalformedOutput:
+    provider_started = time.monotonic()
+    # The span describes the call (provider, model, tokens, result), never the prompt or the answer.
+    with tracer.start_as_current_span("llm generate", kind=trace.SpanKind.CLIENT) as span:
+        span.set_attribute("gen_ai.system", deps.provider.name)
+        span.set_attribute("servora.ai.sources", len(prompt.sources))
+
+        def provider_done(result_label: str) -> None:
+            metrics.PROVIDER_SECONDS.labels(deps.provider.name, result_label).observe(
+                time.monotonic() - provider_started
+            )
+            span.set_attribute("servora.ai.provider_result", result_label)
+
+        try:
+            result = deps.provider.generate(prompt)
+        except ProviderUnavailable as error:
+            deps.breaker.record_failure()
+            provider_done("unavailable")
+            span.set_status(trace.Status(trace.StatusCode.ERROR, "provider unavailable"))
+            log.warning("provider unavailable reason=%s", error.reason)
+            return finish("PROVIDER_UNAVAILABLE", reason="provider_unavailable")
+        except ProviderMalformedOutput:
+            deps.breaker.record_success()
+            provider_done("malformed")
+            return finish("INVALID_OUTPUT", reason="invalid_output")
+        except ProviderRefused:
+            deps.breaker.record_success()
+            provider_done("refused")
+            return finish("REFUSED", reason="provider_refused")
         deps.breaker.record_success()
-        return finish("INVALID_OUTPUT", reason="invalid_output")
-    except ProviderRefused:
-        deps.breaker.record_success()
-        return finish("REFUSED", reason="provider_refused")
-    deps.breaker.record_success()
+        provider_done("ok")
+        span.set_attribute("gen_ai.response.model", result.model or "")
+        span.set_attribute("gen_ai.usage.input_tokens", result.input_tokens)
+        span.set_attribute("gen_ai.usage.output_tokens", result.output_tokens)
 
     output = result.answer
     tokens = (result.input_tokens, result.output_tokens)

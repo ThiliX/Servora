@@ -1,5 +1,7 @@
 package com.servora.usage;
 
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import com.servora.common.error.ApiException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -74,11 +76,26 @@ public class UsageService {
     private final JdbcClient jdbc;
     private final UsageProperties properties;
     private final Clock clock;
+    private final MeterRegistry meters;
 
-    public UsageService(JdbcClient jdbc, UsageProperties properties, Clock clock) {
+    public UsageService(JdbcClient jdbc, UsageProperties properties, Clock clock, MeterRegistry meters) {
         this.jdbc = jdbc;
         this.properties = properties;
         this.clock = clock;
+        this.meters = meters;
+    }
+
+    /** Counts a request refused by a plan limit. The workspace is not a label: see the usage page. */
+    private void limitHit(String limit) {
+        Counter.builder("servora.plan.limit.reached")
+                .description("Requests refused because a workspace reached a plan limit")
+                .tag("limit", limit)
+                .register(meters)
+                .increment();
+    }
+
+    private static String aiLimitName(Limit limit) {
+        return limit == Limit.TOKENS ? "ai_tokens" : "ai_requests";
     }
 
     /** Every new workspace starts on the Free plan. */
@@ -111,7 +128,11 @@ public class UsageService {
     /** Whether the workspace may make another AI request this month. */
     @Transactional(propagation = Propagation.MANDATORY)
     public boolean aiAllowed(UUID tenantId) {
-        return snapshot(tenantId).exhaustedAiLimit() == null;
+        Limit exhausted = snapshot(tenantId).exhaustedAiLimit();
+        if (exhausted != null) {
+            limitHit(aiLimitName(exhausted));
+        }
+        return exhausted == null;
     }
 
     /** Throws {@link #LIMIT_CODE} if the workspace has used its AI requests or tokens for this month. */
@@ -119,6 +140,7 @@ public class UsageService {
     public void requireAi(UUID tenantId) {
         Limit exhausted = snapshot(tenantId).exhaustedAiLimit();
         if (exhausted != null) {
+            limitHit(aiLimitName(exhausted));
             throw limitReached(exhausted == Limit.TOKENS
                     ? "This workspace has used its AI tokens for this month."
                     : "This workspace has used its AI requests for this month.");
@@ -128,13 +150,18 @@ public class UsageService {
     @Transactional(propagation = Propagation.MANDATORY)
     public boolean conversationAllowed(UUID tenantId) {
         Snapshot snapshot = snapshot(tenantId);
-        return snapshot.conversations() < snapshot.plan().monthlyConversations();
+        boolean allowed = snapshot.conversations() < snapshot.plan().monthlyConversations();
+        if (!allowed) {
+            limitHit("conversations");
+        }
+        return allowed;
     }
 
     /** Throws {@link #LIMIT_CODE} if the workspace already holds as many documents as its plan allows. */
     @Transactional(propagation = Propagation.MANDATORY)
     public void requireDocumentSlot(UUID tenantId, long documentsHeld) {
         if (documentsHeld >= plan(tenantId).maxDocuments()) {
+            limitHit("documents");
             throw limitReached("This workspace has reached its plan's document limit. Delete a document or change plan.");
         }
     }

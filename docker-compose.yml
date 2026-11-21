@@ -102,11 +102,14 @@ services:
     networks:
       - backend
 
-  # Parses, chunks and embeds documents. No published ports.
+  # Parses, chunks and embeds documents. No published ports. Its main process serves the job
+  # processes' combined metrics on port 9100, on the internal network (ADR-022).
   document-worker:
     image: servora/document-worker:dev
     restart: unless-stopped
-    environment: *worker-environment
+    environment:
+      <<: *worker-environment
+      PROMETHEUS_MULTIPROC_DIR: /tmp/prometheus
     depends_on:
       worker-api:
         condition: service_healthy

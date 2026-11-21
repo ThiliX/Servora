@@ -1,0 +1,29 @@
+# Prometheus scrape configuration for the production profile, where every service runs in a
+# container on the internal network. Used by compose.observability.yml (ADR-022).
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - /etc/prometheus/alerts.yml
+
+scrape_configs:
+  # Core API: metrics only on the management port, which is never published or proxied.
+  - job_name: core-api
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["core-api:8081"]
+
+  - job_name: ai-service
+    static_configs:
+      - targets: ["ai-service:8091"]
+
+  # The enqueue API, including the ingestion queue's depth.
+  - job_name: worker-api
+    static_configs:
+      - targets: ["worker-api:8090"]
+
+  # The Celery worker's combined job metrics, served by its main process.
+  - job_name: document-worker
+    static_configs:
+      - targets: ["document-worker:9100"]

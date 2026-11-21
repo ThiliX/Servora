@@ -37,7 +37,7 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 async function waitForHealth() {
   for (let i = 0; i < 150; i++) {
     try {
-      if ((await fetch(`${API}/actuator/health`)).ok) {
+      if ((await fetch(`${API}/readyz`)).ok) {
         return;
       }
     } catch {

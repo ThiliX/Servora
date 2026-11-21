@@ -8,6 +8,7 @@ import com.servora.knowledge.UploadValidator.DetectedFile;
 import com.servora.membership.Permission;
 import com.servora.membership.WorkspaceAccess;
 import com.servora.membership.WorkspaceContext;
+import com.servora.observability.TraceParents;
 import com.servora.usage.UsageService;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -70,6 +71,7 @@ public class DocumentService {
     private final AuditService audit;
     private final KnowledgeProperties properties;
     private final UsageService usage;
+    private final TraceParents traceParents;
 
     public DocumentService(
             JdbcClient jdbc,
@@ -78,7 +80,8 @@ public class DocumentService {
             UploadRateLimiter rateLimiter,
             AuditService audit,
             KnowledgeProperties properties,
-            UsageService usage) {
+            UsageService usage,
+            TraceParents traceParents) {
         this.jdbc = jdbc;
         this.access = access;
         this.storage = storage;
@@ -86,6 +89,7 @@ public class DocumentService {
         this.audit = audit;
         this.properties = properties;
         this.usage = usage;
+        this.traceParents = traceParents;
     }
 
     /** Called when a workspace is created, inside that transaction. */
@@ -295,14 +299,16 @@ public class DocumentService {
 
     private void enqueue(WorkspaceContext ctx, String eventType, UUID documentId, String payload) {
         jdbc.sql("""
-                        INSERT INTO outbox_events (id, tenant_id, event_type, aggregate_id, payload)
-                        VALUES (:id, :tenantId, :eventType, :aggregateId, CAST(:payload AS jsonb))
+                        INSERT INTO outbox_events (id, tenant_id, event_type, aggregate_id, payload, trace_parent)
+                        VALUES (:id, :tenantId, :eventType, :aggregateId, CAST(:payload AS jsonb), :traceParent)
                         """)
                 .param("id", UUID.randomUUID())
                 .param("tenantId", ctx.tenantId())
                 .param("eventType", eventType)
                 .param("aggregateId", documentId)
                 .param("payload", payload)
+                // The delivery continues this request's trace (ADR-022).
+                .param("traceParent", traceParents.current())
                 .update();
     }
 

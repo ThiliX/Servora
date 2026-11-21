@@ -31,8 +31,16 @@ services:
     ports: !reset []
   worker-api:
     ports: !reset []
+    environment:
+      # One JSON object per log line, with trace and span IDs (ADR-022).
+      SERVORA_LOG_FORMAT: json
+  document-worker:
+    environment:
+      SERVORA_LOG_FORMAT: json
   ai-service:
     ports: !reset []
+    environment:
+      SERVORA_LOG_FORMAT: json
     networks:
       - backend
       - egress
@@ -101,6 +109,8 @@ services:
       # Not published, so the API documentation is reachable only from inside the network.
       SPRINGDOC_API_DOCS_ENABLED: "false"
       SPRINGDOC_SWAGGER_UI_ENABLED: "false"
+      # JSON log lines in the Elastic Common Schema, with trace, span and workspace IDs (ADR-022).
+      LOGGING_STRUCTURED_FORMAT_CONSOLE: ecs
     depends_on:
       migrations:
         condition: service_completed_successfully
@@ -114,7 +124,7 @@ services:
         condition: service_healthy
     healthcheck:
       # The image has no curl; bash can open the TCP connection itself.
-      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET /actuator/health HTTP/1.0\\r\\n\\r\\n' >&3 && grep -q UP <&3"]
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET /readyz HTTP/1.0\\r\\n\\r\\n' >&3 && grep -q UP <&3"]
       interval: 10s
       timeout: 5s
       retries: 12

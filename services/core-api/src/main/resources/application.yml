@@ -50,15 +50,45 @@ server:
       enabled: false
 
 management:
+  # Health details and metrics on their own port, never published or proxied (ADR-022). The API port
+  # keeps /livez and /readyz for container health checks.
+  server:
+    port: ${SERVORA_MANAGEMENT_PORT:8081}
   endpoints:
     web:
       exposure:
-        include: health
+        include: health, prometheus
   endpoint:
     health:
       probes:
         enabled: true
+        add-additional-paths: true
       show-details: never
+  observations:
+    key-values:
+      application: servora-core-api
+  metrics:
+    distribution:
+      # A few fixed buckets rather than full percentile histograms, to keep the number of series small.
+      slo:
+        http.server.requests: 50ms, 100ms, 250ms, 500ms, 1s, 2500ms, 5s, 10s
+        servora.internal.requests: 100ms, 500ms, 1s, 2500ms, 5s, 10s, 30s, 60s
+        servora.outbox.delivery: 100ms, 500ms, 1s, 5s
+  tracing:
+    sampling:
+      # Share of new traces kept. A request that arrives with a sampled parent is always kept.
+      probability: ${SERVORA_TRACE_SAMPLING:1.0}
+  opentelemetry:
+    resource-attributes:
+      service.name: servora-core-api
+    # Spans are always created, so their IDs appear in logs and error bodies. They are exported
+    # only when MANAGEMENT_OPENTELEMETRY_TRACING_EXPORT_OTLP_ENDPOINT is set, for example to
+    # http://jaeger:4318/v1/traces (compose.observability.yml). Leave it unset to export nothing.
+  otlp:
+    metrics:
+      export:
+        # Metrics are scraped from the management port in the Prometheus format, not pushed.
+        enabled: false
 
 springdoc:
   api-docs:
@@ -146,4 +176,6 @@ servora:
 
 logging:
   pattern:
-    level: "%5p [trace_id=%X{trace_id:-}]"
+    # Plain-text lines in development. The production profile writes JSON instead
+    # (LOGGING_STRUCTURED_FORMAT_CONSOLE=ecs), with the same fields.
+    correlation: "[trace_id=%X{traceId:-} span_id=%X{spanId:-} tenant_id=%X{tenant_id:-}] "

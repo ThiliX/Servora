@@ -4,12 +4,15 @@ from functools import lru_cache
 from typing import Annotated, Literal
 
 import psycopg
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Response
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from pydantic import BaseModel, Field
 
 from .auth import verify_token
 from .config import Settings, get_settings
 from .embeddings import SentenceTransformerEmbedder
+from .observability import configure_logging, configure_tracing, instrument_psycopg
 from .pipeline import AnswerResult, Dependencies, answer_question
 from .prompt import AssistantProfile
 from .providers import AnthropicProvider, CircuitBreaker, FakeProvider, GeminiProvider, LlmProvider
@@ -62,8 +65,21 @@ def get_dependencies() -> Dependencies:
     )
 
 
+SERVICE_NAME = "servora-ai-service"
+configure_logging(SERVICE_NAME)
+configure_tracing(SERVICE_NAME)
+instrument_psycopg()
+
 # No interactive docs: this is an internal service.
 app = FastAPI(title="Servora AI service", docs_url=None, redoc_url=None, openapi_url=None)
+# Continues the trace the core API sends; probes and scrapes are not traced.
+FastAPIInstrumentor.instrument_app(app, excluded_urls="health,ready,metrics")
+
+
+@app.get("/metrics")
+def metrics() -> Response:
+    """Prometheus metrics. Internal network only, like the rest of this service."""
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
 @app.get("/health")

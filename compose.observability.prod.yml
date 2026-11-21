@@ -1,0 +1,12 @@
+# Production-profile additions to compose.observability.yml (ADR-022): the containerised core API
+# exports its traces to Jaeger, and Prometheus scrapes it on the internal network instead of on
+# the host. Use only together with compose.prod.yml and compose.observability.yml.
+
+services:
+  core-api:
+    environment:
+      MANAGEMENT_OPENTELEMETRY_TRACING_EXPORT_OTLP_ENDPOINT: http://jaeger:4318/v1/traces
+
+  prometheus:
+    volumes:
+      - ./infrastructure/monitoring/prometheus.prod.yml:/etc/prometheus/prometheus.yml:ro

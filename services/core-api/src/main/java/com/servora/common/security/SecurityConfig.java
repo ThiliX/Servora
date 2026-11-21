@@ -7,6 +7,7 @@ import javax.crypto.spec.SecretKeySpec;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -22,6 +23,7 @@ import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 
 @Configuration
 @EnableWebSecurity
@@ -43,7 +45,8 @@ class SecurityConfig {
     /** Every endpoint except the public widget endpoints, which have their own chain (ADR-017). */
     @Bean
     @Order(2)
-    SecurityFilterChain securityFilterChain(HttpSecurity http, ApiSecurityErrorHandler errors) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http, ApiSecurityErrorHandler errors, Environment environment)
+            throws Exception {
         http
                 // Stateless API. Access tokens travel in the Authorization header, so they are not
                 // sent automatically by the browser. The cookie-authenticated refresh and logout
@@ -60,7 +63,12 @@ class SecurityConfig {
                                 "/api/v1/auth/refresh",
                                 "/api/v1/auth/logout")
                         .permitAll()
-                        .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/health/**")
+                        // Liveness and readiness on the API port, for container health checks.
+                        .requestMatchers(HttpMethod.GET, "/livez", "/readyz")
+                        .permitAll()
+                        // Everything else under /actuator exists only on the management port, which
+                        // is never published or proxied (ADR-022).
+                        .requestMatchers(managementPort(environment))
                         .permitAll()
                         .anyRequest()
                         .authenticated())
@@ -70,6 +78,17 @@ class SecurityConfig {
                         .accessDeniedHandler(errors))
                 .exceptionHandling(e -> e.authenticationEntryPoint(errors).accessDeniedHandler(errors));
         return http.build();
+    }
+
+    /**
+     * Requests that arrived on the separate management port. The port is known only once the
+     * management server has started, so it is read per request.
+     */
+    static RequestMatcher managementPort(Environment environment) {
+        return request -> {
+            Integer port = environment.getProperty("local.management.port", Integer.class);
+            return port != null && port > 0 && request.getLocalPort() == port;
+        };
     }
 
     @Bean

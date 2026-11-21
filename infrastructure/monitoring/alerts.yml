@@ -1,0 +1,79 @@
+# Alert rules (ADR-022). Prometheus evaluates them; routing alerts to people (Alertmanager, email,
+# chat) is a deployment choice and not part of this repository. Thresholds are starting points:
+# tune them once real traffic shows what normal looks like. Runbook: docs/operations/observability.md.
+groups:
+  - name: servora
+    rules:
+      - alert: ServiceDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.job }} has not answered a metrics scrape for 2 minutes"
+
+      - alert: ApiServerErrors
+        expr: |
+          sum(rate(http_server_requests_seconds_count{job="core-api", status=~"5.."}[5m]))
+            / clamp_min(sum(rate(http_server_requests_seconds_count{job="core-api"}[5m])), 1e-9) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "More than 5% of API requests failed with a server error over 5 minutes"
+
+      - alert: OutboxBacklog
+        expr: servora_outbox_oldest_pending_age_seconds > 300
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "An outbox event has waited more than 5 minutes: uploads are not reaching the worker"
+
+      - alert: OutboxEventsFailed
+        expr: servora_outbox_events{status="FAILED"} > 0
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $value }} outbox events exhausted their retries; their documents are marked failed"
+
+      - alert: DocumentStuckProcessing
+        expr: servora_documents_processing_oldest_age_seconds > 900
+        labels:
+          severity: warning
+        annotations:
+          summary: "A document has been processing for more than 15 minutes"
+
+      - alert: IngestionQueueGrowing
+        expr: servora_worker_queue_depth > 50 and deriv(servora_worker_queue_depth[10m]) > 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "The ingestion queue holds {{ $value }} jobs and keeps growing"
+
+      - alert: ModelProviderUnavailable
+        expr: |
+          sum(rate(servora_ai_answers_total{outcome="PROVIDER_UNAVAILABLE"}[10m]))
+            / clamp_min(sum(rate(servora_ai_answers_total[10m])), 1e-9) > 0.2
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "More than 20% of questions fell back to a person because the model provider failed"
+
+      - alert: ProviderCircuitOpen
+        expr: servora_ai_provider_circuit_open == 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "The AI service has stopped calling the model provider after repeated failures"
+
+      - alert: RateLimiterUnavailable
+        expr: sum(rate(servora_rate_limit_rejections_total{reason="unavailable"}[5m])) > 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis is unreachable: rate-limited requests are being refused"

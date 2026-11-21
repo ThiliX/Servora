@@ -60,7 +60,9 @@ Paths are relative to `/api/v1`. "Member" means any active member of the workspa
 | POST | `/invitations/accept` | Signed in, invited email only | Join the workspace with the emailed token |
 | GET | `/workspaces/{workspaceId}/audit-events` | Owner, Admin | Audit log, newest first |
 
-Outside `/api/v1`: `GET /actuator/health`, `/actuator/health/liveness` and `/actuator/health/readiness` are public.
+Outside `/api/v1`: `GET /livez` and `GET /readyz` are public, for container health checks. Health details and metrics (`/actuator/health`, `/actuator/prometheus`) are served only on the management port, 8081 by default, which is never published or proxied (ADR-022).
+
+Every response carries `X-Request-Id`, the request's trace ID; error bodies repeat it as `trace_id`.
 
 ## Endpoints implemented in M2
 

@@ -2,6 +2,8 @@ package com.servora.knowledge;
 
 import com.servora.common.tenant.TenantContext;
 import com.servora.knowledge.KnowledgeConfig.OutboxProperties;
+import com.servora.observability.TraceParents;
+import io.micrometer.observation.Observation;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -28,18 +30,21 @@ public class OutboxProcessor {
     private final IngestionClient ingestion;
     private final DocumentStorage storage;
     private final OutboxProperties properties;
+    private final TraceParents traceParents;
 
     public OutboxProcessor(
             JdbcClient jdbc,
             TenantContext tenantContext,
             IngestionClient ingestion,
             DocumentStorage storage,
-            OutboxProperties properties) {
+            OutboxProperties properties,
+            TraceParents traceParents) {
         this.jdbc = jdbc;
         this.tenantContext = tenantContext;
         this.ingestion = ingestion;
         this.storage = storage;
         this.properties = properties;
+        this.traceParents = traceParents;
     }
 
     /** Processes the oldest due event. Returns false when nothing is due. */
@@ -68,7 +73,7 @@ public class OutboxProcessor {
         // scoped to it, and the row lock stops another instance delivering the same event.
         tenantContext.bindTenant(tenantId);
         Optional<Map<String, Object>> locked = jdbc.sql("""
-                        SELECT event_type, aggregate_id, attempts FROM outbox_events
+                        SELECT event_type, aggregate_id, attempts, trace_parent FROM outbox_events
                         WHERE tenant_id = :tenantId AND id = :id AND status = 'PENDING'
                         FOR UPDATE SKIP LOCKED
                         """)
@@ -85,7 +90,13 @@ public class OutboxProcessor {
         UUID documentId = (UUID) locked.get().get("aggregate_id");
         int attempts = (Integer) locked.get().get("attempts") + 1;
 
-        try {
+        // Continue the trace of the request that wrote the event, so the hand-over to the worker
+        // and the worker's own spans appear under that request.
+        Observation delivery = traceParents
+                .consumer("servora.outbox.delivery", "outbox " + eventType, (String) locked.get().get("trace_parent"))
+                .lowCardinalityKeyValue("event_type", eventType);
+        delivery.start();
+        try (Observation.Scope ignored = delivery.openScope()) {
             deliver(eventType, tenantId, documentId);
             jdbc.sql("""
                             UPDATE outbox_events
@@ -96,6 +107,7 @@ public class OutboxProcessor {
                     .param("tenantId", tenantId)
                     .param("id", eventId)
                     .update();
+            delivery.lowCardinalityKeyValue("result", "delivered");
         } catch (RuntimeException e) {
             // Only the exception type is stored and logged: messages can contain URLs or content.
             String reason = e.getClass().getSimpleName();
@@ -125,6 +137,10 @@ public class OutboxProcessor {
                         .param("id", documentId)
                         .update();
             }
+            delivery.lowCardinalityKeyValue("result", exhausted ? "failed" : "retry");
+            delivery.error(e);
+        } finally {
+            delivery.stop();
         }
         return true;
     }

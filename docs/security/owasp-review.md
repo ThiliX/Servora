@@ -48,6 +48,8 @@ Test names refer to the core API (`services/core-api/src/test`), the AI service 
 - **Tested:** every API response carries `Content-Security-Policy: default-src 'none'`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer` and a restrictive `Permissions-Policy`, including errors and public widget responses (`SecurityHeadersIntegrationTest`). CORS allows only each widget's listed origins (`corsPreflightIsAnsweredOnlyForAllowedOrigins`). Errors return a fixed envelope without stack traces. Health details are never shown. Forwarded headers are not trusted.
 - **Production profile (M7 phase 3a):** only the gateway and widget host publish ports; the data network has no internet access; containers run as non-root with read-only filesystems and no capabilities; the API holds no owner password and the API documentation is disabled. The CI job checks the published ports and the absence of the owner password on every pull request ([ADR-021](../architecture/adr/0021-production-deployment-profile.md)).
 
+- **Observability (M7 phase 3b):** health details and metrics are served on a management port that is never published or proxied; the API port keeps only `/livez` and `/readyz`. The gateways strip trace headers from clients ([ADR-022](../architecture/adr/0022-observability.md)).
+
 ### API9: Improper inventory management
 
 - **Controls:** one API version (`/api/v1`), an OpenAPI document generated from the code, the endpoint tables in `docs/api/README.md`, and the endpoint inventory in `CrossTenantMatrixIntegrationTest`, which a new endpoint must join.
@@ -107,6 +109,7 @@ Every log statement in the core API, AI service and document worker was read on 
 
 - None logs message bodies, questions, answers, prompts, document text, email addresses or tokens. The development-only mail setting logs verification links, and is off unless `SERVORA_MAIL_LOG_LINKS=true`.
 - **Fixed in M7:** three error logs printed full exception messages and stack traces, and a database exception can quote the row values that broke a constraint. They now log the exception types and the first Servora code location only (`SafeErrors`, `SafeErrorsTest`); the trace id links the line to the request.
+- **Telemetry (M7 phase 3b):** the new metrics, span attributes and JSON log fields were checked the same way. Metric labels are fixed sets; spans carry identifiers, counts, scores and statuses; database spans carry SQL with placeholders. The workspace ID appears in log lines written inside a workspace's transaction, as it did in the AI service's lines before. Tested in `ObservabilityIntegrationTest` and the AI service's `test_observability.py`.
 - **Fixed in M7:** playground questions were never deleted. The retention job now deletes them after the workspace's retention period, through a function that reads the period itself (migration V8).
 
 ## Dependency scanning

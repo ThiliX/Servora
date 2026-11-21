@@ -10,12 +10,16 @@ chunks.
 """
 
 import logging
-from collections.abc import Callable
+import time
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from uuid import UUID, uuid4
 
 import psycopg
+from opentelemetry import trace
 
+from . import metrics
 from .chunking import Chunk, chunk_sections
 from .config import Settings
 from .embeddings import Embedder
@@ -24,6 +28,19 @@ from .extract import extract
 from .storage import DocumentStore
 
 log = logging.getLogger(__name__)
+tracer = trace.get_tracer("servora_worker.pipeline")
+
+
+@contextmanager
+def _stage(name: str) -> Iterator[trace.Span]:
+    """A span and a timing for one processing stage. Attributes are counts, never content."""
+    started = time.monotonic()
+    with tracer.start_as_current_span(name) as span:
+        try:
+            yield span
+        finally:
+            metrics.STAGE_SECONDS.labels(name).observe(time.monotonic() - started)
+
 
 ConnectionFactory = Callable[[], psycopg.Connection]
 
@@ -51,28 +68,37 @@ def process_document(
     if claimed is None:
         return "skipped"
     try:
-        data = store.get(claimed.storage_key)
-        sections = extract(
-            claimed.mime,
-            data,
-            max_pdf_pages=settings.max_pdf_pages,
-            max_text_chars=settings.max_text_chars,
-        )
-        chunks = chunk_sections(
-            sections, max_chars=settings.chunk_max_chars, overlap_chars=settings.chunk_overlap_chars
-        )
+        with _stage("download") as span:
+            data = store.get(claimed.storage_key)
+            span.set_attribute("servora.document.bytes", len(data))
+        with _stage("extract") as span:
+            sections = extract(
+                claimed.mime,
+                data,
+                max_pdf_pages=settings.max_pdf_pages,
+                max_text_chars=settings.max_text_chars,
+            )
+            span.set_attribute("servora.document.mime", claimed.mime)
+            span.set_attribute("servora.document.sections", len(sections))
+        with _stage("chunk") as span:
+            chunks = chunk_sections(
+                sections, max_chars=settings.chunk_max_chars, overlap_chars=settings.chunk_overlap_chars
+            )
+            span.set_attribute("servora.document.chunks", len(chunks))
         if not chunks:
             raise PermanentError("EMPTY_DOCUMENT")
         if len(chunks) > settings.max_chunks:
             raise PermanentError("TOO_MANY_CHUNKS")
-        vectors = embedder.embed([chunk.text for chunk in chunks])
+        with _stage("embed"):
+            vectors = embedder.embed([chunk.text for chunk in chunks])
     except PermanentError as error:
         # Only the code is recorded. No content, file name or stack trace.
         log.warning("document failed: code=%s", error.code)
         _mark_failed(connect, tenant_id, document_id, error.code)
         return "failed"
 
-    indexed = _index(connect, embedder, tenant_id, document_id, claimed, chunks, vectors)
+    with _stage("index"):
+        indexed = _index(connect, embedder, tenant_id, document_id, claimed, chunks, vectors)
     return "ready" if indexed else "superseded"
 
 

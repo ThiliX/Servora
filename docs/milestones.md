@@ -184,11 +184,21 @@ M7 is delivered in four phases, each its own pull request.
 - [x] Browser suite in CI against the production stack
 - [x] Embed snippet fixed: the dashboard shows the real loader URL, and the widget host forwards the public widget API
 - [x] Backup and restore scripts, and a drill performed with identical counts, policies, grants and file checksums ([backup-and-restore.md](operations/backup-and-restore.md))
+- [x] CI green and merged (pull request 10)
+
+**Phase 3b — observability**
+
+- [x] One ID per request across services: the request ID is the OpenTelemetry trace ID, continued by the AI service and the worker, and across the outbox into the ingestion job ([ADR-022](architecture/adr/0022-observability.md))
+- [x] Metrics in the Prometheus format on internal ports only: HTTP, AI outcomes, latency, tokens, retrieval, plan and rate limits, outbox, queue depth and wait, document processing; no tenant labels ([observability.md](operations/observability.md))
+- [x] JSON log lines with trace, span and workspace IDs in the production profile
+- [x] Optional Prometheus and Jaeger overlay, with alert rules
+- [x] Observability checks in the CI job "Production stack"
+- [x] nginx 1.30.7 in the dashboard and widget images, for six advisories published 2026-11-18 (version matrix)
+- [x] Tests passing (190 core API, 58 AI service, 53 worker; browser suite 11 of 11 and observability checks against the production profile; local run 2026-11-21)
 - [ ] CI green and merged
 
 **Remaining phases**
 
-- [ ] Phase 3b: observability (metrics, structured logs, tracing)
 - [ ] Phase 4: AI evaluation report, seed script, documentation and demo setup
 
 Original checklist, ticked as phases complete:
@@ -198,7 +208,7 @@ Original checklist, ticked as phases complete:
 - [x] Load test with recorded conditions (phase 2)
 - [ ] AI evaluation report
 - [x] Compose production profile and CI for all stacks (phase 3a)
-- [ ] Observability: logs, metrics, traces
+- [x] Observability: logs, metrics, traces (phase 3b)
 - [x] Backup and restore drill performed (phase 3a)
 - [ ] Documentation, seed script and demo setup
 

@@ -51,7 +51,8 @@ function readLog(): string {
 export async function mailLink(kind: "verification" | "invitation", action: () => Promise<void>): Promise<string> {
   const start = readLog().length;
   await action();
-  const pattern = new RegExp(`DEV MAIL ${kind} link: (\\S+)`);
+  // Stops at whitespace or a quote: the production profile writes JSON log lines.
+  const pattern = new RegExp(`DEV MAIL ${kind} link: ([^\\s"]+)`);
   let link: string | undefined;
   await expect
     .poll(

@@ -3,6 +3,8 @@ package com.servora.ai;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import com.servora.assistant.AssistantService.AssistantView;
 import com.servora.knowledge.KnowledgeConfig.IngestionProperties;
+import com.servora.observability.TracedHttp;
+import io.micrometer.observation.ObservationRegistry;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -52,8 +54,9 @@ public interface AiClient {
 
         @Bean
         @ConditionalOnMissingBean(AiClient.class)
-        AiClient aiClient(AiProperties properties, IngestionProperties tokens, ObjectMapper json) {
-            return new HttpAiClient(properties, tokens, json);
+        AiClient aiClient(
+                AiProperties properties, IngestionProperties tokens, ObjectMapper json, ObservationRegistry observations) {
+            return new HttpAiClient(properties, tokens, json, observations);
         }
     }
 
@@ -71,8 +74,10 @@ public interface AiClient {
         private final NimbusJwtEncoder encoder;
         private final ObjectMapper json;
         private final HttpClient http;
+        private final ObservationRegistry observations;
 
-        HttpAiClient(AiProperties properties, IngestionProperties tokens, ObjectMapper json) {
+        HttpAiClient(
+                AiProperties properties, IngestionProperties tokens, ObjectMapper json, ObservationRegistry observations) {
             byte[] key = Base64.getDecoder().decode(tokens.tokenSecret().trim());
             if (key.length < 32) {
                 throw new IllegalArgumentException("servora.ingestion.token-secret must decode to at least 32 bytes");
@@ -81,7 +86,11 @@ public interface AiClient {
             this.tokenTtl = tokens.tokenTtl();
             this.encoder = new NimbusJwtEncoder(new ImmutableSecret<>(new SecretKeySpec(key, "HmacSHA256")));
             this.json = json;
+            this.observations = observations;
             this.http = HttpClient.newBuilder()
+                    // HTTP/1.1 only. The default first tries an h2c upgrade, which the Python services
+                    // do not support, and after which uvicorn dropped later requests' trace headers.
+                    .version(HttpClient.Version.HTTP_1_1)
                     .connectTimeout(Duration.ofSeconds(5))
                     .build();
         }
@@ -111,13 +120,13 @@ public interface AiClient {
                                 "language", assistant.language(),
                                 "fallback_message", assistant.fallbackMessage(),
                                 "confidence_policy", assistant.confidencePolicy().name())));
-                HttpRequest request = HttpRequest.newBuilder(URI.create(properties.answerUrl()))
+                HttpRequest.Builder request = HttpRequest.newBuilder(URI.create(properties.answerUrl()))
                         .timeout(properties.requestTimeout())
                         .header("Authorization", "Bearer " + token)
                         .header("Content-Type", "application/json")
-                        .POST(HttpRequest.BodyPublishers.ofString(body))
-                        .build();
-                HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
+                        .POST(HttpRequest.BodyPublishers.ofString(body));
+                HttpResponse<String> response =
+                        TracedHttp.send(observations, "ai-service", http, request, HttpResponse.BodyHandlers.ofString());
                 if (response.statusCode() != 200) {
                     throw new AiUnavailableException("AI service replied with status " + response.statusCode(), null);
                 }

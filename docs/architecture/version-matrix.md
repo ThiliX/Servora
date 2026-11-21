@@ -43,6 +43,9 @@ Verified on **2026-11-16** against the sources named in each row. These are the 
 | Maven (via wrapper) | 3.10.0 | Chosen by Spring Initializr for Boot 4.1.2 |
 | AWS SDK for Java v2 (`s3`) | 2.59.1 | Maven Central; S3-compatible document storage |
 | Spring Data Redis (`spring-boot-starter-data-redis`) | Boot BOM | Shared rate-limit counters, with the Lettuce client |
+| `spring-boot-starter-opentelemetry` | Boot BOM | Micrometer Tracing with the OpenTelemetry bridge and OTLP exporter (ADR-022) |
+| `micrometer-registry-prometheus` | Boot BOM (1.17.2) | Metrics on the management port |
+| datasource-micrometer (`datasource-micrometer-spring-boot`) | 2.3.0 | JDBC spans. 2.3.1 (for Boot 4.1.2) was three days old when chosen; 2.3.0 targets Boot 4.1.1 and works with 4.1.2 |
 
 ## AI service and document worker (Python)
 
@@ -62,6 +65,9 @@ Verified on **2026-11-16** against the sources named in each row. These are the 
 | google-genai | 3.4.0 | >=3.10. Google Gemini provider SDK (ADR-013 amendment); default model `gemini-3.5-flash-lite` |
 | anthropic | 2.9.0 | >=3.10. LLM provider SDK for the AI service (ADR-013); default model `claude-opus-5-5` |
 | PyJWT | 2.15.1 | |
+| prometheus-client | 0.26.0 | Metrics; multi-process mode in the Celery worker (ADR-022) |
+| opentelemetry-sdk, opentelemetry-exporter-otlp-proto-http | 1.45.2 | Traces (ADR-022) |
+| opentelemetry-instrumentation-fastapi, -psycopg, -celery | 0.66b2 | Released with SDK 1.45.2. The instrumentation packages are versioned as betas upstream |
 | pydantic-settings | 2.16.3 | |
 | pytest | 9.2.0 | >=3.10 |
 | testcontainers | 4.15.0 | Test only |
@@ -104,13 +110,15 @@ Base images are pinned to tags at least two weeks old and receive the distributi
 |---|---|---|
 | Eclipse Temurin JDK / JRE | `25.0.4_7-jdk-noble` / `25.0.4_7-jre-noble` | Building and running the core API and the migrations container |
 | Node.js | `24.13.0-alpine3.22` | Building the dashboard and widget (not shipped) |
-| nginx (unprivileged) | `1.30.6-alpine3.24` | Serving the dashboard and gateway, and the widget host |
+| nginx (unprivileged) | `1.30.6-alpine3.24`, with nginx `1.30.7-r1` from nginx.org | Serving the dashboard and gateway, and the widget host. nginx 1.30.7 fixes six high and critical advisories published 2026-11-18, one of them in the resolver these configurations use; it is installed over the base image (unused modules removed) because no 1.30.7 image exists yet. An exception to the two-week rule for a security fix; revert to a plain base image once a 1.30.7 tag is two weeks old |
 | Python | `3.13.18-slim-bookworm` | Worker and AI service (unchanged) |
 | Alpine | `3.22.2` | Backup and restore of the storage volume |
 | Trivy | `aquasec/trivy:0.58.1` | Dependency and image scanning |
 | gitleaks | `zricethezav/gitleaks:v8.21.2` | Secret scanning |
 | k6 | `grafana/k6:1.3.0` | Load test |
 | Playwright | `@playwright/test` 1.64.1 | Browser tests |
+| Prometheus | `prom/prometheus:v3.16.0` | Optional observability overlay (ADR-022) |
+| Jaeger | `jaegertracing/jaeger:2.23.0` | Optional observability overlay: OTLP receiver and trace UI, in memory |
 
 ## Known limits of this check
 

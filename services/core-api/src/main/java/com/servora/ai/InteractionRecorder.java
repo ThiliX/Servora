@@ -1,6 +1,11 @@
 package com.servora.ai;
 
 import com.servora.usage.UsageService;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.DistributionSummary;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,11 +33,13 @@ public class InteractionRecorder {
     private final JdbcClient jdbc;
     private final ObjectMapper json;
     private final UsageService usage;
+    private final MeterRegistry meters;
 
-    public InteractionRecorder(JdbcClient jdbc, ObjectMapper json, UsageService usage) {
+    public InteractionRecorder(JdbcClient jdbc, ObjectMapper json, UsageService usage, MeterRegistry meters) {
         this.jdbc = jdbc;
         this.json = json;
         this.usage = usage;
+        this.meters = meters;
     }
 
     /**
@@ -93,6 +100,51 @@ public class InteractionRecorder {
             usage.recordAiRequest(tenantId, source.name(), id, answer.provider(), answer.model(),
                     answer.inputTokens(), answer.outputTokens());
         }
+        recordMetrics(source, answer);
         return id;
+    }
+
+    /**
+     * Outcome, latency, tokens and retrieval counts by source and outcome. Labels are fixed sets
+     * (source, outcome, provider); no workspace, question or document appears in a metric.
+     */
+    private void recordMetrics(Source source, AiAnswer answer) {
+        String outcome = answer.outcome();
+        String provider = answer.provider() == null ? "none" : answer.provider();
+        Timer.builder("servora.ai.answers")
+                .description("Questions answered by the assistant, timed by the AI service")
+                .tag("source", source.name())
+                .tag("outcome", outcome)
+                .tag("provider", provider)
+                .serviceLevelObjectives(
+                        Duration.ofMillis(500), Duration.ofSeconds(1), Duration.ofSeconds(2), Duration.ofSeconds(5),
+                        Duration.ofSeconds(10), Duration.ofSeconds(30), Duration.ofSeconds(60))
+                .register(meters)
+                .record(Duration.ofMillis(Math.max(0, answer.latencyMs())));
+        if (answer.inputTokens() > 0) {
+            tokens("input", provider).increment(answer.inputTokens());
+        }
+        if (answer.outputTokens() > 0) {
+            tokens("output", provider).increment(answer.outputTokens());
+        }
+        List<AiAnswer.RetrievalHit> hits = answer.retrieval() == null ? List.of() : answer.retrieval();
+        DistributionSummary.builder("servora.ai.retrieval.chunks")
+                .description("Chunks retrieved for a question, and how many passed the evidence gate")
+                .tag("stage", "retrieved")
+                .register(meters)
+                .record(hits.size());
+        DistributionSummary.builder("servora.ai.retrieval.chunks")
+                .description("Chunks retrieved for a question, and how many passed the evidence gate")
+                .tag("stage", "used")
+                .register(meters)
+                .record(hits.stream().filter(AiAnswer.RetrievalHit::used).count());
+    }
+
+    private Counter tokens(String direction, String provider) {
+        return Counter.builder("servora.ai.tokens")
+                .description("Model tokens used, as reported by the provider")
+                .tag("direction", direction)
+                .tag("provider", provider)
+                .register(meters);
     }
 }
