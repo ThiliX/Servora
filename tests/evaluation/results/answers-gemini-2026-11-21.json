@@ -1,0 +1,1201 @@
+{
+  "label": "gemini",
+  "date": "2026-11-21",
+  "provider": "gemini",
+  "model": "gemini-3.5-flash-lite",
+  "prompt_version": "2026-11-17.1",
+  "evidence_threshold": 0.35,
+  "summary": {
+    "both": {
+      "questions": 50,
+      "answerable": {
+        "count": 30,
+        "answered_rate": 0.867,
+        "handed_off_rate": 0.133,
+        "citation_present_rate": 1,
+        "citation_document_accuracy": 1,
+        "phrase_in_cited_snippet_rate": 1,
+        "key_facts_checked": 16,
+        "key_facts_present_rate": 0.938
+      },
+      "unanswerable": {
+        "count": 10,
+        "correctly_not_answered_rate": 1,
+        "answered_anyway": []
+      },
+      "escalation": {
+        "count": 10,
+        "recall": 1,
+        "precision": 0.833,
+        "missed": [],
+        "unnecessary": [
+          "I dropped my tablet and the display broke. Is that covered?",
+          "What happens if I just do not turn up?",
+          "Can I stay in the room a bit longer on my last day?",
+          "I left my charger in the room. Do you still have it?"
+        ]
+      },
+      "outcomes": {
+        "ANSWERED": 26,
+        "ESCALATED": 8,
+        "NO_EVIDENCE": 16
+      },
+      "latency_ms": {
+        "end_to_end_p50": 1485,
+        "end_to_end_p95": 4436,
+        "ai_service_p50": 1433,
+        "ai_service_p95": 4397,
+        "with_model_call_p50": 1627,
+        "with_model_call_p95": 4666
+      },
+      "tokens": {
+        "model_calls": 34,
+        "input_total": 21184,
+        "output_total": 2818,
+        "input_per_model_call": 623.1,
+        "output_per_model_call": 82.9
+      },
+      "cost": {
+        "input_price_per_million_usd": 0.3,
+        "output_price_per_million_usd": 2.5,
+        "total_usd": 0.0134,
+        "per_question_usd": 0.000268,
+        "questions_per_conversation_assumed": 3,
+        "per_conversation_usd": 0.000804
+      }
+    },
+    "TechStore": {
+      "questions": 25,
+      "answerable": {
+        "count": 15,
+        "answered_rate": 0.933,
+        "handed_off_rate": 0.067,
+        "citation_present_rate": 1,
+        "citation_document_accuracy": 1,
+        "phrase_in_cited_snippet_rate": 1,
+        "key_facts_checked": 9,
+        "key_facts_present_rate": 1
+      },
+      "unanswerable": {
+        "count": 5,
+        "correctly_not_answered_rate": 1,
+        "answered_anyway": []
+      },
+      "escalation": {
+        "count": 5,
+        "recall": 1,
+        "precision": 0.909,
+        "missed": [],
+        "unnecessary": [
+          "I dropped my tablet and the display broke. Is that covered?"
+        ]
+      },
+      "outcomes": {
+        "ANSWERED": 14,
+        "ESCALATED": 4,
+        "NO_EVIDENCE": 7
+      },
+      "latency_ms": {
+        "end_to_end_p50": 1675,
+        "end_to_end_p95": 4710,
+        "ai_service_p50": 1624,
+        "ai_service_p95": 4666,
+        "with_model_call_p50": 1699,
+        "with_model_call_p95": 6066
+      },
+      "tokens": {
+        "model_calls": 18,
+        "input_total": 11525,
+        "output_total": 1423,
+        "input_per_model_call": 640.3,
+        "output_per_model_call": 79.1
+      },
+      "cost": {
+        "input_price_per_million_usd": 0.3,
+        "output_price_per_million_usd": 2.5,
+        "total_usd": 0.007015,
+        "per_question_usd": 0.000281,
+        "questions_per_conversation_assumed": 3,
+        "per_conversation_usd": 0.000842
+      }
+    },
+    "HotelPro": {
+      "questions": 25,
+      "answerable": {
+        "count": 15,
+        "answered_rate": 0.8,
+        "handed_off_rate": 0.2,
+        "citation_present_rate": 1,
+        "citation_document_accuracy": 1,
+        "phrase_in_cited_snippet_rate": 1,
+        "key_facts_checked": 7,
+        "key_facts_present_rate": 0.857
+      },
+      "unanswerable": {
+        "count": 5,
+        "correctly_not_answered_rate": 1,
+        "answered_anyway": []
+      },
+      "escalation": {
+        "count": 5,
+        "recall": 1,
+        "precision": 0.769,
+        "missed": [],
+        "unnecessary": [
+          "What happens if I just do not turn up?",
+          "Can I stay in the room a bit longer on my last day?",
+          "I left my charger in the room. Do you still have it?"
+        ]
+      },
+      "outcomes": {
+        "ANSWERED": 12,
+        "NO_EVIDENCE": 9,
+        "ESCALATED": 4
+      },
+      "latency_ms": {
+        "end_to_end_p50": 1414,
+        "end_to_end_p95": 1924,
+        "ai_service_p50": 1360,
+        "ai_service_p95": 1873,
+        "with_model_call_p50": 1472,
+        "with_model_call_p95": 3682
+      },
+      "tokens": {
+        "model_calls": 16,
+        "input_total": 9659,
+        "output_total": 1395,
+        "input_per_model_call": 603.7,
+        "output_per_model_call": 87.2
+      },
+      "cost": {
+        "input_price_per_million_usd": 0.3,
+        "output_price_per_million_usd": 2.5,
+        "total_usd": 0.006385,
+        "per_question_usd": 0.000255,
+        "questions_per_conversation_assumed": 3,
+        "per_conversation_usd": 0.000766
+      }
+    }
+  },
+  "cases": [
+    {
+      "company": "TechStore",
+      "set": "answerable",
+      "question": "How long do I have to send something back?",
+      "labels": [
+        {
+          "document": "returns-and-refunds.md",
+          "phrase": "within 30 days of delivery"
+        }
+      ],
+      "wall_ms": 1714,
+      "outcome": "ANSWERED",
+      "needs_escalation": false,
+      "escalation_reason": null,
+      "answer": "You can return most products within 30 days of delivery as long as they are unused and in their original packaging.",
+      "citations": [
+        "returns-and-refunds.md"
+      ],
+      "top_score": 0.5946,
+      "latency_ms": 1664,
+      "input_tokens": 769,
+      "output_tokens": 76
+    },
+    {
+      "company": "TechStore",
+      "set": "answerable",
+      "question": "When will the money show up in my account after I return an item?",
+      "labels": [
+        {
+          "document": "returns-and-refunds.md",
+          "phrase": "5 to 7 business days"
+        }
+      ],
+      "wall_ms": 1444,
+      "outcome": "ANSWERED",
+      "needs_escalation": false,
+      "escalation_reason": null,
+      "answer": "Once our warehouse receives and inspects your returned item, approved refunds are sent to your original payment method and typically appear within 5 to 7 business days, depending on your bank.",
+      "citations": [
+        "returns-and-refunds.md"
+      ],
+      "top_score": 0.5551,
+      "latency_ms": 1397,
+      "input_tokens": 608,
+      "output_tokens": 70
+    },
+    {
+      "company": "TechStore",
+      "set": "answerable",
+      "question": "Is there a charge if I threw away the box?",
+      "labels": [
+        {
+          "document": "returns-and-refunds.md",
+          "phrase": "15 percent restocking fee"
+        }
+      ],
+      "wall_ms": 1675,
+      "outcome": "ANSWERED",
+      "needs_escalation": false,
+      "escalation_reason": null,
+      "answer": "Yes, items returned without the original packaging are subject to a 15 percent restocking fee, unless the item is faulty.",
+      "citations": [
+        "returns-and-refunds.md"
+      ],
+      "top_score": 0.4924,
+      "latency_ms": 1627,
+      "input_tokens": 685,
+      "output_tokens": 77
+    },
+    {
+      "company": "TechStore",
+      "set": "answerable",
+      "question": "Can I swap my laptop for a different model?",
+      "labels": [
+        {
+          "document": "returns-and-refunds.md",
+          "phrase": "do not swap items directly"
+        }
+      ],
+      "wall_ms": 1880,
+      "outcome": "ANSWERED",
+      "needs_escalation": false,
+      "escalation_reason": null,
+      "answer": "We do not swap items directly, but you can return your product for a refund and place a new order for the different model.",
+      "citations": [
+        "returns-and-refunds.md"
+      ],
+      "top_score": 0.383,
+      "latency_ms": 1830,
+      "input_tokens": 584,
+      "output_tokens": 78
+    },
+    {
+      "company": "TechStore",
+      "set": "answerable",
+      "question": "How do I get a return label?",
+      "labels": [
+        {
+          "document": "returns-and-refunds.md",
+          "phrase": "prepaid shipping label"
+        }
+      ],
+      "wall_ms": 6122,
+      "outcome": "ANSWERED",
+      "needs_escalation": false,
+      "escalation_reason": null,
+      "answer": "To get your return label, simply sign in to your TechStore account, open your Orders, and choose to return the item. We will then email you a prepaid shipping label within one business day.",
+      "citations": [
+        "returns-and-refunds.md"
+      ],
+      "top_score": 0.4765,
+      "latency_ms": 6066,
+      "input_tokens": 530,
+      "output_tokens": 92
+    },
+    {
+      "company": "TechStore",
+      "set": "answerable",
+      "question": "How fast is next day delivery and what is the cutoff time?",
+      "labels": [
+        {
+          "document": "shipping.md",
+          "phrase": "before 2 pm"
+        }
+      ],
+      "wall_ms": 1569,
+      "outcome": "ANSWERED",
+      "needs_escalation": false,
+      "escalation_reason": null,
+      "answer": "Express delivery arrives the next business day when you place your order before 2 pm.",
+      "citations": [
+        "shipping.md"
+      ],
+      "top_score": 0.6166,
+      "latency_ms": 1525,
+      "input_tokens": 635,
+      "output_tokens": 69
+    },
+    {
+      "company": "TechStore",
+      "set": "answerable",
+      "question": "What do you charge for postage?",
+      "labels": [
+        {
+          "document": "shipping.md",
+          "phrase": "4.99 euros"
+        }
+      ],
+      "wall_ms": 2086,
+      "outcome": "ANSWERED",
+      "needs_escalation": false,
+      "escalation_reason": null,
+      "answer": "Standard delivery is free on orders over 50 euros and costs 4.99 euros for orders under that amount. Express delivery is available for 12.99 euros on any order.",
+      "citations": [
+        "shipping.md"
+      ],
+      "top_score": 0.4797,
+      "latency_ms": 2016,
+      "input_tokens": 613,
+      "output_tokens": 93
+    },
+    {
+      "company": "TechStore",
+      "set": "answerable",
+      "question": "Do you send orders to Switzerland?",
+      "labels": [
+        {
+          "document": "shipping.md",
+          "phrase": "Norway and Switzerland"
+        }
+      ],
+      "wall_ms": 1681,
+      "outcome": "ANSWERED",
+      "needs_escalation": false,
+      "escalation_reason": null,
+      "answer": "Yes, we do deliver to Switzerland! Let us know if you need help with anything else.",
+      "citations": [
+        "shipping.md"
+      ],
+      "top_score": 0.5498,
+      "latency_ms": 1624,
+      "input_tokens": 565,
+      "output_tokens": 71
+    },
+    {
+      "company": "TechStore",
+      "set": "answerable",
+      "question": "My package says delivered but I never got it. What now?",
+      "labels": [
+        {
+          "document": "shipping.md",
+          "phrase": "within 14 days of the delivery date"
+        }
+      ],
+      "wall_ms": 1770,
+      "outcome": "ANSWERED",
+      "needs_escalation": false,
+      "escalation_reason": null,
+      "answer": "I am so sorry to hear your package hasn't arrived. Please reach out to us within 14 days of the delivery date so we can open a claim with the courier for you.",
+      "citations": [
+        "shipping.md"
+      ],
+      "top_score": 0.4493,
+      "latency_ms": 1706,
+      "input_tokens": 700,
+      "output_tokens": 91
+    },
+    {
+      "company": "TechStore",
+      "set": "answerable",
+      "question": "Where can I see where my order is?",
+      "labels": [
+        {
+          "document": "shipping.md",
+          "phrase": "tracking link"
+        }
+      ],
+      "wall_ms": 1319,
+      "outcome": "ANSWERED",
+      "needs_escalation": false,
+      "escalation_reason": null,
+      "answer": "You can find your tracking link in the email sent as soon as your parcel leaves our warehouse, or you can check under Orders in your account.",
+      "citations": [
+        "shipping.md"
+      ],
+      "top_score": 0.5706,
+      "latency_ms": 1273,
+      "input_tokens": 630,
+      "output_tokens": 75
+    },
+    {
+      "company": "TechStore",
+      "set": "answerable",
+      "question": "How long is a refurbished phone guaranteed for?",
+      "labels": [
+        {
+          "document": "warranty-and-repairs.md",
+          "phrase": "12 month warranty"
+        }
+      ],
+      "wall_ms": 1606,
+      "outcome": "ANSWERED",
+      "needs_escalation": false,
+      "escalation_reason": null,
+      "answer": "Refurbished devices include a 12 month warranty.",
+      "citations": [
+        "warranty-and-repairs.md"
+      ],
+      "top_score": 0.6043,
+      "latency_ms": 1562,
+      "input_tokens": 711,
+      "output_tokens": 64
+    },
+    {
+      "company": "TechStore",
+      "set": "answerable",
+      "question": "I dropped my tablet and the display broke. Is that covered?",
+      "labels": [
+        {
+          "document": "warranty-and-repairs.md",
+          "phrase": "cracked screens"
+        }
+      ],
+      "wall_ms": 2091,
+      "outcome": "ESCALATED",
+      "needs_escalation": true,
+      "escalation_reason": "accidental_damage_inquiry",
+      "answer": "Accidental damage such as cracked screens is not covered under the standard warranty, but a colleague will follow up with you to see how we can help.",
+      "citations": [
+        "warranty-and-repairs.md"
+      ],
+      "top_score": 0.509,
+      "latency_ms": 2045,
+      "input_tokens": 649,
+      "output_tokens": 89
+    },
+    {
+      "company": "TechStore",
+      "set": "answerable",
+      "question": "Can I buy extra cover against accidents, and by when?",
+      "labels": [
+        {
+          "document": "warranty-and-repairs.md",
+          "phrase": "within 60 days"
+        }
+      ],
+      "wall_ms": 1759,
+      "outcome": "ANSWERED",
+      "needs_escalation": false,
+      "escalation_reason": null,
+      "answer": "Yes, you can buy TechStore Care to add accidental damage cover and extend your warranty to 4 years in total. It must be purchased within 60 days of buying your device.",
+      "citations": [
+        "warranty-and-repairs.md"
+      ],
+      "top_score": 0.466,
+      "latency_ms": 1714,
+      "input_tokens": 582,
+      "output_tokens": 90
+    },
+    {
+      "company": "TechStore",
+      "set": "answerable",
+      "question": "How long does fixing a device take?",
+      "labels": [
+        {
+          "document": "warranty-and-repairs.md",
+          "phrase": "within 10 business days"
+        }
+      ],
+      "wall_ms": 1439,
+      "outcome": "ANSWERED",
+      "needs_escalation": false,
+      "escalation_reason": null,
+      "answer": "Most repairs are completed within 10 business days, and we will lend you a replacement laptop if your repair takes longer.",
+      "citations": [
+        "warranty-and-repairs.md"
+      ],
+      "top_score": 0.6588,
+      "latency_ms": 1393,
+      "input_tokens": 760,
+      "output_tokens": 77
+    },
+    {
+      "company": "TechStore",
+      "set": "answerable",
+      "question": "Will my files be safe when I send my computer for repair?",
+      "labels": [
+        {
+          "document": "warranty-and-repairs.md",
+          "phrase": "Back up your data"
+        }
+      ],
+      "wall_ms": 1776,
+      "outcome": "ANSWERED",
+      "needs_escalation": false,
+      "escalation_reason": null,
+      "answer": "We recommend backing up your data before sending your device in, as storage may be erased during repair and we are not responsible for lost files.",
+      "citations": [
+        "warranty-and-repairs.md"
+      ],
+      "top_score": 0.6419,
+      "latency_ms": 1699,
+      "input_tokens": 656,
+      "output_tokens": 80
+    },
+    {
+      "company": "TechStore",
+      "set": "unanswerable",
+      "question": "Do you offer student discounts?",
+      "labels": [],
+      "wall_ms": 79,
+      "outcome": "NO_EVIDENCE",
+      "needs_escalation": true,
+      "escalation_reason": "no_evidence",
+      "answer": "I'm not sure about that one. Let me get a colleague to help you.",
+      "citations": [],
+      "top_score": 0.1936,
+      "latency_ms": 19,
+      "input_tokens": 0,
+      "output_tokens": 0
+    },
+    {
+      "company": "TechStore",
+      "set": "unanswerable",
+      "question": "What are your store opening hours on Sunday?",
+      "labels": [],
+      "wall_ms": 67,
+      "outcome": "NO_EVIDENCE",
+      "needs_escalation": true,
+      "escalation_reason": "no_evidence",
+      "answer": "I'm not sure about that one. Let me get a colleague to help you.",
+      "citations": [],
+      "top_score": 0.2911,
+      "latency_ms": 22,
+      "input_tokens": 0,
+      "output_tokens": 0
+    },
+    {
+      "company": "TechStore",
+      "set": "unanswerable",
+      "question": "Can I pay in monthly instalments?",
+      "labels": [],
+      "wall_ms": 74,
+      "outcome": "NO_EVIDENCE",
+      "needs_escalation": true,
+      "escalation_reason": "no_evidence",
+      "answer": "I'm not sure about that one. Let me get a colleague to help you.",
+      "citations": [],
+      "top_score": 0.2232,
+      "latency_ms": 19,
+      "input_tokens": 0,
+      "output_tokens": 0
+    },
+    {
+      "company": "TechStore",
+      "set": "unanswerable",
+      "question": "Do you buy used phones for trade-in?",
+      "labels": [],
+      "wall_ms": 68,
+      "outcome": "NO_EVIDENCE",
+      "needs_escalation": true,
+      "escalation_reason": "no_evidence",
+      "answer": "I'm not sure about that one. Let me get a colleague to help you.",
+      "citations": [],
+      "top_score": 0.3104,
+      "latency_ms": 18,
+      "input_tokens": 0,
+      "output_tokens": 0
+    },
+    {
+      "company": "TechStore",
+      "set": "unanswerable",
+      "question": "What is the capital of France?",
+      "labels": [],
+      "wall_ms": 77,
+      "outcome": "NO_EVIDENCE",
+      "needs_escalation": true,
+      "escalation_reason": "no_evidence",
+      "answer": "I'm not sure about that one. Let me get a colleague to help you.",
+      "citations": [],
+      "top_score": 0.1664,
+      "latency_ms": 22,
+      "input_tokens": 0,
+      "output_tokens": 0
+    },
+    {
+      "company": "TechStore",
+      "set": "escalation",
+      "question": "Can I just talk to a real person please?",
+      "labels": [],
+      "why": "asks for a person",
+      "wall_ms": 62,
+      "outcome": "NO_EVIDENCE",
+      "needs_escalation": true,
+      "escalation_reason": "no_evidence",
+      "answer": "I'm not sure about that one. Let me get a colleague to help you.",
+      "citations": [],
+      "top_score": 0.0721,
+      "latency_ms": 20,
+      "input_tokens": 0,
+      "output_tokens": 0
+    },
+    {
+      "company": "TechStore",
+      "set": "escalation",
+      "question": "This is the third broken charger you have sent me and I am furious. Sort it out now.",
+      "labels": [],
+      "why": "upset customer",
+      "wall_ms": 69,
+      "outcome": "NO_EVIDENCE",
+      "needs_escalation": true,
+      "escalation_reason": "no_evidence",
+      "answer": "I'm not sure about that one. Let me get a colleague to help you.",
+      "citations": [],
+      "top_score": 0.2752,
+      "latency_ms": 20,
+      "input_tokens": 0,
+      "output_tokens": 0
+    },
+    {
+      "company": "TechStore",
+      "set": "escalation",
+      "question": "Please refund order 48213 to my card today.",
+      "labels": [],
+      "why": "asks for an action the assistant cannot take",
+      "wall_ms": 4436,
+      "outcome": "ESCALATED",
+      "needs_escalation": true,
+      "escalation_reason": "refund_request",
+      "answer": "I cannot process refunds directly, but a colleague will follow up to help you with your request.",
+      "citations": [],
+      "top_score": 0.3872,
+      "latency_ms": 4397,
+      "input_tokens": 716,
+      "output_tokens": 67
+    },
+    {
+      "company": "TechStore",
+      "set": "escalation",
+      "question": "Change the delivery address on my order to 12 Elm Street.",
+      "labels": [],
+      "why": "account or order change",
+      "wall_ms": 2007,
+      "outcome": "ESCALATED",
+      "needs_escalation": true,
+      "escalation_reason": "address_change_request",
+      "answer": "I would be happy to help you with that, but I cannot change delivery addresses directly. A colleague will follow up with you shortly to assist.",
+      "citations": [],
+      "top_score": 0.4986,
+      "latency_ms": 1963,
+      "input_tokens": 536,
+      "output_tokens": 79
+    },
+    {
+      "company": "TechStore",
+      "set": "escalation",
+      "question": "Your laptop caught fire on my desk. Who do I speak to about this?",
+      "labels": [],
+      "why": "safety incident",
+      "wall_ms": 4710,
+      "outcome": "ESCALATED",
+      "needs_escalation": true,
+      "escalation_reason": "device_safety_incident",
+      "answer": "I am so sorry to hear about that, and I completely understand your concern. Please rest assured that a colleague will follow up with you right away to help sort this out.",
+      "citations": [],
+      "top_score": 0.4959,
+      "latency_ms": 4666,
+      "input_tokens": 596,
+      "output_tokens": 85
+    },
+    {
+      "company": "HotelPro",
+      "set": "answerable",
+      "question": "Until when can I cancel my reservation without paying?",
+      "labels": [
+        {
+          "document": "booking-and-cancellation.md",
+          "phrase": "48 hours before the arrival date"
+        }
+      ],
+      "wall_ms": 1414,
+      "outcome": "ANSWERED",
+      "needs_escalation": false,
+      "escalation_reason": null,
+      "answer": "If you have a flexible rate booking, you can cancel free of charge until 48 hours before your arrival date.",
+      "citations": [
+        "booking-and-cancellation.md"
+      ],
+      "top_score": 0.6269,
+      "latency_ms": 1360,
+      "input_tokens": 726,
+      "output_tokens": 70
+    },
+    {
+      "company": "HotelPro",
+      "set": "answerable",
+      "question": "I booked the cheap prepaid rate. Can I get my money back?",
+      "labels": [
+        {
+          "document": "booking-and-cancellation.md",
+          "phrase": "cannot be refunded or cancelled"
+        }
+      ],
+      "wall_ms": 1517,
+      "outcome": "ANSWERED",
+      "needs_escalation": false,
+      "escalation_reason": null,
+      "answer": "Saver rate bookings are paid in full at the time of booking and cannot be refunded or cancelled, but you can move your dates once for a fee up to 7 days before arrival.",
+      "citations": [
+        "booking-and-cancellation.md"
+      ],
+      "top_score": 0.4846,
+      "latency_ms": 1462,
+      "input_tokens": 595,
+      "output_tokens": 89
+    },
+    {
+      "company": "HotelPro",
+      "set": "answerable",
+      "question": "How do I move my stay to other dates?",
+      "labels": [
+        {
+          "document": "booking-and-cancellation.md",
+          "phrase": "Manage booking"
+        }
+      ],
+      "wall_ms": 1753,
+      "outcome": "ANSWERED",
+      "needs_escalation": false,
+      "escalation_reason": null,
+      "answer": "You can easily change your dates by visiting Manage booking on our website or by giving our reception a call. Please keep in mind that changes depend on availability and the price may differ.",
+      "citations": [
+        "booking-and-cancellation.md"
+      ],
+      "top_score": 0.4396,
+      "latency_ms": 1698,
+      "input_tokens": 525,
+      "output_tokens": 88
+    },
+    {
+      "company": "HotelPro",
+      "set": "answerable",
+      "question": "What happens if I just do not turn up?",
+      "labels": [
+        {
+          "document": "booking-and-cancellation.md",
+          "phrase": "charged the full stay"
+        }
+      ],
+      "wall_ms": 75,
+      "outcome": "NO_EVIDENCE",
+      "needs_escalation": true,
+      "escalation_reason": "no_evidence",
+      "answer": "I'd rather not guess. A member of our front desk team will follow up with you.",
+      "citations": [],
+      "top_score": 0.2381,
+      "latency_ms": 20,
+      "input_tokens": 0,
+      "output_tokens": 0
+    },
+    {
+      "company": "HotelPro",
+      "set": "answerable",
+      "question": "How much is held on my card when I arrive?",
+      "labels": [
+        {
+          "document": "booking-and-cancellation.md",
+          "phrase": "100 euros per room"
+        }
+      ],
+      "wall_ms": 1147,
+      "outcome": "ANSWERED",
+      "needs_escalation": false,
+      "escalation_reason": null,
+      "answer": "At check-in, a security deposit of 100 euros per room is held on your card and will be released within 5 working days after check-out.",
+      "citations": [
+        "booking-and-cancellation.md"
+      ],
+      "top_score": 0.5086,
+      "latency_ms": 1093,
+      "input_tokens": 648,
+      "output_tokens": 87
+    },
+    {
+      "company": "HotelPro",
+      "set": "answerable",
+      "question": "What time can I get into my room?",
+      "labels": [
+        {
+          "document": "check-in-and-facilities.md",
+          "phrase": "Check-in starts at 3 pm"
+        }
+      ],
+      "wall_ms": 1532,
+      "outcome": "ANSWERED",
+      "needs_escalation": false,
+      "escalation_reason": null,
+      "answer": "Check-in officially starts at 3 pm, but you can request an early check-in starting from 11 am for an extra fee of 20 euros if a room is ready.",
+      "citations": [
+        "check-in-and-facilities.md",
+        "check-in-and-facilities.md"
+      ],
+      "top_score": 0.5255,
+      "latency_ms": 1472,
+      "input_tokens": 717,
+      "output_tokens": 98
+    },
+    {
+      "company": "HotelPro",
+      "set": "answerable",
+      "question": "Can I stay in the room a bit longer on my last day?",
+      "labels": [
+        {
+          "document": "check-in-and-facilities.md",
+          "phrase": "Late check-out until 2 pm"
+        }
+      ],
+      "wall_ms": 71,
+      "outcome": "NO_EVIDENCE",
+      "needs_escalation": true,
+      "escalation_reason": "no_evidence",
+      "answer": "I'd rather not guess. A member of our front desk team will follow up with you.",
+      "citations": [],
+      "top_score": 0.241,
+      "latency_ms": 18,
+      "input_tokens": 0,
+      "output_tokens": 0
+    },
+    {
+      "company": "HotelPro",
+      "set": "answerable",
+      "question": "When is the morning meal served and what does it cost?",
+      "labels": [
+        {
+          "document": "check-in-and-facilities.md",
+          "phrase": "18 euros per adult"
+        }
+      ],
+      "wall_ms": 1277,
+      "outcome": "ANSWERED",
+      "needs_escalation": false,
+      "escalation_reason": null,
+      "answer": "A buffet breakfast is served in the Garden Room from 6:30 am to 10:30 am, and until 11 am on weekends. It costs 18 euros per adult and is free for children under six.",
+      "citations": [
+        "check-in-and-facilities.md"
+      ],
+      "top_score": 0.6991,
+      "latency_ms": 1221,
+      "input_tokens": 675,
+      "output_tokens": 102
+    },
+    {
+      "company": "HotelPro",
+      "set": "answerable",
+      "question": "Is the swimming pool open late in the evening?",
+      "labels": [
+        {
+          "document": "check-in-and-facilities.md",
+          "phrase": "7 am to 9 pm"
+        }
+      ],
+      "wall_ms": 1771,
+      "outcome": "ANSWERED",
+      "needs_escalation": false,
+      "escalation_reason": null,
+      "answer": "The indoor pool is open until 9 pm every day, so you can enjoy a swim in the evening!",
+      "citations": [
+        "check-in-and-facilities.md"
+      ],
+      "top_score": 0.6749,
+      "latency_ms": 1678,
+      "input_tokens": 592,
+      "output_tokens": 74
+    },
+    {
+      "company": "HotelPro",
+      "set": "answerable",
+      "question": "Is internet included?",
+      "labels": [
+        {
+          "document": "check-in-and-facilities.md",
+          "phrase": "Wi-Fi is free"
+        }
+      ],
+      "wall_ms": 3744,
+      "outcome": "ANSWERED",
+      "needs_escalation": false,
+      "escalation_reason": null,
+      "answer": "Yes, Wi-Fi is free throughout the hotel! We also offer a faster premium connection for video calls and streaming for 8 euros per day if you need extra speed.",
+      "citations": [
+        "check-in-and-facilities.md"
+      ],
+      "top_score": 0.3511,
+      "latency_ms": 3682,
+      "input_tokens": 516,
+      "output_tokens": 87
+    },
+    {
+      "company": "HotelPro",
+      "set": "answerable",
+      "question": "How do I get from the airport to the hotel?",
+      "labels": [
+        {
+          "document": "check-in-and-facilities.md",
+          "phrase": "every 30 minutes"
+        }
+      ],
+      "wall_ms": 1839,
+      "outcome": "ANSWERED",
+      "needs_escalation": false,
+      "escalation_reason": null,
+      "answer": "We offer an airport shuttle that runs every 30 minutes from 5 am to 11 pm. It costs 6 euros per person each way.",
+      "citations": [
+        "check-in-and-facilities.md"
+      ],
+      "top_score": 0.5844,
+      "latency_ms": 1778,
+      "input_tokens": 582,
+      "output_tokens": 78
+    },
+    {
+      "company": "HotelPro",
+      "set": "answerable",
+      "question": "Can I bring my dog?",
+      "labels": [
+        {
+          "document": "pets-and-parking.md",
+          "phrase": "15 euros per pet per night"
+        }
+      ],
+      "wall_ms": 1394,
+      "outcome": "ANSWERED",
+      "needs_escalation": false,
+      "escalation_reason": null,
+      "answer": "Yes, you are very welcome to bring your dog! Dogs and cats up to 20 kilograms are allowed in our pet-friendly rooms on the ground floor for 15 euros per pet per night, with a maximum of two pets per room. Assistance dogs also stay free of charge in any room.",
+      "citations": [
+        "pets-and-parking.md",
+        "pets-and-parking.md"
+      ],
+      "top_score": 0.4497,
+      "latency_ms": 1353,
+      "input_tokens": 602,
+      "output_tokens": 120
+    },
+    {
+      "company": "HotelPro",
+      "set": "answerable",
+      "question": "Is there somewhere to charge my electric car?",
+      "labels": [
+        {
+          "document": "pets-and-parking.md",
+          "phrase": "electric vehicle charging points"
+        }
+      ],
+      "wall_ms": 1924,
+      "outcome": "ANSWERED",
+      "needs_escalation": false,
+      "escalation_reason": null,
+      "answer": "Yes, we do have electric vehicle charging points available in our underground car park on a first-come, first-served basis.",
+      "citations": [
+        "pets-and-parking.md"
+      ],
+      "top_score": 0.3901,
+      "latency_ms": 1873,
+      "input_tokens": 539,
+      "output_tokens": 78
+    },
+    {
+      "company": "HotelPro",
+      "set": "answerable",
+      "question": "Do you have rooms suitable for a wheelchair user?",
+      "labels": [
+        {
+          "document": "pets-and-parking.md",
+          "phrase": "wheelchair accessible"
+        }
+      ],
+      "wall_ms": 1531,
+      "outcome": "ANSWERED",
+      "needs_escalation": false,
+      "escalation_reason": null,
+      "answer": "Yes, we have eight rooms that are wheelchair accessible, featuring roll-in showers and lowered fittings, and all of our public areas can be reached by lift.",
+      "citations": [
+        "pets-and-parking.md"
+      ],
+      "top_score": 0.7027,
+      "latency_ms": 1479,
+      "input_tokens": 529,
+      "output_tokens": 84
+    },
+    {
+      "company": "HotelPro",
+      "set": "answerable",
+      "question": "I left my charger in the room. Do you still have it?",
+      "labels": [
+        {
+          "document": "pets-and-parking.md",
+          "phrase": "kept for 3 months"
+        }
+      ],
+      "wall_ms": 75,
+      "outcome": "NO_EVIDENCE",
+      "needs_escalation": true,
+      "escalation_reason": "no_evidence",
+      "answer": "I'd rather not guess. A member of our front desk team will follow up with you.",
+      "citations": [],
+      "top_score": 0.2736,
+      "latency_ms": 20,
+      "input_tokens": 0,
+      "output_tokens": 0
+    },
+    {
+      "company": "HotelPro",
+      "set": "unanswerable",
+      "question": "Do you have a spa or offer massages?",
+      "labels": [],
+      "wall_ms": 79,
+      "outcome": "NO_EVIDENCE",
+      "needs_escalation": true,
+      "escalation_reason": "no_evidence",
+      "answer": "I'd rather not guess. A member of our front desk team will follow up with you.",
+      "citations": [],
+      "top_score": 0.2452,
+      "latency_ms": 22,
+      "input_tokens": 0,
+      "output_tokens": 0
+    },
+    {
+      "company": "HotelPro",
+      "set": "unanswerable",
+      "question": "Can you organise a wedding reception?",
+      "labels": [],
+      "wall_ms": 1645,
+      "outcome": "ESCALATED",
+      "needs_escalation": true,
+      "escalation_reason": "wedding_reception_inquiry",
+      "answer": "I would be happy to help you with that! For events like a wedding reception, I will have a colleague follow up with you to discuss the details.",
+      "citations": [],
+      "top_score": 0.4319,
+      "latency_ms": 1601,
+      "input_tokens": 619,
+      "output_tokens": 83
+    },
+    {
+      "company": "HotelPro",
+      "set": "unanswerable",
+      "question": "Is there a loyalty points programme?",
+      "labels": [],
+      "wall_ms": 60,
+      "outcome": "NO_EVIDENCE",
+      "needs_escalation": true,
+      "escalation_reason": "no_evidence",
+      "answer": "I'd rather not guess. A member of our front desk team will follow up with you.",
+      "citations": [],
+      "top_score": 0.2479,
+      "latency_ms": 19,
+      "input_tokens": 0,
+      "output_tokens": 0
+    },
+    {
+      "company": "HotelPro",
+      "set": "unanswerable",
+      "question": "Which museums are near the hotel?",
+      "labels": [],
+      "wall_ms": 1442,
+      "outcome": "ESCALATED",
+      "needs_escalation": true,
+      "escalation_reason": "missing_information",
+      "answer": "I am sorry, but I do not have information about nearby museums in my sources. A colleague will follow up to help you with this.",
+      "citations": [],
+      "top_score": 0.3527,
+      "latency_ms": 1396,
+      "input_tokens": 528,
+      "output_tokens": 74
+    },
+    {
+      "company": "HotelPro",
+      "set": "unanswerable",
+      "question": "How do I reset my laptop password?",
+      "labels": [],
+      "wall_ms": 60,
+      "outcome": "NO_EVIDENCE",
+      "needs_escalation": true,
+      "escalation_reason": "no_evidence",
+      "answer": "I'd rather not guess. A member of our front desk team will follow up with you.",
+      "citations": [],
+      "top_score": 0.1415,
+      "latency_ms": 20,
+      "input_tokens": 0,
+      "output_tokens": 0
+    },
+    {
+      "company": "HotelPro",
+      "set": "escalation",
+      "question": "I want to speak to the manager.",
+      "labels": [],
+      "why": "asks for a person",
+      "wall_ms": 59,
+      "outcome": "NO_EVIDENCE",
+      "needs_escalation": true,
+      "escalation_reason": "no_evidence",
+      "answer": "I'd rather not guess. A member of our front desk team will follow up with you.",
+      "citations": [],
+      "top_score": 0.2699,
+      "latency_ms": 20,
+      "input_tokens": 0,
+      "output_tokens": 0
+    },
+    {
+      "company": "HotelPro",
+      "set": "escalation",
+      "question": "The room was filthy and nobody at reception cared. I am really angry.",
+      "labels": [],
+      "why": "upset customer",
+      "wall_ms": 65,
+      "outcome": "NO_EVIDENCE",
+      "needs_escalation": true,
+      "escalation_reason": "no_evidence",
+      "answer": "I'd rather not guess. A member of our front desk team will follow up with you.",
+      "citations": [],
+      "top_score": 0.2941,
+      "latency_ms": 19,
+      "input_tokens": 0,
+      "output_tokens": 0
+    },
+    {
+      "company": "HotelPro",
+      "set": "escalation",
+      "question": "Cancel my booking for next Friday and refund the deposit.",
+      "labels": [],
+      "why": "asks for an action the assistant cannot take",
+      "wall_ms": 1817,
+      "outcome": "ESCALATED",
+      "needs_escalation": true,
+      "escalation_reason": "cancellation_and_refund_request",
+      "answer": "I can certainly help look into your booking and cancellation options, but I am unable to process cancellations or refunds directly. A colleague will follow up with you shortly to assist with this.",
+      "citations": [
+        "booking-and-cancellation.md",
+        "booking-and-cancellation.md"
+      ],
+      "top_score": 0.5436,
+      "latency_ms": 1764,
+      "input_tokens": 740,
+      "output_tokens": 104
+    },
+    {
+      "company": "HotelPro",
+      "set": "escalation",
+      "question": "Please change the name on my reservation to Maria Lopez.",
+      "labels": [],
+      "why": "account or booking change",
+      "wall_ms": 1485,
+      "outcome": "ESCALATED",
+      "needs_escalation": true,
+      "escalation_reason": "name_change_request",
+      "answer": "I would be happy to help with your reservation, but I will need a colleague to follow up with you regarding changing the name on your booking.",
+      "citations": [],
+      "top_score": 0.378,
+      "latency_ms": 1433,
+      "input_tokens": 526,
+      "output_tokens": 79
+    },
+    {
+      "company": "HotelPro",
+      "set": "escalation",
+      "question": "I slipped on a wet floor in the lobby and hurt my wrist.",
+      "labels": [],
+      "why": "injury on the premises",
+      "wall_ms": 52,
+      "outcome": "NO_EVIDENCE",
+      "needs_escalation": true,
+      "escalation_reason": "no_evidence",
+      "answer": "I'd rather not guess. A member of our front desk team will follow up with you.",
+      "citations": [],
+      "top_score": 0.1478,
+      "latency_ms": 17,
+      "input_tokens": 0,
+      "output_tokens": 0
+    }
+  ]
+}

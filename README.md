@@ -4,11 +4,11 @@ Servora is a multi-tenant AI customer-support platform. Each business gets an is
 
 ## Status
 
-**Milestones M1 to M6 are implemented.** You can register, create workspaces, invite members with roles, configure the assistant and widget, and upload PDF, TXT and Markdown documents that are stored privately and indexed in the background. Customers chat with the assistant through a widget on the workspace's own website: it answers from that workspace's documents with citations, gives a fallback message instead of guessing, and hands the conversation to a person when the customer asks or the assistant cannot help. The team works from an inbox: tickets are assigned, a person takes over the conversation, replies, keeps internal notes, can ask the assistant for a draft, and resolves the ticket, after which the customer can rate it. Owners and admins see an Overview of conversations, escalations and response times, usage against the plan's monthly limits, and an audit log; owners can set a retention period, delete a conversation and export the workspace's data. Platform operators can suspend workspaces and change plans. Tenant isolation is enforced by the application and by PostgreSQL Row-Level Security.
+**The MVP is implemented (milestones M1 to M7).** You can register, create workspaces, invite members with roles, configure the assistant and widget, and upload PDF, TXT and Markdown documents that are stored privately and indexed in the background. Customers chat with the assistant through a widget on the workspace's own website: it answers from that workspace's documents with citations, gives a fallback message instead of guessing, and hands the conversation to a person when the customer asks or the assistant cannot help. The team works from an inbox: tickets are assigned, a person takes over the conversation, replies, keeps internal notes, can ask the assistant for a draft, and resolves the ticket, after which the customer can rate it. Owners and admins see an Overview of conversations, escalations and response times, usage against the plan's monthly limits, and an audit log; owners can set a retention period, delete a conversation and export the workspace's data. Platform operators can suspend workspaces and change plans. Tenant isolation is enforced by the application and by PostgreSQL Row-Level Security.
 
 Out of the box the assistant uses a built-in test model that only quotes the best matching passage and costs nothing. Real answers need a Google Gemini key (free tier available) or an Anthropic key (step 2 below).
 
-Not built yet: the hardening and release work of M7. See [docs/milestones.md](docs/milestones.md).
+M7 added the security review, browser, accessibility and load tests, a hardened production profile with backups, observability, and an evaluation of answers from a real model. To see it working, follow [docs/demo.md](docs/demo.md): one command seeds two demo businesses. Progress is tracked in [docs/milestones.md](docs/milestones.md).
 
 ## Architecture
 
@@ -146,7 +146,7 @@ Runs unit tests and integration tests. The integration tests need Docker: they s
 cd apps/web && npm run lint && npm run typecheck && npm test
 ```
 
-Browser tests of the MVP demonstration script run against the real local stack with Playwright: see [tests/e2e/README.md](tests/e2e/README.md). The load test and its results are in [docs/testing/load-test.md](docs/testing/load-test.md).
+Browser tests of the MVP demonstration script, with an accessibility check (axe, WCAG 2.1 AA), run against the real local stack with Playwright: see [tests/e2e/README.md](tests/e2e/README.md). The answer evaluation is in [docs/ai/evaluation-report.md](docs/ai/evaluation-report.md). The load test and its results are in [docs/testing/load-test.md](docs/testing/load-test.md).
 
 The Python services' tests are described in [workers/document-worker/README.md](workers/document-worker/README.md) and [services/ai-service/README.md](services/ai-service/README.md).
 
@@ -172,11 +172,12 @@ docs                      Architecture, database, API, security and AI documenta
 
 ## Documentation
 
+- [Running the demo](docs/demo.md) and the [user guide](docs/user-guide.md)
 - [Implementation plan](docs/implementation-plan.md) and [milestone checklist](docs/milestones.md)
 - [Architecture](docs/architecture/system-overview.md)
 - [Database and tenant ownership](docs/database/erd.md)
 - [API](docs/api/README.md)
-- [Ingestion, chunking and embeddings](docs/ai/README.md)
+- [Ingestion, chunking and embeddings](docs/ai/README.md), [retrieval baseline](docs/ai/evaluation-baseline.md) and [answer evaluation](docs/ai/evaluation-report.md)
 - Operations: [production profile](docs/operations/production.md), [backup and restore](docs/operations/backup-and-restore.md), [observability](docs/operations/observability.md)
 - [Threat model](docs/security/threat-model.md) and [tenant isolation test evidence](docs/security/tenant-isolation.md)
 - [Contributing and conventions](CONTRIBUTING.md)
@@ -190,8 +191,8 @@ No credentials are committed. There are no built-in accounts: register your own 
 - **No email delivery.** Links are written to the development log.
 - **In development the API runs migrations at startup** and holds the database owner's password. The production profile separates them ([docs/operations/production.md](docs/operations/production.md)).
 - **No TLS in the production profile.** It binds to 127.0.0.1; put a TLS-terminating proxy in front before exposing it.
-- **Answer quality is unmeasured.** Retrieval has a first baseline on 40 questions ([docs/ai/evaluation-baseline.md](docs/ai/evaluation-baseline.md)); answers from the real model have not been evaluated, the Gemini integration was checked once against the live API, and the Anthropic integration has been tested against a stub only.
-- **The evidence threshold is a trade-off, not a solved problem.** In the baseline no threshold separated answerable from unanswerable questions cleanly.
+- **Answer quality is measured on a small set only.** 50 questions over 6 demo documents with one model (Gemini 3.5 Flash-Lite): 87 percent of answerable questions answered, all from the right document, no unanswerable question answered ([docs/ai/evaluation-report.md](docs/ai/evaluation-report.md)). Groundedness was reviewed by an AI assistant, not by a person. The Anthropic integration has been tested against a stub only.
+- **The evidence threshold is a trade-off, not a solved problem.** In the baseline no threshold separated answerable from unanswerable questions cleanly, and everyday wording far from a document's terms is handed to a person.
 - **With a real model, questions and retrieved passages are sent to Google or Anthropic.**
 - **Each customer question is answered on its own**, without the earlier turns of the conversation.
 - **A chat lasts at most two hours.** When the session expires the widget starts a new conversation; visitors cannot resume a chat on another device.
@@ -208,3 +209,5 @@ No credentials are committed. There are no built-in accounts: register your own 
 - **Workspace logos are a URL**, not an upload.
 - **Platform administration has a table but no features** until M6.
 - This is an engineering project, not legal advice; privacy and consumer-protection requirements need review before any real customer data is used.
+- **Not deployed anywhere.** The production profile runs on one machine behind 127.0.0.1; there is no hosted instance, TLS or domain.
+- **Accessibility is checked automatically only** (axe, WCAG 2.1 AA, serious and critical issues), not with a screen reader or by a person.

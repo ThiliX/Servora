@@ -195,22 +195,26 @@ M7 is delivered in four phases, each its own pull request.
 - [x] Observability checks in the CI job "Production stack"
 - [x] nginx 1.30.7 in the dashboard and widget images, for six advisories published 2026-11-18 (version matrix)
 - [x] Tests passing (190 core API, 58 AI service, 53 worker; browser suite 11 of 11 and observability checks against the production profile; local run 2026-11-21)
+- [x] CI green and merged (pull request 11)
+
+**Phase 4 — evaluation, demo and documentation**
+
+- [x] Answer evaluation through the real API with a live model (Gemini 3.5 Flash-Lite), 50 questions including new escalation sets: answered 87 percent of answerable, citation accuracy 1.00, no unanswerable question answered, escalation recall 1.00 and precision 0.83, about $0.0008 per conversation at the paid price ([evaluation-report.md](ai/evaluation-report.md))
+- [x] Seed script: two demo businesses with owners, agents, documents, assistants and widgets in one command ([demo.md](demo.md))
+- [x] Accessibility check (axe, WCAG 2.1 AA) in the browser suite; fixed a chat log that broke list semantics and could not be scrolled by keyboard, low-contrast muted text, and an unfocusable scrolling snippet
+- [x] Demo guide, user guide, README and limitations updated
 - [ ] CI green and merged
-
-**Remaining phases**
-
-- [ ] Phase 4: AI evaluation report, seed script, documentation and demo setup
 
 Original checklist, ticked as phases complete:
 
 - [x] Security review with test evidence (phase 1)
 - [x] End-to-end suite for the MVP demonstration script (phase 2, local; CI in phase 3)
 - [x] Load test with recorded conditions (phase 2)
-- [ ] AI evaluation report
+- [x] AI evaluation report (phase 4)
 - [x] Compose production profile and CI for all stacks (phase 3a)
 - [x] Observability: logs, metrics, traces (phase 3b)
 - [x] Backup and restore drill performed (phase 3a)
-- [ ] Documentation, seed script and demo setup
+- [x] Documentation, seed script and demo setup (phase 4)
 
 ## Post-MVP
 

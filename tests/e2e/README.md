@@ -15,6 +15,7 @@ The MVP demonstration script (handbook section 18) in a real browser, against th
 | 10 | An internal note is shown neither in the widget nor in the public history API |
 | 10b | Neither workspace's people can open the other workspace in the dashboard |
 | M6 | Overview, Usage and Audit log show the workspace's activity; agents do not see those pages |
+| Accessibility | axe (WCAG 2.1 A and AA rules) finds no serious or critical issue on the sign-in and sign-up pages, 11 workspace pages, and the demo website with the chat open. Moderate and minor findings are not enforced |
 
 Step 9 checks the result of a takeover. The race between a takeover and an AI reply being generated is tested deterministically in the core API suite (`anAiReplyIsNeverDeliveredAfterATakeover`, 24 rounds per run), and step 11 of the script, the cross-tenant test output, is that suite (`./mvnw test`).
 

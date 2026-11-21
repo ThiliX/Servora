@@ -1,7 +1,8 @@
 :root {
   --servora-accent: #4f46e5;
   --servora-text: #0f172a;
-  --servora-muted: #64748b;
+  /* At least 4.5:1 on both the panel and the message bubble (WCAG 2.1 AA). */
+  --servora-muted: #475569;
   --servora-surface: #ffffff;
   --servora-bubble: #f1f5f9;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -104,10 +105,14 @@ textarea:focus-visible {
 
 .log {
   flex: 1;
-  margin: 0;
-  padding: 12px;
-  list-style: none;
   overflow-y: auto;
+  padding: 12px;
+}
+
+.messages {
+  margin: 0;
+  padding: 0;
+  list-style: none;
   display: flex;
   flex-direction: column;
   gap: 8px;

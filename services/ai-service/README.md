@@ -64,3 +64,7 @@ docker compose run --rm ai-service python -m servora_ai.evaluation --tenant <wor
 ```
 
 Each line of a dataset is a question and the passages that answer it, named by document and a phrase the passage contains. Questions with an empty `relevant` list are ones the knowledge base cannot answer; the assistant should abstain on them.
+
+## Evaluate answers
+
+The answer evaluation runs the same questions, plus the `*-escalation.jsonl` sets of questions that need a person, through the real API and the configured model, and scores answering, citations, abstention, escalation, latency and cost. It is a Node script at the repository root: see [docs/ai/evaluation-report.md](../../docs/ai/evaluation-report.md#repeating-the-evaluation).

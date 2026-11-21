@@ -77,6 +77,10 @@ describe("chat widget", () => {
     expect(root.querySelector<HTMLElement>(".panel")!.hidden).toBe(false);
     expect(root.querySelector('[role="dialog"]')!.getAttribute("aria-label")).toBe("TechStore");
     expect(root.querySelector('[role="log"]')!.textContent).toContain("Hi! How can I help?");
+    // Accessibility (axe, M7): the scrolling log is keyboard-focusable, and messages are a real list.
+    const log = root.querySelector<HTMLElement>('[role="log"]')!;
+    expect(log.tabIndex).toBe(0);
+    expect(log.querySelectorAll(":scope > ol > li").length).toBeGreaterThan(0);
     expect(root.querySelector(".branding")!.textContent).toBe("Powered by Servora");
     expect(root.style.getPropertyValue("--servora-accent")).toBe("#112233");
   });

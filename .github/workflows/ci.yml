@@ -141,6 +141,14 @@ jobs:
           cache-dependency-path: tests/e2e/package-lock.json
       - run: npm ci
       - run: npm run typecheck
+      - name: Answer-evaluation scoring tests
+        working-directory: .
+        run: node --test tests/evaluation/score.test.mjs
+      - name: Script syntax
+        working-directory: .
+        run: |
+          node --check scripts/seed-demo.mjs
+          node --check tests/evaluation/run-answers.mjs
 
   security:
     name: Secret and dependency scanning
