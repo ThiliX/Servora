@@ -2,6 +2,8 @@ package com.servora.knowledge;
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import com.servora.knowledge.KnowledgeConfig.IngestionProperties;
+import com.servora.observability.TracedHttp;
+import io.micrometer.observation.ObservationRegistry;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -30,8 +32,8 @@ public interface IngestionClient {
 
         @Bean
         @ConditionalOnMissingBean(IngestionClient.class)
-        IngestionClient ingestionClient(IngestionProperties properties) {
-            return new HttpIngestionClient(properties);
+        IngestionClient ingestionClient(IngestionProperties properties, ObservationRegistry observations) {
+            return new HttpIngestionClient(properties, observations);
         }
     }
 
@@ -48,15 +50,20 @@ public interface IngestionClient {
         private final IngestionProperties properties;
         private final NimbusJwtEncoder encoder;
         private final HttpClient http;
+        private final ObservationRegistry observations;
 
-        HttpIngestionClient(IngestionProperties properties) {
+        HttpIngestionClient(IngestionProperties properties, ObservationRegistry observations) {
             byte[] key = Base64.getDecoder().decode(properties.tokenSecret().trim());
             if (key.length < 32) {
                 throw new IllegalArgumentException("servora.ingestion.token-secret must decode to at least 32 bytes");
             }
             this.properties = properties;
             this.encoder = new NimbusJwtEncoder(new ImmutableSecret<>(new SecretKeySpec(key, "HmacSHA256")));
+            this.observations = observations;
             this.http = HttpClient.newBuilder()
+                    // HTTP/1.1 only. The default first tries an h2c upgrade, which the Python services
+                    // do not support, and after which uvicorn dropped later requests' trace headers.
+                    .version(HttpClient.Version.HTTP_1_1)
                     .connectTimeout(properties.requestTimeout())
                     .build();
         }
@@ -78,13 +85,13 @@ public interface IngestionClient {
                     .getTokenValue();
 
             // The body is empty on purpose: the worker trusts only what the signed token says.
-            HttpRequest request = HttpRequest.newBuilder(URI.create(properties.enqueueUrl()))
+            HttpRequest.Builder request = HttpRequest.newBuilder(URI.create(properties.enqueueUrl()))
                     .timeout(properties.requestTimeout())
                     .header("Authorization", "Bearer " + token)
-                    .POST(HttpRequest.BodyPublishers.noBody())
-                    .build();
+                    .POST(HttpRequest.BodyPublishers.noBody());
             try {
-                HttpResponse<Void> response = http.send(request, HttpResponse.BodyHandlers.discarding());
+                HttpResponse<Void> response = TracedHttp.send(
+                        observations, "document-worker", http, request, HttpResponse.BodyHandlers.discarding());
                 if (response.statusCode() / 100 != 2) {
                     throw new IllegalStateException("Worker rejected the job with status " + response.statusCode());
                 }

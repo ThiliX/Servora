@@ -38,6 +38,7 @@ Everything else comes from `.env`, as in development.
 | Data network | Normal | Internal: no internet access. Only the AI service has a second network for the model provider |
 | Containers | Defaults | Non-root, read-only root filesystem, no capabilities, no privilege escalation, memory and CPU limits |
 | API documentation | Swagger UI at `/swagger-ui.html` | Disabled |
+| Logs | Text lines with trace and span IDs | One JSON object per line, with the same fields |
 | Client address for rate limits | The connection | Set by the gateway; trusted only from private addresses |
 
 ## Checks
@@ -51,11 +52,12 @@ $COMPOSE logs migrations                      # "Successfully applied" or "up to
 
 Browser tests against this profile: `E2E_TARGET=prod npx playwright test` in `tests/e2e`, with the profile started with `SERVORA_LLM_PROVIDER=fake SERVORA_PROD_MAIL_LOG_LINKS=true`. See [tests/e2e/README.md](../../tests/e2e/README.md).
 
+Observability: JSON logs with trace IDs are on in this profile. For Prometheus and Jaeger, add `-f compose.observability.yml -f compose.observability.prod.yml`; see [observability.md](observability.md). `infrastructure/ci/check-observability.sh` checks the running profile, as CI does.
+
 Backups: [backup-and-restore.md](backup-and-restore.md).
 
 ## Not covered yet
 
 - TLS, a domain name and a proxy in front of the two entry points.
 - Email delivery.
-- Metrics, structured logs and tracing (M7 phase 3b).
 - Running more than one API instance.

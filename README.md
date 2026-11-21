@@ -80,7 +80,7 @@ The first start also creates the unprivileged database roles `servora_app`, `ser
 cd services/core-api && ./mvnw spring-boot:run
 ```
 
-On Windows PowerShell use `.\mvnw.cmd spring-boot:run`. The API applies database migrations on startup and listens on <http://localhost:8080>. Health: <http://localhost:8080/actuator/health>. API reference: <http://localhost:8080/swagger-ui.html>.
+On Windows PowerShell use `.\mvnw.cmd spring-boot:run`. The API applies database migrations on startup and listens on <http://localhost:8080>. Health: <http://localhost:8080/readyz>. Metrics: <http://localhost:8081/actuator/prometheus> (management port). API reference: <http://localhost:8080/swagger-ui.html>.
 
 ### 4. Start the dashboard
 
@@ -126,6 +126,14 @@ docker compose -p servora-prod -f docker-compose.yml -f compose.prod.yml up -d -
 
 The dashboard and API on <http://localhost:8000> and the widget host on <http://localhost:8001>, with migrations run by a separate container, no published database or Redis ports, and hardened containers. See [docs/operations/production.md](docs/operations/production.md); backups in [docs/operations/backup-and-restore.md](docs/operations/backup-and-restore.md).
 
+### 8. Metrics and traces (optional)
+
+```bash
+docker compose -f docker-compose.yml -f compose.observability.yml up -d
+```
+
+Prometheus with alert rules on <http://localhost:9090> and Jaeger on <http://localhost:16686>, both on 127.0.0.1 only. To send the host API's traces to Jaeger, start it with `MANAGEMENT_OPENTELEMETRY_TRACING_EXPORT_OTLP_ENDPOINT=http://localhost:4318/v1/traces`. Every response's `X-Request-Id` is its trace ID. See [docs/operations/observability.md](docs/operations/observability.md).
+
 ## Tests
 
 ```bash
@@ -169,6 +177,7 @@ docs                      Architecture, database, API, security and AI documenta
 - [Database and tenant ownership](docs/database/erd.md)
 - [API](docs/api/README.md)
 - [Ingestion, chunking and embeddings](docs/ai/README.md)
+- Operations: [production profile](docs/operations/production.md), [backup and restore](docs/operations/backup-and-restore.md), [observability](docs/operations/observability.md)
 - [Threat model](docs/security/threat-model.md) and [tenant isolation test evidence](docs/security/tenant-isolation.md)
 - [Contributing and conventions](CONTRIBUTING.md)
 
@@ -196,7 +205,6 @@ No credentials are committed. There are no built-in accounts: register your own 
 - **Estimated cost is only as good as the configured prices**, and shows as not configured until you set them.
 - **Analytics use UTC days**, not the workspace's timezone.
 - **Deletion is per conversation.** Deleting a whole workspace, and removing stored document files when conversations expire, are not built.
-- **No browser end-to-end test suite yet.** The flows, including both demo websites, were checked by hand in a browser; Playwright is planned for M7.
 - **Workspace logos are a URL**, not an upload.
 - **Platform administration has a table but no features** until M6.
 - This is an engineering project, not legal advice; privacy and consumer-protection requirements need review before any real customer data is used.

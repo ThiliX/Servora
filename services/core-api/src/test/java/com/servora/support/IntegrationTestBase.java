@@ -27,6 +27,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.micrometer.metrics.test.autoconfigure.AutoConfigureMetrics;
+import org.springframework.boot.micrometer.tracing.test.autoconfigure.AutoConfigureTracing;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -46,6 +48,9 @@ import org.testcontainers.utility.DockerImageName;
  * The connection pool is deliberately tiny so pooled connections are reused constantly.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+// Metrics and tracing as in production (ADR-022); Spring Boot switches both off in tests by default.
+@AutoConfigureMetrics
+@AutoConfigureTracing
 @Import(IntegrationTestBase.TestBeans.class)
 public abstract class IntegrationTestBase {
 
@@ -98,6 +103,10 @@ public abstract class IntegrationTestBase {
         byte[] key = new byte[48];
         new SecureRandom().nextBytes(key);
         registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
+        // A free port for the management server, so tests never collide with a running API.
+        registry.add("management.server.port", () -> 0);
+        // Tests refresh the operational gauges explicitly.
+        registry.add("servora.metrics.operational.initial-delay", () -> "PT1H");
         registry.add("spring.datasource.username", () -> APP_USER);
         registry.add("spring.datasource.password", () -> APP_PASSWORD);
         registry.add("spring.datasource.hikari.maximum-pool-size", () -> POOL_SIZE);

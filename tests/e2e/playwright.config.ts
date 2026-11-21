@@ -37,7 +37,7 @@ export default defineConfig({
           // The tests read development mail links from this API's log file, so an API that is
           // already running is reused only when asked to (see README.md).
           command: "node scripts/start-api.mjs",
-          url: "http://localhost:8080/actuator/health",
+          url: "http://localhost:8080/readyz",
           reuseExistingServer: process.env.E2E_REUSE_API === "true",
           timeout: 300_000,
           stdout: "ignore",

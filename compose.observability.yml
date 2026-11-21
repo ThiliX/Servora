@@ -1,0 +1,72 @@
+# Optional observability overlay: Prometheus for metrics and alert rules, Jaeger for traces (ADR-022).
+# Layer it on the development stack or on the production profile:
+#
+#   docker compose -f docker-compose.yml -f compose.observability.yml up -d
+#   SERVORA_PROMETHEUS_CONFIG=prod docker compose -f docker-compose.yml -f compose.prod.yml \
+#     -f compose.observability.yml up -d --build --wait
+#
+# Both UIs bind to 127.0.0.1 only: Prometheus on 9090, Jaeger on 16686. Jaeger also accepts OTLP
+# traces on 127.0.0.1:4318, for a core API running on the host in development. Neither has
+# authentication, so never publish them beyond this machine.
+#
+# Without this overlay every service still writes trace IDs into its logs and serves its metrics on
+# the internal network; nothing is exported anywhere.
+
+x-otlp: &otlp
+  OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://jaeger:4318/v1/traces
+
+services:
+  ai-service:
+    environment: *otlp
+  worker-api:
+    environment: *otlp
+  document-worker:
+    environment: *otlp
+
+  prometheus:
+    image: prom/prometheus:v3.16.0
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+    volumes:
+      - ./infrastructure/monitoring/prometheus.dev.yml:/etc/prometheus/prometheus.yml:ro
+      - ./infrastructure/monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "127.0.0.1:${SERVORA_PROMETHEUS_PORT:-9090}:9090"
+    # Lets the development configuration reach a core API running on the host.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 512m
+    networks:
+      - backend
+      - observability
+
+  # Jaeger v2 all-in-one: receives OTLP and keeps traces in memory, so they are lost on restart.
+  # Use a persistent backend for anything beyond local investigation.
+  jaeger:
+    image: jaegertracing/jaeger:2.23.0
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${SERVORA_JAEGER_UI_PORT:-16686}:16686"
+      - "127.0.0.1:${SERVORA_OTLP_HTTP_PORT:-4318}:4318"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 512m
+    networks:
+      - backend
+      - observability
+
+volumes:
+  prometheus-data:
+
+networks:
+  # The UIs' published ports need a network with a route to the host; the data network may be
+  # internal (production profile).
+  observability: {}

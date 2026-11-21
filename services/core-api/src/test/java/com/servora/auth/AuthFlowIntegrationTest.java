@@ -214,8 +214,8 @@ class AuthFlowIntegrationTest extends IntegrationTestBase {
 
     @Test
     void healthAndOpenApiEndpointsArePublic() {
-        Response health = get("/actuator/health", null);
-        Response readiness = get("/actuator/health/readiness", null);
+        Response health = get("/livez", null);
+        Response readiness = get("/readyz", null);
         Response openApi = get("/v3/api-docs", null);
 
         assertThat(health.status()).isEqualTo(200);

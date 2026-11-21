@@ -1,8 +1,10 @@
 package com.servora.common.tenant;
 
 import java.util.UUID;
+import org.slf4j.MDC;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
@@ -36,7 +38,21 @@ public class TenantContext {
      */
     public void bindTenant(UUID tenantId) {
         set("app.tenant_id", tenantId.toString());
+        // Log lines written while this transaction runs name the workspace. The value is removed
+        // when the transaction ends, like the database setting itself.
+        MDC.put(MDC_TENANT, tenantId.toString());
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCompletion(int status) {
+                    MDC.remove(MDC_TENANT);
+                }
+            });
+        }
     }
+
+    /** Log key for the workspace bound to the current transaction. */
+    public static final String MDC_TENANT = "tenant_id";
 
     /** Lets the transaction read the single invitation that matches a presented token. */
     public void bindInvitationTokenHash(String tokenHash) {

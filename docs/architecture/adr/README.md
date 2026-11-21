@@ -25,3 +25,4 @@ Each record states the context, the decision and its consequences. Supersede a r
 | [ADR-019](0019-plans-usage-metering-and-platform-administration.md) | Plans, usage metering and platform administration | Accepted (decided in M6) |
 | [ADR-020](0020-retention-deletion-and-export.md) | Conversation retention, deletion and workspace export | Accepted (decided in M6, amended in M7) |
 | [ADR-021](0021-production-deployment-profile.md) | Production deployment profile | Accepted (decided in M7) |
+| [ADR-022](0022-observability.md) | Observability: logs, metrics and traces | Accepted (decided in M7) |

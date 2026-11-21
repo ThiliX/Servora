@@ -221,6 +221,8 @@ jobs:
           E2E_TARGET: prod
           E2E_COMPOSE_PROJECT: servora-prod
         run: npx playwright test
+      - name: Check metrics, trace IDs and JSON logs
+        run: bash infrastructure/ci/check-observability.sh
       - name: Keep the browser test report
         if: failure()
         uses: actions/upload-artifact@v4
