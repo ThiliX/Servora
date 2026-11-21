@@ -117,19 +117,22 @@ class PooledConnectionIsolationIntegrationTest extends IntegrationTestBase {
                 borrowed.add(dataSource.getConnection());
             }
             for (Connection connection : borrowed) {
-                try (Statement statement = connection.createStatement()) {
-                    ResultSet settings = statement.executeQuery("""
-                            SELECT current_setting('app.tenant_id', true),
-                                   current_setting('app.user_id', true),
-                                   current_setting('app.invitation_token_hash', true)
-                            """);
+                // Result sets are closed explicitly: the JDBC tracing keeps an observation open on this
+                // thread until they are, which would leak a span into later tests.
+                try (Statement statement = connection.createStatement();
+                        ResultSet settings = statement.executeQuery("""
+                                SELECT current_setting('app.tenant_id', true),
+                                       current_setting('app.user_id', true),
+                                       current_setting('app.invitation_token_hash', true)
+                                """)) {
                     settings.next();
                     assertThat(settings.getString(1)).isNullOrEmpty();
                     assertThat(settings.getString(2)).isNullOrEmpty();
                     assertThat(settings.getString(3)).isNullOrEmpty();
-
-                    ResultSet visible = statement.executeQuery(
-                            "SELECT (SELECT count(*) FROM memberships) + (SELECT count(*) FROM tenants)");
+                }
+                try (Statement statement = connection.createStatement();
+                        ResultSet visible = statement.executeQuery(
+                                "SELECT (SELECT count(*) FROM memberships) + (SELECT count(*) FROM tenants)")) {
                     visible.next();
                     assertThat(visible.getInt(1)).isZero();
                 }

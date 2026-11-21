@@ -60,9 +60,15 @@ class AiClientTracePropagationTest extends IntegrationTestBase {
             AssistantView assistant = new AssistantView(
                     UUID.randomUUID(), "A", "Hi", "Fallback", "en", AssistantService.Tone.FRIENDLY, true,
                     AssistantService.ConfidencePolicy.BALANCED, 1, java.time.Instant.now());
-            for (int i = 0; i < 3; i++) {
-                client.answer(UUID.randomUUID(), assistant, "q" + i);
-            }
+            // On a fresh thread with no current span, like the widget's background replies, so each call
+            // starts its own trace whatever earlier tests left on the test thread.
+            Thread caller = new Thread(() -> {
+                for (int i = 0; i < 3; i++) {
+                    client.answer(UUID.randomUUID(), assistant, "q" + i);
+                }
+            });
+            caller.start();
+            caller.join(30_000);
         } finally {
             server.stop(0);
         }
