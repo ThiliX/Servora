@@ -1,40 +1,65 @@
 # Servora
 
-Servora is a multi-tenant AI customer-support platform. Each business gets an isolated workspace with its own assistant, knowledge base, embeddable chat widget, conversations, tickets and team. The assistant answers from that business's approved documents, cites its sources, and hands off to a human agent when the evidence is not good enough.
+**A multi-tenant AI customer-support platform.** Each business gets an isolated workspace: an assistant that answers customers from that business's own documents and cites them, an embeddable chat widget, and an inbox where people take over when the assistant should not answer.
 
-## Status
+![A customer on a demo shop's website asks about returns; the assistant answers from the shop's documents and lists its sources](docs/images/widget-answer.png)
 
-**The MVP is implemented (milestones M1 to M7).** You can register, create workspaces, invite members with roles, configure the assistant and widget, and upload PDF, TXT and Markdown documents that are stored privately and indexed in the background. Customers chat with the assistant through a widget on the workspace's own website: it answers from that workspace's documents with citations, gives a fallback message instead of guessing, and hands the conversation to a person when the customer asks or the assistant cannot help. The team works from an inbox: tickets are assigned, a person takes over the conversation, replies, keeps internal notes, can ask the assistant for a draft, and resolves the ticket, after which the customer can rate it. Owners and admins see an Overview of conversations, escalations and response times, usage against the plan's monthly limits, and an audit log; owners can set a retention period, delete a conversation and export the workspace's data. Platform operators can suspend workspaces and change plans. Tenant isolation is enforced by the application and by PostgreSQL Row-Level Security.
+## Highlights
 
-Out of the box the assistant uses a built-in test model that only quotes the best matching passage and costs nothing. Real answers need a Google Gemini key (free tier available) or an Anthropic key (step 2 below).
+- **Answers it can back up, hands over when it can't.** Answers come only from the business's documents, with citations the backend checks against what was actually retrieved. Measured against a live model (Gemini 3.5 Flash-Lite) on 50 questions: 87% of answerable questions answered, every answer from the right document, none of the 10 unanswerable questions answered, and every request for a person handed over ([evaluation report](docs/ai/evaluation-report.md)).
+- **Tenant isolation enforced twice.** Every query is scoped by the application, and PostgreSQL Row-Level Security (forced, with unprivileged runtime roles) blocks other tenants' rows even if a query forgot. A test matrix calls every endpoint across tenants ([evidence](docs/security/tenant-isolation.md)).
+- **AI-to-human handoff without races.** A person can take over at any moment, and an AI reply that was still being generated is never delivered afterwards, tested over 24 rounds on every run.
+- **Production-minded.** Hardened containers on an internal network, migrations run apart from the API, image and dependency scanning, backups with a recorded restore drill, metrics, JSON logs and OpenTelemetry traces across services.
+- **Tested end to end.** 190 core API tests, most of them through the real HTTP API against real PostgreSQL and Redis, Python and frontend unit tests, a Playwright suite running the full demonstration script with an accessibility check (WCAG 2.1 AA), and a load test (P95 15 ms at 100 virtual users on the non-AI endpoints).
 
-M7 added the security review, browser, accessibility and load tests, a hardened production profile with backups, observability, and an evaluation of answers from a real model. To see it working, follow [docs/demo.md](docs/demo.md): one command seeds two demo businesses. Progress is tracked in [docs/milestones.md](docs/milestones.md).
+| | |
+|---|---|
+| ![The team inbox: a ticket taken over by a person, with an internal note only the team can see](docs/images/inbox-takeover.png) | ![The assistant playground: the answer, its outcome, and the passages it was based on](docs/images/playground.png) |
+| **Inbox:** a person takes over; internal notes never reach the customer | **Playground:** see what the assistant would answer, and why |
+| ![A second business's widget answers only from that business's documents](docs/images/widget-other-tenant.png) | ![One request traced from the core API through the AI service, retrieval, database and model call](docs/images/trace.png) |
+| **Another tenant:** same platform, only its own documents | **Tracing:** one question across the API, AI service, database and model |
 
-## Architecture
+## How it works
 
 ```mermaid
 flowchart LR
-    Dashboard[React dashboard] --> Core[Spring Boot core API]
-    Widget[Iframe chat widget] --> Core
-    Core --> AI[Python AI service]
-    Core --> PG[(PostgreSQL + pgvector)]
-    Core --> Redis[(Redis)]
+    Site[Business website<br/>with the chat widget] --> Gateway[Widget host / gateway<br/>nginx]
+    Dashboard[React dashboard] --> Gateway
+    Gateway --> Core[Core API<br/>Spring Boot]
+    Core --> PG[(PostgreSQL + pgvector<br/>Row-Level Security)]
+    Core --> Redis[(Redis<br/>rate limits)]
     Core --> Store[(Private object storage)]
-    AI --> PG
-    AI --> LLM[LLM provider]
-    Redis --> Worker[Document worker]
-    Worker --> PG
+    Core -->|signed internal call| AI[AI service<br/>FastAPI]
+    AI -->|retrieval, read-only role| PG
+    AI --> LLM[LLM provider<br/>Gemini or Claude]
+    Core -->|outbox| WorkerAPI[Worker API]
+    WorkerAPI --> Queue[(Redis queue)] --> Worker[Document worker<br/>Celery]
     Worker --> Store
+    Worker -->|chunks + embeddings| PG
 ```
 
-Today the dashboard, core API, document worker, PostgreSQL, Redis and object storage are in use. The AI service and the widget are not built yet.
+- **Core API** (Java 25, Spring Boot 4) is the system of record: identity, tenancy, roles, conversations, tickets, usage, audit. Only it decides who may see what.
+- **AI service** (Python, FastAPI) retrieves passages for one tenant, decides whether the evidence is good enough, asks the model for a structured answer, and checks that every citation is a passage it retrieved. It has no say over permissions or ticket state.
+- **Document worker** (Python, Celery) extracts, chunks and embeds uploads in the background; a transactional outbox hands jobs over reliably.
+- **Dashboard** (React 19, TypeScript) and **widget** (dependency-free TypeScript in an iframe, with a small loader script).
 
-- **Core API** is the system of record for identity, tenancy, authorization, conversations, tickets, usage and audit.
-- **AI service** will handle retrieval, prompt assembly, generation and evaluation. It holds no authority over permissions or ticket state.
-- **Document worker** extracts, chunks, embeds and indexes uploaded documents asynchronously.
-- **Tenant isolation** uses a shared schema with `tenant_id`, tenant-aware foreign keys and PostgreSQL Row-Level Security.
+The reasons behind each choice are recorded as [architecture decision records](docs/architecture/adr/README.md). More: [system overview](docs/architecture/system-overview.md), [version matrix](docs/architecture/version-matrix.md).
 
-More detail: [system overview](docs/architecture/system-overview.md), [decision records](docs/architecture/adr/README.md), [version matrix](docs/architecture/version-matrix.md).
+## Try it
+
+With Docker and Node.js installed, after copying `.env.example` to `.env` and filling in its secrets:
+
+```bash
+SERVORA_PROD_MAIL_LOG_LINKS=true docker compose -p servora-prod -f docker-compose.yml -f compose.prod.yml up -d --build --wait
+node scripts/seed-demo.mjs --compose-project servora-prod --api http://localhost:8000
+node apps/widget/demo/serve.mjs
+```
+
+This seeds two demo businesses, TechStore and HotelPro, with documents, assistants, widgets and agents, and prints where to sign in and chat. The walkthrough is in [docs/demo.md](docs/demo.md); the [user guide](docs/user-guide.md) covers the dashboard. Out of the box the assistant uses a free built-in test model; set a Gemini or Anthropic key in `.env` for real answers.
+
+## Status
+
+**The MVP is complete (milestones M1 to M7).** Registration and workspaces with roles; documents indexed in the background; an assistant with citations, fallbacks and handoff; a widget restricted to each business's websites; a team inbox with takeover, internal notes and AI drafts; analytics, usage limits and an audit log; retention, deletion and export; platform administration. Progress and the post-MVP backlog are in [docs/milestones.md](docs/milestones.md); known limits are [below](#limitations).
 
 ## Prerequisites
 
@@ -166,12 +191,17 @@ apps/widget               Chat widget (iframe and loader) and two demo websites
 services/core-api         Spring Boot modular monolith
 services/ai-service       FastAPI RAG service
 workers/document-worker   Celery ingestion worker and its enqueue endpoint
-infrastructure            Database bootstrap, Docker and monitoring assets
-docs                      Architecture, database, API, security and AI documentation
+infrastructure            Database bootstrap, monitoring, backup and CI scripts
+scripts                   Demo seed script
+tests/e2e                 Playwright browser suite and the README screenshot script
+tests/evaluation          Answer evaluation against a live model
+tests/load                k6 load test
+docs                      Architecture, database, API, security, AI, operations and user documentation
 ```
 
 ## Documentation
 
+- [Case study](docs/case-study.md): the problem, key decisions and results in one page
 - [Running the demo](docs/demo.md) and the [user guide](docs/user-guide.md)
 - [Implementation plan](docs/implementation-plan.md) and [milestone checklist](docs/milestones.md)
 - [Architecture](docs/architecture/system-overview.md)
