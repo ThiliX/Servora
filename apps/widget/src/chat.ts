@@ -94,6 +94,7 @@ export class ChatWidget {
   private launcher!: HTMLButtonElement;
   private panel!: HTMLElement;
   private log!: HTMLElement;
+  private messageList!: HTMLElement;
   private statusLine!: HTMLElement;
   private input!: HTMLTextAreaElement;
   private sendButton!: HTMLButtonElement;
@@ -143,7 +144,11 @@ export class ChatWidget {
     close.addEventListener("click", () => this.closePanel());
     header.append(close);
 
-    this.log = el("ol", { class: "log", role: "log", "aria-live": "polite", "aria-label": "Conversation" });
+    // The live region scrolls and can take keyboard focus, so the history can be read without a mouse.
+    // The messages inside it stay a real list.
+    this.log = el("div", { class: "log", role: "log", "aria-live": "polite", "aria-label": "Conversation", tabindex: "0" });
+    this.messageList = el("ol", { class: "messages" });
+    this.log.append(this.messageList);
     this.statusLine = el("p", { class: "status", role: "status" });
 
     const form = el("form", { class: "composer" });
@@ -474,7 +479,7 @@ export class ChatWidget {
     if (this.typing) {
       items.push(el("li", { class: "message typing", "aria-label": "The assistant is typing" }, "…"));
     }
-    this.log.replaceChildren(...items);
+    this.messageList.replaceChildren(...items);
     this.log.scrollTop = this.log.scrollHeight;
 
     this.statusLine.textContent = this.status?.text ?? "";

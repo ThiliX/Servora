@@ -117,6 +117,7 @@ Base images are pinned to tags at least two weeks old and receive the distributi
 | gitleaks | `zricethezav/gitleaks:v8.21.2` | Secret scanning |
 | k6 | `grafana/k6:1.3.0` | Load test |
 | Playwright | `@playwright/test` 1.64.1 | Browser tests |
+| axe | `@axe-core/playwright` 4.14.0, `axe-core` 4.14.0 (npm override; 4.14.1 was five days old) | Accessibility check in the browser suite |
 | Prometheus | `prom/prometheus:v3.16.0` | Optional observability overlay (ADR-022) |
 | Jaeger | `jaegertracing/jaeger:2.23.0` | Optional observability overlay: OTLP receiver and trace UI, in memory |
 

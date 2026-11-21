@@ -61,3 +61,5 @@ logs/
 
 # Browser tests: the API log the harness reads
 tests/e2e/.artifacts/
+# Demo seed output: generated passwords and IDs (scripts/seed-demo.mjs).
+.demo/

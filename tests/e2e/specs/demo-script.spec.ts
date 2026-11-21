@@ -1,3 +1,4 @@
+import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type FrameLocator, type Page } from "@playwright/test";
 import { join } from "node:path";
 import {
@@ -210,5 +211,45 @@ test.describe.serial("MVP demonstration script", () => {
     const nav = agentA.page.getByRole("navigation", { name: "Workspace" });
     await expect(nav.getByRole("link", { name: "Overview" })).toHaveCount(0);
     await expect(nav.getByRole("link", { name: /Usage/ })).toHaveCount(0);
+  });
+
+  test("accessibility: no serious or critical WCAG 2.1 AA violations in the dashboard and widget", async ({ browser }) => {
+    /** Runs axe on the current page, including the widget's iframe, and returns serious and critical findings. */
+    const audit = async (page: Page, label: string): Promise<string[]> => {
+      const results = await new AxeBuilder({ page })
+        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+        .analyze();
+      return results.violations
+        .filter((violation) => violation.impact === "serious" || violation.impact === "critical")
+        .map(
+          (violation) =>
+            `${label}: ${violation.id} (${violation.impact}) on ${violation.nodes
+              .slice(0, 3)
+              .map((node) => node.target.join(" >> "))
+              .join(", ")}${violation.nodes.length > 3 ? ` and ${violation.nodes.length - 3} more` : ""}`,
+        );
+    };
+
+    const findings: string[] = [];
+    const visitor = await (await browser.newContext()).newPage();
+    for (const path of ["/login", "/register"]) {
+      await visitor.goto(path);
+      await expect(visitor.getByRole("heading").first()).toBeVisible();
+      findings.push(...(await audit(visitor, path)));
+    }
+
+    const pages = ["overview", "inbox", "conversations", "knowledge", "assistant", "playground", "widget", "team", "usage", "audit", "settings"];
+    for (const name of pages) {
+      await ownerA.page.goto(`/w/${techStore}/${name}`);
+      await expect(ownerA.page.getByRole("main")).toBeVisible();
+      await ownerA.page.waitForLoadState("networkidle");
+      findings.push(...(await audit(ownerA.page, name)));
+    }
+
+    // The customer's chat, open on the demo website, with the conversation from the earlier steps.
+    await customer.bringToFront();
+    findings.push(...(await audit(customer, "widget chat")));
+
+    expect(findings, findings.join("\n")).toEqual([]);
   });
 });

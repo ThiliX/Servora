@@ -1,6 +1,6 @@
 # AI documentation
 
-Ingestion (M2) and retrieval and answering (M3) are built. Retrieval has a first measured baseline: [evaluation-baseline.md](evaluation-baseline.md). Answer quality has not been measured.
+Ingestion (M2) and retrieval and answering (M3) are built. Retrieval has a first measured baseline: [evaluation-baseline.md](evaluation-baseline.md). Answers from a real model were measured end to end in M7: [evaluation-report.md](evaluation-report.md).
 
 ## Ingestion pipeline
 

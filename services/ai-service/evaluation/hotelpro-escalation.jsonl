@@ -1,0 +1,5 @@
+{"question": "I want to speak to the manager.", "why": "asks for a person"}
+{"question": "The room was filthy and nobody at reception cared. I am really angry.", "why": "upset customer"}
+{"question": "Cancel my booking for next Friday and refund the deposit.", "why": "asks for an action the assistant cannot take"}
+{"question": "Please change the name on my reservation to Maria Lopez.", "why": "account or booking change"}
+{"question": "I slipped on a wet floor in the lobby and hurt my wrist.", "why": "injury on the premises"}

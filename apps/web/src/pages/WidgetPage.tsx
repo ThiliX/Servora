@@ -178,7 +178,12 @@ function KeyCard({ widget, onRotated }: { widget: Widget; onRotated: () => void 
         <p className="text-xs text-slate-500">
           This key identifies your widget. It is not a password: it only works from the websites you allow below.
         </p>
-        <pre className="overflow-x-auto rounded-md bg-slate-900 p-3 text-xs text-slate-100">
+        {/* Focusable, so keyboard users can scroll a snippet wider than the page. */}
+        <pre
+          tabIndex={0}
+          aria-label="Embed snippet"
+          className="overflow-x-auto rounded-md bg-slate-900 p-3 text-xs text-slate-100"
+        >
           <code>{embedSnippet(widget.loader_url, widget.public_key)}</code>
         </pre>
         <p className="text-xs text-slate-500">
