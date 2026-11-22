@@ -47,7 +47,7 @@ No answer was given to an unanswerable question, and no answer cited a document 
 
 All 34 replies written by the model (26 answers, and the 8 hand-off messages it wrote itself) were checked claim by claim against the source documents. 33 contain only claims the source supports, including every price, time, limit and condition. One adds a detail the source does not state: asked whether the pool is open late, it said "open until 9 pm every day"; the source says "7 am to 9 pm", without "every day". No reply contradicted a source.
 
-**Who reviewed:** this review was done by the AI coding assistant that built this phase (Claude), not by a person. The plan asks for human review; the raw results file has every reply next to its question and label so a person can repeat it. Until then, read the groundedness figure as a careful automated reading, not a human judgement.
+**Who reviewed:** this review was done by the AI coding assistant that built this phase (Claude), not by a person. Groundedness is normally judged by people; the raw results file has every reply next to its question and label so a person can repeat it. Until then, read the groundedness figure as a careful automated reading, not a human judgement.
 
 ### Hand-offs that were not needed
 

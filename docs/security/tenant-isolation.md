@@ -1,6 +1,6 @@
 # Tenant isolation: strategy and test evidence
 
-This document describes how tenant isolation works as of M2 and lists the automated tests that exercise it. It is updated whenever a milestone adds a tenant-owned resource.
+This document describes how tenant isolation works and lists the automated tests that exercise it. It is updated whenever a milestone adds a tenant-owned resource.
 
 ## Layers
 

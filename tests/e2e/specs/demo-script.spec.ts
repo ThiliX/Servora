@@ -16,7 +16,7 @@ import {
 } from "../support/stack";
 
 /**
- * The MVP demonstration script (handbook section 18), step by step, in a real browser. Steps run in
+ * The MVP demonstration script, step by step, in a real browser. Steps run in
  * order and share state. Step 11, the cross-tenant test output, is the core API suite; the browser
  * part of it is checked here as step 10b.
  */

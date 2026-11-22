@@ -1,6 +1,6 @@
 # Load test
 
-Handbook section 5 sets the target: P95 under 500 ms for non-AI API operations under a stated local load. This records how it was measured and what was found. AI answers are excluded: their time is the model's.
+The requirements set the target: P95 under 500 ms for non-AI API operations under a stated local load. This records how it was measured and what was found. AI answers are excluded: their time is the model's.
 
 ## How to run
 

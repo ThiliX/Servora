@@ -5,7 +5,7 @@ import com.servora.support.IntegrationTestBase.Session;
 import java.util.UUID;
 
 /**
- * The minimum two-tenant fixture from the handbook: TechStore and HotelPro, each with an owner and
+ * The minimum two-tenant fixture: TechStore and HotelPro, each with an owner and
  * an agent, and no user in common.
  */
 public record TwoTenants(

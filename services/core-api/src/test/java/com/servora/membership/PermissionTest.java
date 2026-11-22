@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
-/** The workspace role matrix from handbook section 2.1, stated independently of the implementation. */
+/** The workspace role matrix from the requirements, stated independently of the implementation. */
 class PermissionTest {
 
     private static final Map<Permission, Set<WorkspaceRole>> EXPECTED = new EnumMap<>(Permission.class);

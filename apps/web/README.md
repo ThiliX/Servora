@@ -2,7 +2,7 @@
 
 React, TypeScript, Vite and Tailwind CSS dashboard for workspace owners, admins, supervisors and agents.
 
-Implemented: registration, email verification, sign-in, workspace list and creation, workspace switcher, team and invitations, workspace settings (M1); assistant configuration, widget settings and knowledge base (M2).
+Covers sign-up and sign-in, workspaces and the team, the knowledge base, assistant and widget settings, the test playground, the inbox and conversations, the overview, usage and audit log, workspace settings and platform administration. Light and dark themes are built on semantic design tokens in `src/index.css`; components live in `src/components/ui.tsx`.
 
 ```bash
 npm install

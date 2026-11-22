@@ -1,4 +1,4 @@
-// Load test of the core API's non-AI endpoints (handbook section 5: P95 < 500 ms under a stated
+// Load test of the core API's non-AI endpoints (target: P95 < 500 ms under a stated
 // local load). Run through run.mjs, which starts the API, seeds a workspace and passes its ids.
 import http from "k6/http";
 import { check, sleep } from "k6";

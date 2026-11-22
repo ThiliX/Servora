@@ -5,7 +5,7 @@
 
 ## Context
 
-Until M7 only the infrastructure, worker and AI service ran in containers; the core API and dashboard ran on the host, and the API ran migrations at start-up, so the running API held the database owner's password. The master prompt asks for non-root containers, pinned tags, internal networks, no public database or Redis ports in production, separate development and production configuration, and image scanning.
+Until M7 only the infrastructure, worker and AI service ran in containers; the core API and dashboard ran on the host, and the API ran migrations at start-up, so the running API held the database owner's password. The requirements ask for non-root containers, pinned tags, internal networks, no public database or Redis ports in production, separate development and production configuration, and image scanning.
 
 ## Decision
 
