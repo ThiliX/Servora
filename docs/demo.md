@@ -1,6 +1,6 @@
 # Running the demo
 
-From a fresh clone to two businesses, each with its own documents, assistant, widget and agent, using only the commands below. The steps follow the MVP demonstration script in the [implementation plan](implementation-plan.md); the browser suite in `tests/e2e` runs the same script automatically.
+From a fresh clone to two businesses, each with its own documents, assistant, widget and agent, using only the commands below. The steps follow the MVP demonstration script; the browser suite in `tests/e2e` runs the same script automatically.
 
 The demo uses the built-in demo documents only (`services/ai-service/evaluation/fixtures`). Never seed a deployment that holds real customers' data.
 

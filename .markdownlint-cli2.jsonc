@@ -14,5 +14,5 @@
     // Task lists in the plan are numbered continuously across sub-headings.
     "MD029": false
   },
-  "ignores": ["docs/agent/master-implementation-prompt.md", "**/node_modules/**", "**/target/**", "**/.venv/**"]
+  "ignores": ["**/node_modules/**", "**/target/**", "**/.venv/**"]
 }

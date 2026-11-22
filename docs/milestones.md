@@ -1,6 +1,6 @@
 # Milestone checklist
 
-Tasks, tests and exit gates for each milestone are in the [implementation plan](implementation-plan.md). This file tracks status. Tick an item only when it is done and verified.
+What was built in each milestone, and what is still open. An item is ticked only when it is done and verified.
 
 ## M0 — Repository and architecture baseline
 
