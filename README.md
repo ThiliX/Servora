@@ -206,7 +206,7 @@ docs                      Architecture, database, API, security, AI, operations 
 
 - [Case study](docs/case-study.md): the problem, key decisions and results in one page
 - [Running the demo](docs/demo.md) and the [user guide](docs/user-guide.md)
-- [Implementation plan](docs/implementation-plan.md) and [milestone checklist](docs/milestones.md)
+- [Milestone checklist](docs/milestones.md)
 - [Architecture](docs/architecture/system-overview.md)
 - [Database and tenant ownership](docs/database/erd.md)
 - [API](docs/api/README.md)
