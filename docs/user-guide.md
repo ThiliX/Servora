@@ -13,6 +13,8 @@ Each workspace is one business. People join it by invitation, with one role:
 | Manage documents, the assistant, the widget, team and settings; see Usage and the Audit log | ✓ | ✓ | | |
 | Set the retention period, delete conversations, export data | ✓ | | | |
 
+The dashboard has light and dark themes: choose Light, Dark or System at the bottom of the sidebar.
+
 ## 1. Set up a workspace
 
 1. Register, open the link in the verification email, and sign in.

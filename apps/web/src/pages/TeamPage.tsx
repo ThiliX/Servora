@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Button, Card, Empty, ErrorState, Field, FormError, Loading, Notice, Select } from "../components/ui";
+import { Button, Card, Empty, ErrorState, Field, FormError, Loading, Notice, PageHeader, Select } from "../components/ui";
 import { api, type ApiError } from "../lib/api";
 import { assignableRoles, canEditMember, canManageMembers, INVITABLE_ROLES, ROLE_LABELS } from "../lib/permissions";
 import type { Invitation, Member, MembershipStatus, Page, WorkspaceRole } from "../lib/types";
@@ -38,7 +38,7 @@ function MembersCard() {
         {state.status === "ready" && state.data.items.length > 0 && (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="text-xs uppercase text-slate-500">
+              <thead className="text-xs uppercase text-fg-subtle">
                 <tr>
                   <th scope="col" className="py-2 pr-4">
                     Member
@@ -54,7 +54,7 @@ function MembersCard() {
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200">
+              <tbody className="divide-y divide-line">
                 {state.data.items.map((member) => {
                   const editable = canEditMember(actor, member);
                   const busy = busyId === member.id;
@@ -63,9 +63,9 @@ function MembersCard() {
                       <td className="py-3 pr-4">
                         <div className="font-medium">
                           {member.display_name}
-                          {member.user_id === user.id && <span className="ml-1 text-slate-500">(you)</span>}
+                          {member.user_id === user.id && <span className="ml-1 text-fg-subtle">(you)</span>}
                         </div>
-                        <div className="text-slate-500">{member.email}</div>
+                        <div className="text-fg-subtle">{member.email}</div>
                       </td>
                       <td className="py-3 pr-4">
                         {editable ? (
@@ -185,12 +185,12 @@ function InvitationsCard() {
         {state.status === "error" && <ErrorState error={state.error} onRetry={reload} />}
         {state.status === "ready" && pending.length === 0 && <Empty>No pending invitations.</Empty>}
         {pending.length > 0 && (
-          <ul className="divide-y divide-slate-200 text-sm">
+          <ul className="divide-y divide-line text-sm">
             {pending.map((invitation) => (
               <li key={invitation.id} className="flex items-center justify-between py-3">
                 <span>
                   <span className="font-medium">{invitation.email}</span>
-                  <span className="ml-2 text-slate-500">
+                  <span className="ml-2 text-fg-subtle">
                     {ROLE_LABELS[invitation.role]} · expires {new Date(invitation.expires_at).toLocaleDateString()}
                   </span>
                 </span>
@@ -210,7 +210,7 @@ export function TeamPage() {
   const { workspace } = useWorkspace();
   return (
     <>
-      <h1 className="text-xl font-bold">Team</h1>
+      <PageHeader title="Team" description="The people in this workspace and their roles." />
       <MembersCard />
       {canManageMembers(workspace.role) && <InvitationsCard />}
     </>

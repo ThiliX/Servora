@@ -68,9 +68,9 @@ export function LoginPage() {
           {submitting ? "Signing in…" : "Sign in"}
         </Button>
       </form>
-      <p className="mt-4 text-center text-sm text-slate-600">
+      <p className="mt-4 text-center text-sm text-fg-muted">
         New to Servora?{" "}
-        <Link to="/register" className="font-medium text-indigo-700 underline">
+        <Link to="/register" className="font-medium text-accent-text underline">
           Create an account
         </Link>
       </p>

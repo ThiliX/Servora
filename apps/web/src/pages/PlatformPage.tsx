@@ -26,7 +26,7 @@ export function PlatformPage() {
     return (
       <main className="mx-auto max-w-3xl space-y-4 px-4 py-10">
         <Notice tone="error">This page does not exist.</Notice>
-        <Link to="/" className="text-sm font-medium text-indigo-700 underline">
+        <Link to="/" className="text-sm font-medium text-accent-text underline">
           Back to your workspaces
         </Link>
       </main>
@@ -36,8 +36,8 @@ export function PlatformPage() {
   return (
     <main className="mx-auto max-w-5xl space-y-6 px-4 py-10">
       <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Platform admin</h1>
-        <Link to="/" className="text-sm font-medium text-indigo-700 underline">
+        <h1 className="text-2xl font-semibold tracking-tight text-fg">Platform admin</h1>
+        <Link to="/" className="text-sm font-medium text-accent-text underline">
           Your workspaces
         </Link>
       </header>
@@ -64,7 +64,7 @@ export function PlatformPage() {
         {tenants.state.status === "error" && <ErrorState error={tenants.state.error} onRetry={tenants.reload} />}
         {tenants.state.status === "ready" && tenants.state.data.items.length === 0 && <Empty>No workspaces match.</Empty>}
         {tenants.state.status === "ready" && tenants.state.data.items.length > 0 && (
-          <ul className="divide-y divide-slate-200">
+          <ul className="divide-y divide-line">
             {tenants.state.data.items.map((tenant) => (
               <TenantItem key={tenant.id} tenant={tenant} onChanged={() => setVersion((v) => v + 1)} />
             ))}
@@ -80,7 +80,7 @@ export function PlatformPage() {
           <table className="w-full text-left text-sm">
             <tbody>
               {log.state.data.items.map((event) => (
-                <tr key={event.id} className="border-t border-slate-100">
+                <tr key={event.id} className="border-t border-line">
                   <td className="py-1.5 pr-3 whitespace-nowrap tabular-nums">{new Date(event.created_at).toLocaleString()}</td>
                   <td className="py-1.5 pr-3">{event.actor_name}</td>
                   <td className="py-1.5 pr-3">{humanize(event.action.replace(/^PLATFORM_/, ""))}</td>
@@ -126,11 +126,11 @@ function TenantItem({ tenant, onChanged }: { tenant: PlatformTenant; onChanged: 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <span className="font-medium">{tenant.name}</span>
-          <span className="ml-2 text-sm text-slate-500">{tenant.slug}</span>
+          <span className="ml-2 text-sm text-fg-subtle">{tenant.slug}</span>
           {tenant.status === "SUSPENDED" && (
-            <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900">Suspended</span>
+            <span className="ml-2 rounded-full bg-warning-soft px-2 py-0.5 text-xs font-medium text-warning-text">Suspended</span>
           )}
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-fg-subtle">
             This month: {formatNumber(tenant.ai_requests_this_month)} AI requests, {formatNumber(tenant.conversations_this_month)}{" "}
             conversations
             {tenant.suspended_reason ? ` · Reason: ${tenant.suspended_reason}` : ""}

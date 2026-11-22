@@ -39,7 +39,7 @@ export function AcceptInvitationPage() {
   return (
     <AuthShell title="Workspace invitation">
       <div className="space-y-4">
-        <p className="text-sm text-slate-700">
+        <p className="text-sm text-fg">
           You are signed in as <strong>{email}</strong>. Accept the invitation to join the workspace.
         </p>
         <FormError error={error} />
@@ -52,7 +52,7 @@ export function AcceptInvitationPage() {
           {submitting ? "Joining…" : "Accept invitation"}
         </Button>
         <p className="text-center text-sm">
-          <Link to="/" className="font-medium text-indigo-700 underline">
+          <Link to="/" className="font-medium text-accent-text underline">
             Not now
           </Link>
         </p>

@@ -30,6 +30,7 @@ await new Promise((done) => setTimeout(done, 1_000));
 const browser = await chromium.launch();
 const viewport = { width: 1280, height: 800 };
 const shot = async (page, name) => {
+  await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: join(out, `${name}.png`) });
   console.log(`docs/images/${name}.png`);
 };
@@ -96,6 +97,13 @@ try {
   await owner.getByRole("button", { name: "Add note" }).click();
   await thread.getByText("Repeat customer").waitFor();
   await shot(owner, "inbox-takeover");
+  // The same view in the dark theme, which follows the system setting.
+  await owner.emulateMedia({ colorScheme: "dark" });
+  await owner.reload();
+  await owner.getByRole("list", { name: "Messages and notes" }).getByText("Repeat customer").waitFor();
+  await shot(owner, "inbox-dark");
+  await owner.emulateMedia({ colorScheme: "light" });
+  await owner.reload();
 
   // The customer sees the person's reply, and never the note.
   await chat.getByRole("log").getByText("this is Sam").waitFor({ timeout: 20_000 });

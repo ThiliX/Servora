@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from "react";
+import { ChevronRight, LogOut } from "lucide-react";
 import { Link, useNavigate } from "react-router";
-import { Button, Card, Empty, ErrorState, Field, FormError, Loading } from "../components/ui";
+import { Badge, Button, Card, Empty, ErrorState, Field, FormError, Loading } from "../components/ui";
+import { Logo } from "./WorkspaceLayout";
 import { api, type ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { ROLE_LABELS } from "../lib/permissions";
@@ -85,21 +87,31 @@ export function WorkspacesPage() {
   );
 
   return (
-    <main className="mx-auto max-w-3xl space-y-6 px-4 py-10">
-      <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Your workspaces</h1>
-        <div className="flex items-center gap-3 text-sm">
-          {platform.state.status === "ready" && platform.state.data.platform_admin && (
-            <Link to="/platform" className="font-medium text-indigo-700 underline">
-              Platform admin
-            </Link>
-          )}
-          {auth.status === "authenticated" && <span className="text-slate-600">{auth.user.email}</span>}
-          <Button variant="secondary" onClick={() => void logout()}>
-            Sign out
-          </Button>
+    <div className="min-h-screen">
+      <header className="border-b border-line bg-surface">
+        <div className="mx-auto flex h-16 max-w-3xl items-center justify-between gap-3 px-4">
+          <span className="flex items-center gap-2.5">
+            <Logo />
+            <span className="text-[15px] font-semibold tracking-tight">Servora</span>
+          </span>
+          <div className="flex items-center gap-3 text-sm">
+            {platform.state.status === "ready" && platform.state.data.platform_admin && (
+              <Link to="/platform" className="font-medium text-accent-text hover:underline">
+                Platform admin
+              </Link>
+            )}
+            {auth.status === "authenticated" && <span className="hidden text-fg-muted sm:inline">{auth.user.email}</span>}
+            <Button variant="secondary" size="sm" icon={LogOut} onClick={() => void logout()}>
+              Sign out
+            </Button>
+          </div>
         </div>
       </header>
+    <main className="mx-auto max-w-3xl space-y-6 px-4 py-10">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight text-fg">Your workspaces</h1>
+        <p className="mt-1 text-sm text-fg-muted">Each workspace is one business, with its own assistant, documents and team.</p>
+      </div>
 
       <Card>
         {state.status === "loading" && <Loading label="Loading workspaces" />}
@@ -108,18 +120,18 @@ export function WorkspacesPage() {
           <Empty>You are not a member of any workspace yet. Create one below, or open an invitation link.</Empty>
         )}
         {state.status === "ready" && state.data.length > 0 && (
-          <ul className="divide-y divide-slate-200">
+          <ul className="space-y-1">
             {state.data.map((workspace) =>
               workspace.status === "SUSPENDED" ? (
-                <li key={workspace.id} className="px-2 py-3">
+                <li key={workspace.id} className="px-3 py-3">
                   <div className="flex items-center justify-between">
                     <span>
-                      <span className="font-medium text-slate-500">{workspace.name}</span>
-                      <span className="ml-2 text-sm text-slate-400">{workspace.slug}</span>
+                      <span className="font-medium text-fg-subtle">{workspace.name}</span>
+                      <span className="ml-2 text-sm text-fg-subtle">{workspace.slug}</span>
                     </span>
-                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900">Suspended</span>
+                    <Badge tone="warning">Suspended</Badge>
                   </div>
-                  <p className="mt-1 text-sm text-slate-600">
+                  <p className="mt-1 text-sm text-fg-muted">
                     This workspace is suspended
                     {workspace.suspended_reason ? `: ${workspace.suspended_reason}` : "."} Contact Servora support to restore it.
                   </p>
@@ -128,15 +140,20 @@ export function WorkspacesPage() {
                 <li key={workspace.id}>
                   <Link
                     to={`/w/${workspace.id}`}
-                    className="flex items-center justify-between rounded px-2 py-3 hover:bg-slate-50"
+                    className="group flex items-center gap-3 rounded-lg px-3 py-3 transition-colors hover:bg-subtle"
                   >
-                    <span>
-                      <span className="font-medium">{workspace.name}</span>
-                      <span className="ml-2 text-sm text-slate-500">{workspace.slug}</span>
+                    <span
+                      aria-hidden="true"
+                      className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-sm font-semibold text-accent-text"
+                    >
+                      {workspace.name.slice(0, 1).toUpperCase()}
                     </span>
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
-                      {ROLE_LABELS[workspace.role]}
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-medium">{workspace.name}</span>
+                      <span className="block text-sm text-fg-subtle">{workspace.slug}</span>
                     </span>
+                    <Badge>{ROLE_LABELS[workspace.role]}</Badge>
+                    <ChevronRight aria-hidden="true" className="size-4 text-fg-subtle transition-transform group-hover:translate-x-0.5" />
                   </Link>
                 </li>
               ),
@@ -145,9 +162,10 @@ export function WorkspacesPage() {
         )}
       </Card>
 
-      <Card title="Create a workspace">
+      <Card title="Create a workspace" description="You will be its owner. You can invite your team afterwards.">
         <CreateWorkspaceForm />
       </Card>
     </main>
+    </div>
   );
 }

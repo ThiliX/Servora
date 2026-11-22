@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router";
-import { Button, Empty, ErrorState, FormError, Loading, Notice, Select } from "../components/ui";
+import { Button, Empty, ErrorState, FormError, Loading, Notice, PageHeader, Select } from "../components/ui";
 import { api, type ApiError } from "../lib/api";
 import { canAssignTickets } from "../lib/permissions";
 import type {
@@ -31,10 +31,10 @@ export const STATUS_LABELS: Record<TicketStatus, string> = {
 };
 
 const PRIORITY_STYLES: Record<TicketPriority, string> = {
-  LOW: "bg-slate-100 text-slate-700",
-  NORMAL: "bg-slate-100 text-slate-700",
-  HIGH: "bg-amber-100 text-amber-800",
-  URGENT: "bg-red-100 text-red-800",
+  LOW: "bg-subtle text-fg",
+  NORMAL: "bg-subtle text-fg",
+  HIGH: "bg-warning-soft text-warning-text",
+  URGENT: "bg-danger-soft text-danger-text",
 };
 
 const REASON_LABELS: Record<string, string> = {
@@ -91,10 +91,10 @@ function Queue({ selected, reloadKey }: { selected: string | undefined; reloadKe
   }, [reloadKey, reloadQueue]);
 
   return (
-    <section aria-label="Ticket queue" className="rounded-lg border border-slate-200 bg-white p-3">
+    <section aria-label="Ticket queue" className="rounded-xl border border-line bg-surface p-3 shadow-card">
       <div className="mb-2 flex flex-wrap gap-1" role="group" aria-label="Which tickets">
         {(["ALL", "MINE", "UNASSIGNED"] as const).map((v) => (
-          <Button key={v} variant={view === v ? "primary" : "secondary"} aria-pressed={view === v} onClick={() => setView(v)}>
+          <Button key={v} size="sm" variant={view === v ? "primary" : "secondary"} aria-pressed={view === v} onClick={() => setView(v)}>
             {v === "ALL" ? "All" : v === "MINE" ? "Mine" : "Unassigned"}
           </Button>
         ))}
@@ -114,15 +114,15 @@ function Queue({ selected, reloadKey }: { selected: string | undefined; reloadKe
                 <Link
                   to={`/w/${workspace.id}/inbox/${ticket.id}`}
                   aria-current={ticket.id === selected ? "page" : undefined}
-                  className={`block rounded-md p-2 text-sm hover:bg-slate-50 ${ticket.id === selected ? "bg-indigo-50" : ""}`}
+                  className={`block rounded-md p-2 text-sm hover:bg-subtle ${ticket.id === selected ? "bg-accent-soft" : ""}`}
                 >
                   <span className="flex flex-wrap items-center gap-1">
                     <span className="font-semibold">#{ticket.number}</span>
-                    <span className={`rounded-full px-1.5 text-xs ${PRIORITY_STYLES[ticket.priority]}`}>{ticket.priority.toLowerCase()}</span>
-                    <span className="text-xs text-slate-500">{STATUS_LABELS[ticket.status]}</span>
+                    <span className={`rounded-md px-1.5 py-0.5 text-[11px] font-medium ring-1 ring-inset ring-current/15 ${PRIORITY_STYLES[ticket.priority]}`}>{ticket.priority.toLowerCase()}</span>
+                    <span className="text-xs text-fg-subtle">{STATUS_LABELS[ticket.status]}</span>
                   </span>
-                  <span className="block truncate text-slate-600">{ticket.last_message_preview ?? ""}</span>
-                  <span className="block text-xs text-slate-500">{ticket.assignee_name ?? "Unassigned"}</span>
+                  <span className="block truncate text-fg-muted">{ticket.last_message_preview ?? ""}</span>
+                  <span className="block text-xs text-fg-subtle">{ticket.assignee_name ?? "Unassigned"}</span>
                 </Link>
               </li>
             ))}
@@ -221,14 +221,14 @@ function Thread({
   ].sort((a, b) => a.at.localeCompare(b.at));
 
   return (
-    <section aria-label="Conversation" className="flex min-h-[28rem] flex-col rounded-lg border border-slate-200 bg-white p-3">
+    <section aria-label="Conversation" className="flex min-h-[28rem] flex-col rounded-xl border border-line bg-surface p-4 shadow-card">
       {messages.state.status === "loading" && <Loading label="Loading conversation" />}
       {messages.state.status === "error" && <ErrorState error={messages.state.error} onRetry={reloadMessages} />}
       <ol className="flex-1 space-y-2 overflow-y-auto" aria-label="Messages and notes">
         {items.map((item) =>
           item.kind === "note" ? (
-            <li key={`n-${item.note.id}`} className="rounded-md border border-yellow-300 bg-yellow-50 p-2 text-sm">
-              <p className="text-xs font-semibold text-yellow-900">
+            <li key={`n-${item.note.id}`} className="rounded-lg border border-warning-line bg-warning-soft p-3 text-sm">
+              <p className="text-xs font-semibold text-warning-text">
                 Internal note · {item.note.author_name} · {formatTime(item.note.created_at)}
               </p>
               <p className="whitespace-pre-wrap">{item.note.body}</p>
@@ -250,7 +250,7 @@ function Thread({
           ),
         )}
       </ol>
-      <form onSubmit={submit} className="mt-3 space-y-2 border-t border-slate-200 pt-3" noValidate>
+      <form onSubmit={submit} className="mt-3 space-y-2 border-t border-line pt-3" noValidate>
         <FormError error={error} />
         <div role="tablist" aria-label="Write" className="flex gap-1">
           <Button role="tab" aria-selected={mode === "reply"} variant={mode === "reply" ? "primary" : "secondary"} onClick={() => setMode("reply")}>
@@ -264,11 +264,11 @@ function Thread({
           </Button>
         </div>
         {mode === "reply" && !canReply && (
-          <p className="text-xs text-slate-600">
+          <p className="text-xs text-fg-muted">
             {detail.ticket.conversation_status !== "OPEN" ? "This conversation has ended." : "Take over the conversation to reply."}
           </p>
         )}
-        {suggestionId && mode === "reply" && <p className="text-xs text-indigo-700">Using an AI draft. Check and edit it before sending.</p>}
+        {suggestionId && mode === "reply" && <p className="text-xs text-accent-text">Using an AI draft. Check and edit it before sending.</p>}
         <label htmlFor="inbox-composer" className="sr-only">
           {mode === "reply" ? "Reply to the customer" : "Internal note, not shown to the customer"}
         </label>
@@ -280,8 +280,8 @@ function Thread({
           onChange={(e) => setText(e.target.value)}
           disabled={mode === "reply" && !canReply}
           placeholder={mode === "reply" ? "Write to the customer…" : "Only your team can see notes"}
-          className={`block w-full rounded-md border px-3 py-2 text-sm disabled:bg-slate-100 ${
-            mode === "note" ? "border-yellow-300 bg-yellow-50" : "border-slate-300"
+          className={`block w-full rounded-lg border px-3 py-2 text-sm text-fg shadow-card placeholder:text-fg-subtle focus:outline-none focus:ring-2 focus:ring-accent/25 disabled:bg-subtle ${
+            mode === "note" ? "border-warning-line bg-warning-soft" : "border-line-strong bg-surface"
           }`}
         />
         <Button type="submit" disabled={busy || !text.trim() || (mode === "reply" && !canReply)}>
@@ -299,17 +299,17 @@ function MessageItem({ message, onUse }: { message: ThreadMessage; onUse?: () =>
   return (
     <li
       className={`rounded-md border p-2 text-sm ${
-        suggestion ? "border-dashed border-indigo-300 bg-indigo-50" : suppressed ? "border-dashed border-amber-300 bg-amber-50" : "border-slate-200"
+        suggestion ? "border-dashed border-accent bg-accent-soft" : suppressed ? "border-dashed border-warning-line bg-warning-soft" : "border-line"
       } ${message.sender_type === "CUSTOMER" ? "mr-8" : "ml-8"}`}
     >
-      <p className="flex flex-wrap gap-2 text-xs text-slate-500">
-        <span className="font-semibold text-slate-700">{suggestion ? "AI draft (not sent)" : who}</span>
+      <p className="flex flex-wrap gap-2 text-xs text-fg-subtle">
+        <span className="font-semibold text-fg">{suggestion ? "AI draft (not sent)" : who}</span>
         <span>{formatTime(message.created_at)}</span>
-        {suppressed && <span className="text-amber-800">Not shown to the customer</span>}
+        {suppressed && <span className="text-warning-text">Not shown to the customer</span>}
       </p>
       <p className="whitespace-pre-wrap">{message.body}</p>
       {message.citations.length > 0 && (
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1 text-xs text-fg-subtle">
           {/* Two passages from one document are one source here. */}
           Sources: {[...new Set(message.citations.map((c) => c.filename))].join(", ")}
         </p>
@@ -355,15 +355,15 @@ function Context({ detail, onChanged }: { detail: TicketDetail; onChanged: (deta
     active && ticket.conversation_status === "OPEN" && !(ticket.control_mode === "HUMAN_ACTIVE" && detail.assigned_to_me);
 
   return (
-    <section aria-label="Ticket" className="space-y-3 rounded-lg border border-slate-200 bg-white p-3 text-sm">
+    <section aria-label="Ticket" className="space-y-3 rounded-xl border border-line bg-surface p-4 text-sm shadow-card">
       <div>
         <h2 className="text-base font-semibold">Ticket #{ticket.number}</h2>
-        <p className="text-slate-600">{REASON_LABELS[ticket.reason] ?? ticket.reason}</p>
-        <p className="text-xs text-slate-500">
+        <p className="text-fg-muted">{REASON_LABELS[ticket.reason] ?? ticket.reason}</p>
+        <p className="text-xs text-fg-subtle">
           From {ticket.origin} · opened {formatTime(ticket.created_at)}
         </p>
       </div>
-      <p role="status" className="rounded-md bg-slate-100 px-2 py-1 font-medium">
+      <p role="status" className="rounded-md bg-subtle px-2 py-1 font-medium">
         {ticket.conversation_status === "CLOSED"
           ? "This conversation has ended"
           : controlLabel(ticket.control_mode, ticket.assignee_name, detail.assigned_to_me)}
@@ -381,9 +381,9 @@ function Context({ detail, onChanged }: { detail: TicketDetail; onChanged: (deta
         </Button>
       )}
       <dl className="grid grid-cols-2 gap-1">
-        <dt className="text-slate-500">Status</dt>
+        <dt className="text-fg-subtle">Status</dt>
         <dd>{STATUS_LABELS[ticket.status]}</dd>
-        <dt className="text-slate-500">Assigned to</dt>
+        <dt className="text-fg-subtle">Assigned to</dt>
         <dd>{ticket.assignee_name ?? "Nobody"}</dd>
       </dl>
       {manager && active && assignees.state.status === "ready" && (
@@ -419,7 +419,7 @@ function Context({ detail, onChanged }: { detail: TicketDetail; onChanged: (deta
       )}
       {detail.can_work && active && (
         <form
-          className="space-y-2 border-t border-slate-200 pt-3"
+          className="space-y-2 border-t border-line pt-3"
           onSubmit={(e) => {
             e.preventDefault();
             void run(`${base}/resolve`, { method: "POST", body: { outcome, note } });
@@ -432,7 +432,7 @@ function Context({ detail, onChanged }: { detail: TicketDetail; onChanged: (deta
               </option>
             ))}
           </Select>
-          <label htmlFor="ticket-resolution-note" className="block text-sm font-medium text-slate-700">
+          <label htmlFor="ticket-resolution-note" className="block text-sm font-medium text-fg">
             Resolution note (team only)
           </label>
           <textarea
@@ -441,7 +441,7 @@ function Context({ detail, onChanged }: { detail: TicketDetail; onChanged: (deta
             maxLength={2000}
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            className="block w-full rounded-md border border-slate-300 px-2 py-1"
+            className="block w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm text-fg shadow-card placeholder:text-fg-subtle focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25"
           />
           <Button type="submit" disabled={busy}>
             Resolve
@@ -460,8 +460,8 @@ function Context({ detail, onChanged }: { detail: TicketDetail; onChanged: (deta
         </p>
       )}
       <details>
-        <summary className="cursor-pointer text-slate-600">History</summary>
-        <ol className="mt-2 space-y-1 text-xs text-slate-600">
+        <summary className="cursor-pointer text-fg-muted">History</summary>
+        <ol className="mt-2 space-y-1 text-xs text-fg-muted">
           {detail.events.map((event, index) => (
             <li key={index}>
               {formatTime(event.created_at)} · {event.event_type.toLowerCase().replace(/_/g, " ")}
@@ -498,7 +498,7 @@ export function InboxPage() {
 
   return (
     <>
-      <h1 className="text-xl font-bold">Inbox</h1>
+      <PageHeader title="Inbox" description="Tickets that need a person. Take over a conversation to reply to the customer." />
       <div className="grid gap-3 lg:grid-cols-[15rem_minmax(0,1fr)_16rem]">
         <Queue selected={ticketId} reloadKey={reloadKey} />
         {!ticketId && <Notice tone="info">Choose a ticket to see the conversation.</Notice>}

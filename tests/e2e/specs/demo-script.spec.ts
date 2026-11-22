@@ -246,6 +246,17 @@ test.describe.serial("MVP demonstration script", () => {
       findings.push(...(await audit(ownerA.page, name)));
     }
 
+    // The same pages in the dark theme, which follows the system setting.
+    await ownerA.page.emulateMedia({ colorScheme: "dark" });
+    for (const name of pages) {
+      await ownerA.page.goto(`/w/${techStore}/${name}`);
+      await expect(ownerA.page.locator("html.dark")).toHaveCount(1);
+      await expect(ownerA.page.getByRole("main")).toBeVisible();
+      await ownerA.page.waitForLoadState("networkidle");
+      findings.push(...(await audit(ownerA.page, `${name} (dark)`)));
+    }
+    await ownerA.page.emulateMedia({ colorScheme: "light" });
+
     // The customer's chat, open on the demo website, with the conversation from the earlier steps.
     await customer.bringToFront();
     findings.push(...(await audit(customer, "widget chat")));

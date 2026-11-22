@@ -70,6 +70,44 @@ function el<K extends keyof HTMLElementTagNameMap>(
   return node;
 }
 
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+/** Outline icons (Lucide, ISC licence): fixed path data only. */
+const ICONS = {
+  chat: ["M7.9 20A9 9 0 1 0 4 16.1L2 22Z"],
+  close: ["M18 6 6 18", "m6 6 12 12"],
+  send: [
+    "M3.714 3.048a.498.498 0 0 0-.683.627l2.843 7.627a2 2 0 0 1 0 1.396l-2.842 7.627a.498.498 0 0 0 .682.627l18-8.5a.5.5 0 0 0 0-.904z",
+    "M6 12h16",
+  ],
+  person: ["M18 20a6 6 0 0 0-12 0", "M12 14a4 4 0 1 0 0-8 4 4 0 0 0 0 8"],
+  document: ["M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z", "M14 2v4a2 2 0 0 0 2 2h4"],
+} as const;
+
+function icon(name: keyof typeof ICONS, size = 18): SVGSVGElement {
+  const svg = document.createElementNS(SVG_NS, "svg");
+  for (const [key, value] of Object.entries({
+    viewBox: "0 0 24 24",
+    width: String(size),
+    height: String(size),
+    fill: "none",
+    stroke: "currentColor",
+    "stroke-width": "2",
+    "stroke-linecap": "round",
+    "stroke-linejoin": "round",
+    "aria-hidden": "true",
+    focusable: "false",
+  })) {
+    svg.setAttribute(key, value);
+  }
+  for (const d of ICONS[name]) {
+    const path = document.createElementNS(SVG_NS, "path");
+    path.setAttribute("d", d);
+    svg.append(path);
+  }
+  return svg;
+}
+
 /**
  * The chat UI inside the iframe. All text from the customer, the model or the server is inserted
  * with textContent, so nothing it contains is ever interpreted as HTML.
@@ -134,13 +172,17 @@ export class ChatWidget {
     root.dataset.position = config.position === "BOTTOM_LEFT" ? "left" : "right";
 
     this.launcher = el("button", { type: "button", class: "launcher", "aria-label": `Open chat: ${config.title}`, "aria-expanded": "false" });
-    this.launcher.append(el("span", { "aria-hidden": "true", class: "launcher-icon" }, "💬"));
+    this.launcher.append(icon("chat", 26));
     this.launcher.addEventListener("click", () => void this.openPanel());
 
     this.panel = el("section", { class: "panel", role: "dialog", "aria-label": config.title, hidden: "" });
     const header = el("header", { class: "header" });
-    header.append(el("h1", {}, config.title));
-    const close = el("button", { type: "button", class: "close", "aria-label": "Close chat" }, "×");
+    const avatar = el("span", { class: "avatar", "aria-hidden": "true" }, config.title.trim().slice(0, 1).toUpperCase());
+    const titles = el("div", { class: "titles" });
+    titles.append(el("h1", {}, config.title), el("p", { class: "subtitle" }, "AI assistant, with our team on hand"));
+    header.append(avatar, titles);
+    const close = el("button", { type: "button", class: "close", "aria-label": "Close chat" });
+    close.append(icon("close", 18));
     close.addEventListener("click", () => this.closePanel());
     header.append(close);
 
@@ -161,14 +203,16 @@ export class ChatWidget {
         void this.send();
       }
     });
-    this.sendButton = el("button", { type: "submit", class: "send" }, "Send");
+    this.sendButton = el("button", { type: "submit", class: "send", "aria-label": "Send" });
+    this.sendButton.append(icon("send", 18));
     form.append(label, this.input, this.sendButton);
     form.addEventListener("submit", (event) => {
       event.preventDefault();
       void this.send();
     });
 
-    this.humanButton = el("button", { type: "button", class: "human" }, "Talk to a person");
+    this.humanButton = el("button", { type: "button", class: "human" });
+    this.humanButton.append(icon("person", 15), document.createTextNode("Talk to a person"));
     this.humanButton.addEventListener("click", () => void this.requestHuman());
 
     this.ended = this.buildEnded();
@@ -496,7 +540,8 @@ export class ChatWidget {
       sources.append(el("p", { class: "sources-title" }, "Sources"));
       const list = el("ul");
       for (const citation of citations) {
-        const entry = el("li", { title: citation.snippet }, describeCitation(citation));
+        const entry = el("li", { title: citation.snippet });
+        entry.append(icon("document", 12), document.createTextNode(describeCitation(citation)));
         list.append(entry);
       }
       sources.append(list);

@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Button, Card, ErrorState, Field, FormError, Loading, Notice, Select } from "../components/ui";
+import { Button, Card, ErrorState, Field, FormError, Loading, Notice, PageHeader, Select } from "../components/ui";
 import { api, type ApiError } from "../lib/api";
 import { canConfigureAssistant } from "../lib/permissions";
 import type { Widget } from "../lib/types";
@@ -61,7 +61,7 @@ function AppearanceForm({ widget, onSaved }: { widget: Widget; onSaved: () => vo
       <Field id="widget-title" label="Title shown to customers" required maxLength={80} value={title} onChange={(e) => setTitle(e.target.value)} />
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label htmlFor="widget-color" className="block text-sm font-medium text-slate-700">
+          <label htmlFor="widget-color" className="block text-sm font-medium text-fg">
             Theme colour
           </label>
           <input
@@ -69,7 +69,7 @@ function AppearanceForm({ widget, onSaved }: { widget: Widget; onSaved: () => vo
             type="color"
             value={color}
             onChange={(e) => setColor(e.target.value)}
-            className="mt-1 h-10 w-20 rounded-md border border-slate-300 bg-white"
+            className="mt-1.5 h-10 w-20 cursor-pointer rounded-lg border border-line-strong bg-surface p-1 shadow-card"
           />
         </div>
         <Select id="widget-position" label="Position" value={position} onChange={(e) => setPosition(e.target.value as Widget["position"])}>
@@ -77,11 +77,11 @@ function AppearanceForm({ widget, onSaved }: { widget: Widget; onSaved: () => vo
           <option value="BOTTOM_LEFT">Bottom left</option>
         </Select>
       </div>
-      <label className="flex items-center gap-2 text-sm text-slate-700">
+      <label className="flex items-center gap-2 text-sm text-fg">
         <input type="checkbox" checked={branding} onChange={(e) => setBranding(e.target.checked)} className="size-4" />
         Show "Powered by Servora"
       </label>
-      <label className="flex items-center gap-2 text-sm text-slate-700">
+      <label className="flex items-center gap-2 text-sm text-fg">
         <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} className="size-4" />
         Widget enabled
       </label>
@@ -124,7 +124,7 @@ function OriginsForm({ widget, onSaved }: { widget: Widget; onSaved: () => void 
     <form onSubmit={submit} className="max-w-xl space-y-3" noValidate>
       <FormError error={error} />
       {saved && <Notice tone="success">Allowed websites saved.</Notice>}
-      <label htmlFor="widget-origins" className="block text-sm font-medium text-slate-700">
+      <label htmlFor="widget-origins" className="block text-sm font-medium text-fg">
         Websites allowed to show this widget
       </label>
       <textarea
@@ -134,9 +134,9 @@ function OriginsForm({ widget, onSaved }: { widget: Widget; onSaved: () => void 
         onChange={(e) => setText(e.target.value)}
         placeholder="https://www.example.com"
         aria-describedby="widget-origins-hint"
-        className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 font-mono text-sm"
+        className="block w-full font-mono rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm text-fg shadow-card placeholder:text-fg-subtle focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25"
       />
-      <p id="widget-origins-hint" className="text-xs text-slate-500">
+      <p id="widget-origins-hint" className="text-xs text-fg-subtle">
         One per line, for example https://shop.example.com. Each must match exactly: no paths and no wildcards. https
         is required except for localhost.
       </p>
@@ -172,21 +172,21 @@ function KeyCard({ widget, onRotated }: { widget: Widget; onRotated: () => void 
     <Card title="Embed on your website">
       <div className="space-y-3">
         <FormError error={error} />
-        <p className="text-sm text-slate-700">
-          Widget key: <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">{widget.public_key}</code>
+        <p className="text-sm text-fg">
+          Widget key: <code className="rounded bg-subtle px-1.5 py-0.5 text-xs">{widget.public_key}</code>
         </p>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-fg-subtle">
           This key identifies your widget. It is not a password: it only works from the websites you allow below.
         </p>
         {/* Focusable, so keyboard users can scroll a snippet wider than the page. */}
         <pre
           tabIndex={0}
           aria-label="Embed snippet"
-          className="overflow-x-auto rounded-md bg-slate-900 p-3 text-xs text-slate-100"
+          className="overflow-x-auto rounded-md bg-code-bg p-3 text-xs text-code-fg"
         >
           <code>{embedSnippet(widget.loader_url, widget.public_key)}</code>
         </pre>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-fg-subtle">
           Paste this just before the closing body tag of your website. The chat button appears only on the websites listed
           under Allowed websites.
         </p>
@@ -208,7 +208,7 @@ export function WidgetPage() {
   }
   return (
     <>
-      <h1 className="text-xl font-bold">Chat widget</h1>
+      <PageHeader title="Chat widget" description="How the chat looks on your website, and where it may appear." />
       {state.status === "loading" && <Loading label="Loading widget" />}
       {state.status === "error" && <ErrorState error={state.error} onRetry={reload} />}
       {state.status === "ready" && (

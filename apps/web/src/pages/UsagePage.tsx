@@ -1,5 +1,5 @@
 import { DailyBars, formatNumber, humanize, Meter, StatTile } from "../components/metrics";
-import { Card, ErrorState, Loading, Notice } from "../components/ui";
+import { Card, ErrorState, Loading, Notice, PageHeader } from "../components/ui";
 import { api } from "../lib/api";
 import { canViewUsage } from "../lib/permissions";
 import type { UsageReport } from "../lib/types";
@@ -29,9 +29,9 @@ export function UsagePage() {
 
   return (
     <>
-      <h1 className="text-xl font-bold">Usage &amp; plan</h1>
+      <PageHeader title="Usage & plan" description="This month's usage against your plan's limits." />
       <Card title={`${plan.name} plan`}>
-        <p className="mb-4 text-sm text-slate-600">
+        <p className="mb-4 text-sm text-fg-muted">
           This month: {state.data.period_start.slice(0, 10)} to {periodEnd.toISOString().slice(0, 10)} (UTC). Limits reset on the first
           day of each month. When a limit is reached, the assistant stops answering and customers are offered a person
           instead.
@@ -60,11 +60,11 @@ export function UsagePage() {
 
       <Card title="AI requests by source">
         {state.data.by_source.length === 0 ? (
-          <p className="text-sm text-slate-500">No AI requests this month.</p>
+          <p className="text-sm text-fg-subtle">No AI requests this month.</p>
         ) : (
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="text-slate-500">
+              <tr className="text-fg-subtle">
                 <th className="py-1 font-medium">Source</th>
                 <th className="py-1 text-right font-medium">Requests</th>
                 <th className="py-1 text-right font-medium">Tokens</th>
@@ -73,7 +73,7 @@ export function UsagePage() {
             </thead>
             <tbody>
               {state.data.by_source.map((row) => (
-                <tr key={row.source} className="border-t border-slate-100">
+                <tr key={row.source} className="border-t border-line">
                   <td className="py-1.5">{humanize(row.source)}</td>
                   <td className="py-1.5 text-right tabular-nums">{formatNumber(row.requests)}</td>
                   <td className="py-1.5 text-right tabular-nums">{formatNumber(row.tokens)}</td>
@@ -86,13 +86,13 @@ export function UsagePage() {
       </Card>
 
       <Card title="Plans">
-        <p className="mb-3 text-sm text-slate-600">
+        <p className="mb-3 text-sm text-fg-muted">
           There is no online payment yet. To change plan, contact Servora; an operator changes it for you.
         </p>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="text-slate-500">
+              <tr className="text-fg-subtle">
                 <th className="py-1 font-medium">Plan</th>
                 <th className="py-1 text-right font-medium">AI requests / month</th>
                 <th className="py-1 text-right font-medium">Tokens / month</th>
@@ -102,10 +102,10 @@ export function UsagePage() {
             </thead>
             <tbody>
               {state.data.plans.map((p) => (
-                <tr key={p.code} className={`border-t border-slate-100 ${p.code === plan.code ? "font-semibold" : ""}`}>
+                <tr key={p.code} className={`border-t border-line ${p.code === plan.code ? "font-semibold" : ""}`}>
                   <td className="py-1.5">
                     {p.name}
-                    {p.code === plan.code && <span className="ml-2 text-xs font-medium text-indigo-700">Current</span>}
+                    {p.code === plan.code && <span className="ml-2 text-xs font-medium text-accent-text">Current</span>}
                   </td>
                   <td className="py-1.5 text-right tabular-nums">{formatNumber(p.monthly_ai_requests)}</td>
                   <td className="py-1.5 text-right tabular-nums">{formatNumber(p.monthly_tokens)}</td>
