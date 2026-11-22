@@ -9,8 +9,9 @@
 - **Answers it can back up, hands over when it can't.** Answers come only from the business's documents, with citations the backend checks against what was actually retrieved. Measured against a live model (Gemini 3.5 Flash-Lite) on 50 questions: 87% of answerable questions answered, every answer from the right document, none of the 10 unanswerable questions answered, and every request for a person handed over ([evaluation report](docs/ai/evaluation-report.md)).
 - **Tenant isolation enforced twice.** Every query is scoped by the application, and PostgreSQL Row-Level Security (forced, with unprivileged runtime roles) blocks other tenants' rows even if a query forgot. A test matrix calls every endpoint across tenants ([evidence](docs/security/tenant-isolation.md)).
 - **AI-to-human handoff without races.** A person can take over at any moment, and an AI reply that was still being generated is never delivered afterwards, tested over 24 rounds on every run.
+- **A polished, accessible interface.** A dashboard with sidebar navigation, a token-based design system and light and dark themes that follow the system setting, plus a chat widget that takes each business's colour. Checked automatically against WCAG 2.1 AA in both themes.
 - **Production-minded.** Hardened containers on an internal network, migrations run apart from the API, image and dependency scanning, backups with a recorded restore drill, metrics, JSON logs and OpenTelemetry traces across services.
-- **Tested end to end.** 190 core API tests, most of them through the real HTTP API against real PostgreSQL and Redis, Python and frontend unit tests, a Playwright suite running the full demonstration script with an accessibility check (WCAG 2.1 AA), and a load test (P95 15 ms at 100 virtual users on the non-AI endpoints).
+- **Tested end to end.** 190 core API tests, most of them through the real HTTP API against real PostgreSQL and Redis, Python and frontend unit tests, a Playwright suite running the full demonstration script with an accessibility check (WCAG 2.1 AA, light and dark), and a load test (P95 15 ms at 100 virtual users on the non-AI endpoints).
 
 | | |
 |---|---|
@@ -43,7 +44,7 @@ flowchart LR
 - **Core API** (Java 25, Spring Boot 4) is the system of record: identity, tenancy, roles, conversations, tickets, usage, audit. Only it decides who may see what.
 - **AI service** (Python, FastAPI) retrieves passages for one tenant, decides whether the evidence is good enough, asks the model for a structured answer, and checks that every citation is a passage it retrieved. It has no say over permissions or ticket state.
 - **Document worker** (Python, Celery) extracts, chunks and embeds uploads in the background; a transactional outbox hands jobs over reliably.
-- **Dashboard** (React 19, TypeScript) and **widget** (dependency-free TypeScript in an iframe, with a small loader script).
+- **Dashboard** (React 19, TypeScript, Tailwind CSS 4) with semantic design tokens, so light and dark themes stay consistent, and **widget** (dependency-free TypeScript in an iframe, with a small loader script).
 
 The reasons behind each choice are recorded as [architecture decision records](docs/architecture/adr/README.md). More: [system overview](docs/architecture/system-overview.md), [version matrix](docs/architecture/version-matrix.md).
 
@@ -61,7 +62,7 @@ This seeds two demo businesses, TechStore and HotelPro, with documents, assistan
 
 ## Status
 
-**The MVP is complete (milestones M1 to M7).** Registration and workspaces with roles; documents indexed in the background; an assistant with citations, fallbacks and handoff; a widget restricted to each business's websites; a team inbox with takeover, internal notes and AI drafts; analytics, usage limits and an audit log; retention, deletion and export; platform administration. Progress and the post-MVP backlog are in [docs/milestones.md](docs/milestones.md); known limits are [below](#limitations).
+**The MVP is complete (milestones M1 to M7).** Registration and workspaces with roles; documents indexed in the background; an assistant with citations, fallbacks and handoff; a widget restricted to each business's websites; a team inbox with takeover, internal notes and AI drafts; analytics, usage limits and an audit log; retention, deletion and export; platform administration. Since then the interface has been redesigned (sidebar layout, design system, light and dark themes, a refreshed widget) and the project documented for readers: a [case study](docs/case-study.md), screenshots and a demo seed. Progress and the post-MVP backlog are in [docs/milestones.md](docs/milestones.md); known limits are [below](#limitations).
 
 ## Prerequisites
 
@@ -115,7 +116,7 @@ On Windows PowerShell use `.\mvnw.cmd spring-boot:run`. The API applies database
 cd apps/web && npm install && npm run dev
 ```
 
-Open <http://localhost:5173>. The dev server proxies `/api` to the core API, so the browser sees one origin.
+Open <http://localhost:5173>. The dev server proxies `/api` to the core API, so the browser sees one origin. The theme follows your system; switch between Light, Dark and System at the bottom of the sidebar.
 
 ### 4a. Try the chat widget
 
