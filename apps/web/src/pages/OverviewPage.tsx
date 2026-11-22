@@ -26,7 +26,7 @@ export function OverviewPage() {
   return (
     <>
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <h1 className="text-xl font-bold">Overview</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-fg">Overview</h1>
         <Select id="overview-range" label="Period" value={days} onChange={(e) => setDays(Number(e.target.value))}>
           <option value={7}>Last 7 days</option>
           <option value={30}>Last 30 days</option>
@@ -44,7 +44,7 @@ function OverviewBody({ data }: { data: Analytics }) {
   const c = data.conversations;
   return (
     <>
-      <p className="text-sm text-slate-600">
+      <p className="text-sm text-fg-muted">
         {data.range.from} to {data.range.to} (UTC). The ticket queue shows the current state.
       </p>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">

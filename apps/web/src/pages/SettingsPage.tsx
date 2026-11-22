@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Button, Card, Field, FormError, Notice } from "../components/ui";
+import { Button, Card, Field, FormError, Notice, PageHeader } from "../components/ui";
 import { api, type ApiError } from "../lib/api";
 import { canManageData, canManageSettings } from "../lib/permissions";
 import type { Workspace } from "../lib/types";
@@ -42,7 +42,7 @@ export function SettingsPage() {
 
   return (
     <>
-      <h1 className="text-xl font-bold">Workspace settings</h1>
+      <PageHeader title="Workspace settings" description="Your business details, and how long conversations are kept." />
       <Card>
         <form onSubmit={submit} className="max-w-lg space-y-4" noValidate>
           <FormError error={error} />
@@ -145,9 +145,9 @@ function DataControls({ workspace, onSaved }: { workspace: Workspace; onSaved: (
           {saving ? "Saving…" : "Save retention period"}
         </Button>
       </form>
-      <div className="mt-6 max-w-lg space-y-2 border-t border-slate-200 pt-4">
+      <div className="mt-6 max-w-lg space-y-2 border-t border-line pt-4">
         <h3 className="text-sm font-semibold">Export workspace data</h3>
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-fg-muted">
           Downloads a JSON file with your settings, team, configuration, document list, conversations, tickets, notes,
           ratings, audit log and monthly usage. Document files themselves are not included.
         </p>

@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Button, Card, FormError, Notice } from "../components/ui";
+import { Button, Card, FormError, Notice, PageHeader } from "../components/ui";
 import { api, type ApiError } from "../lib/api";
 import { canConfigureAssistant } from "../lib/permissions";
 import type { AnswerOutcome, PlaygroundResult } from "../lib/types";
@@ -47,15 +47,15 @@ function Result({ result }: { result: PlaygroundResult }) {
         <div className="space-y-3">
           <p>
             <span
-              className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                answered ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
+              className={`rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-current/15 ${
+                answered ? "bg-success-soft text-success-text" : "bg-warning-soft text-warning-text"
               }`}
             >
               {OUTCOME_LABELS[result.outcome] ?? result.outcome}
             </span>
           </p>
-          <p className="whitespace-pre-wrap rounded-md bg-slate-50 p-3 text-sm">{result.answer}</p>
-          <p className="text-sm text-slate-600">{OUTCOME_EXPLANATIONS[result.outcome] ?? ""}</p>
+          <p className="whitespace-pre-wrap rounded-md bg-subtle p-3 text-sm">{result.answer}</p>
+          <p className="text-sm text-fg-muted">{OUTCOME_EXPLANATIONS[result.outcome] ?? ""}</p>
           {result.provider === "fake" && result.model !== null && (
             <Notice tone="info">
               This reply came from the built-in test model, which only quotes the best matching source. Connect a real AI
@@ -67,7 +67,7 @@ function Result({ result }: { result: PlaygroundResult }) {
 
       <Card title="Sources cited">
         {result.citations.length === 0 ? (
-          <p className="text-sm text-slate-500">No sources were cited.</p>
+          <p className="text-sm text-fg-subtle">No sources were cited.</p>
         ) : (
           <ul className="space-y-3">
             {result.citations.map((citation) => (
@@ -75,11 +75,11 @@ function Result({ result }: { result: PlaygroundResult }) {
                 <p className="font-medium">
                   {citation.filename}
                   {citation.page_number !== null && (
-                    <span className="ml-2 text-xs text-slate-500">page {citation.page_number}</span>
+                    <span className="ml-2 text-xs text-fg-subtle">page {citation.page_number}</span>
                   )}
-                  {citation.heading && <span className="ml-2 text-xs text-slate-500">{citation.heading}</span>}
+                  {citation.heading && <span className="ml-2 text-xs text-fg-subtle">{citation.heading}</span>}
                 </p>
-                <p className="mt-1 text-slate-600">{citation.snippet}</p>
+                <p className="mt-1 text-fg-muted">{citation.snippet}</p>
               </li>
             ))}
           </ul>
@@ -88,12 +88,12 @@ function Result({ result }: { result: PlaygroundResult }) {
 
       <Card title="What was found in your knowledge base">
         {result.retrieval.length === 0 ? (
-          <p className="text-sm text-slate-500">No indexed documents matched. Upload documents on the Knowledge page.</p>
+          <p className="text-sm text-fg-subtle">No indexed documents matched. Upload documents on the Knowledge page.</p>
         ) : (
           <>
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="text-xs text-slate-500">
+                <tr className="text-xs text-fg-subtle">
                   <th scope="col" className="py-1 font-medium">
                     Document
                   </th>
@@ -105,7 +105,7 @@ function Result({ result }: { result: PlaygroundResult }) {
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200">
+              <tbody className="divide-y divide-line">
                 {result.retrieval.map((hit) => (
                   <tr key={hit.chunk_id}>
                     <td className="py-1.5">{hit.filename}</td>
@@ -115,12 +115,12 @@ function Result({ result }: { result: PlaygroundResult }) {
                 ))}
               </tbody>
             </table>
-            <p className="mt-2 text-xs text-slate-500">
+            <p className="mt-2 text-xs text-fg-subtle">
               Passages need a match of at least {formatScore(result.evidence_threshold)} to be used.
             </p>
           </>
         )}
-        <p className="mt-3 text-xs text-slate-500">
+        <p className="mt-3 text-xs text-fg-subtle">
           Model: {result.model ?? "not called"} · {result.latency_ms} ms · {result.input_tokens + result.output_tokens}{" "}
           tokens
         </p>
@@ -161,11 +161,11 @@ export function PlaygroundPage() {
 
   return (
     <>
-      <h1 className="text-xl font-bold">Test your assistant</h1>
+      <PageHeader title="Test your assistant" description="Ask a question as a customer would, and see the answer, its sources and why it was given." />
       <Card>
         <form onSubmit={submit} className="space-y-3" noValidate>
           <FormError error={error} />
-          <label htmlFor="playground-question" className="block text-sm font-medium text-slate-700">
+          <label htmlFor="playground-question" className="block text-sm font-medium text-fg">
             Ask a question as a customer would
           </label>
           <textarea
@@ -176,9 +176,9 @@ export function PlaygroundPage() {
             onChange={(e) => setQuestion(e.target.value)}
             placeholder="What is your refund policy?"
             aria-describedby="playground-hint"
-            className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
+            className="block w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm text-fg shadow-card placeholder:text-fg-subtle focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25"
           />
-          <p id="playground-hint" className="text-xs text-slate-500">
+          <p id="playground-hint" className="text-xs text-fg-subtle">
             Only you see this. The assistant answers from the documents on the Knowledge page.
           </p>
           <Button type="submit" disabled={submitting || !question.trim()}>

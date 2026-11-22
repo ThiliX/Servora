@@ -79,6 +79,8 @@ Verified on **2026-11-16** against the sources named in each row. These are the 
 | Package | Version | Notes |
 |---|---|---|
 | React | 19.3.1 | |
+| lucide-react | 1.70.0 | Dashboard icons. The newest release at least two weeks old when chosen |
+| @fontsource-variable/inter | 5.3.0 | Inter, served with the dashboard: the Content Security Policy allows fonts from its own origin only |
 | Vite | 8.3.8 | |
 | @vitejs/plugin-react | 6.3.0 | Peer: `vite ^8.0.0` |
 | Tailwind CSS | 4.3.5 | With `@tailwindcss/vite` 4.3.5 (peer allows Vite 8) |

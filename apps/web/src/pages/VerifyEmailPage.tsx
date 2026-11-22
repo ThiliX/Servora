@@ -39,7 +39,7 @@ export function VerifyEmailPage() {
       {state.status === "failed" && <Notice tone="error">{state.message}</Notice>}
       {state.status !== "working" && (
         <p className="mt-4 text-center text-sm">
-          <Link to="/login" className="font-medium text-indigo-700 underline">
+          <Link to="/login" className="font-medium text-accent-text underline">
             Go to sign in
           </Link>
         </p>

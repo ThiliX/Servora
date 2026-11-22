@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { api } from "../lib/api";
 import type { NotificationList } from "../lib/types";
 import { useAsync } from "../lib/useAsync";
+import { Bell } from "lucide-react";
 import { Button } from "./ui";
 
 const REFRESH_MS = 30_000;
@@ -32,13 +33,28 @@ export function NotificationsBell({ workspaceId }: { workspaceId: string }) {
 
   return (
     <div className="relative">
-      <Button variant="secondary" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
-        Notifications{unread > 0 ? ` (${unread})` : ""}
-      </Button>
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-label={`Notifications${unread > 0 ? ` (${unread})` : ""}`}
+        onClick={() => setOpen((o) => !o)}
+        className="relative inline-flex size-9 items-center justify-center rounded-lg text-fg-muted transition-colors hover:bg-subtle hover:text-fg"
+      >
+        <Bell aria-hidden="true" className="size-[18px]" />
+        {unread > 0 && (
+          <span
+            aria-hidden="true"
+            className="absolute top-1 right-1 flex min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] leading-4 font-semibold text-white"
+          >
+            {unread > 9 ? "9+" : unread}
+          </span>
+        )}
+      </button>
       {open && state.status === "ready" && (
-        <div className="absolute right-0 z-10 mt-1 w-72 rounded-md border border-slate-200 bg-white p-2 shadow-lg">
+        <div className="absolute right-0 z-30 mt-2 w-80 rounded-xl border border-line bg-surface p-2 shadow-raised">
+          <p className="px-2 pt-1 pb-2 text-xs font-semibold tracking-wide text-fg-subtle uppercase">Notifications</p>
           {state.data.items.length === 0 ? (
-            <p className="p-2 text-sm text-slate-500">Nothing new.</p>
+            <p className="px-2 py-6 text-center text-sm text-fg-subtle">You're all caught up.</p>
           ) : (
             <ul className="max-h-80 space-y-1 overflow-y-auto">
               {state.data.items.map((item) => (
@@ -46,16 +62,22 @@ export function NotificationsBell({ workspaceId }: { workspaceId: string }) {
                   <Link
                     to={item.ticket_id ? `/w/${workspaceId}/inbox/${item.ticket_id}` : `/w/${workspaceId}/inbox`}
                     onClick={() => setOpen(false)}
-                    className={`block rounded p-2 text-sm hover:bg-slate-50 ${item.read ? "text-slate-500" : "font-medium"}`}
+                    className={`flex items-start gap-2 rounded-lg p-2 text-sm hover:bg-subtle ${item.read ? "text-fg-subtle" : "font-medium text-fg"}`}
                   >
-                    Ticket #{item.ticket_number}: {LABELS[item.type]}
+                    <span
+                      aria-hidden="true"
+                      className={`mt-1.5 size-1.5 shrink-0 rounded-full ${item.read ? "bg-transparent" : "bg-accent"}`}
+                    />
+                    <span>
+                      Ticket #{item.ticket_number}: {LABELS[item.type]}
+                    </span>
                   </Link>
                 </li>
               ))}
             </ul>
           )}
           {unread > 0 && (
-            <Button variant="secondary" className="mt-2 w-full" onClick={() => void markAllRead()}>
+            <Button variant="ghost" size="sm" className="mt-1 w-full" onClick={() => void markAllRead()}>
               Mark all as read
             </Button>
           )}

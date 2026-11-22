@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
-import { Button, Card, Empty, ErrorState, FormError, Loading, Notice } from "../components/ui";
+import { Button, Card, Empty, ErrorState, FormError, Loading, Notice, PageHeader } from "../components/ui";
 import { api, type ApiError } from "../lib/api";
 import { canConfigureAssistant } from "../lib/permissions";
 import type { DocumentStatus, KnowledgeDocument, Page } from "../lib/types";
@@ -20,12 +20,12 @@ const STATUS_LABELS: Record<DocumentStatus, string> = {
 };
 
 const STATUS_STYLES: Record<DocumentStatus, string> = {
-  UPLOADED: "bg-slate-100 text-slate-700",
-  QUEUED: "bg-slate-100 text-slate-700",
-  PROCESSING: "bg-amber-100 text-amber-800",
-  READY: "bg-emerald-100 text-emerald-800",
-  FAILED: "bg-red-100 text-red-800",
-  ARCHIVED: "bg-slate-200 text-slate-600",
+  UPLOADED: "bg-subtle text-fg",
+  QUEUED: "bg-subtle text-fg",
+  PROCESSING: "bg-warning-soft text-warning-text",
+  READY: "bg-success-soft text-success-text",
+  FAILED: "bg-danger-soft text-danger-text",
+  ARCHIVED: "bg-subtle-strong text-fg-muted",
 };
 
 const FAILURE_REASONS: Record<string, string> = {
@@ -135,10 +135,10 @@ export function KnowledgePage() {
 
   return (
     <>
-      <h1 className="text-xl font-bold">Knowledge base</h1>
+      <PageHeader title="Knowledge base" description="The documents your assistant answers from. Only documents marked Ready are used." />
       <Card title="Upload a document">
         <div className="space-y-3">
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-fg-muted">
             PDF, TXT or Markdown, up to 10 MB. Documents are stored privately and used only to answer your own
             customers.
           </p>
@@ -158,7 +158,7 @@ export function KnowledgePage() {
           <Empty>No documents yet. Upload your policies, FAQs or manuals to get started.</Empty>
         )}
         {state.status === "ready" && state.data.items.length > 0 && (
-          <ul className="divide-y divide-slate-200">
+          <ul className="divide-y divide-line">
             {state.data.items.map((doc) => {
               const settled = !IN_FLIGHT.includes(doc.status);
               const busy = busyId === doc.id;
@@ -167,16 +167,16 @@ export function KnowledgePage() {
                   <div className="min-w-0">
                     <p className="truncate font-medium">
                       {doc.filename}
-                      {doc.version > 1 && <span className="ml-2 text-xs text-slate-500">version {doc.version}</span>}
+                      {doc.version > 1 && <span className="ml-2 text-xs text-fg-subtle">version {doc.version}</span>}
                     </p>
-                    <p className="text-sm text-slate-500">
+                    <p className="text-sm text-fg-subtle">
                       {formatSize(doc.size_bytes)}
                       {doc.status === "READY" && ` · ${doc.chunk_count} ${doc.chunk_count === 1 ? "section" : "sections"} indexed`}
                     </p>
-                    {doc.status === "FAILED" && <p className="mt-1 text-sm text-red-700">{failureReason(doc.error_code)}</p>}
+                    {doc.status === "FAILED" && <p className="mt-1 text-sm text-danger-text">{failureReason(doc.error_code)}</p>}
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[doc.status]}`}>
+                    <span className={`rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-current/15 ${STATUS_STYLES[doc.status]}`}>
                       {STATUS_LABELS[doc.status]}
                     </span>
                     {settled && (

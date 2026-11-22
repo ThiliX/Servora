@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { humanize } from "../components/metrics";
-import { Button, Card, Empty, ErrorState, Loading, Notice } from "../components/ui";
+import { Button, Card, Empty, ErrorState, Loading, Notice, PageHeader } from "../components/ui";
 import { api } from "../lib/api";
 import { canViewAuditLog } from "../lib/permissions";
 import type { AuditEvent, Page } from "../lib/types";
@@ -29,8 +29,8 @@ export function AuditLogPage() {
 
   return (
     <>
-      <h1 className="text-xl font-bold">Audit log</h1>
-      <p className="text-sm text-slate-600">
+      <PageHeader title="Audit log" description="Every change made in this workspace: who made it, and when." />
+      <p className="text-sm text-fg-muted">
         Changes to the team, configuration, knowledge, tickets and data, newest first. Actions by Servora operators are
         listed too.
       </p>
@@ -43,7 +43,7 @@ export function AuditLogPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead>
-                  <tr className="text-slate-500">
+                  <tr className="text-fg-subtle">
                     <th className="py-1 pr-3 font-medium">When</th>
                     <th className="py-1 pr-3 font-medium">Who</th>
                     <th className="py-1 pr-3 font-medium">Action</th>
@@ -52,18 +52,18 @@ export function AuditLogPage() {
                 </thead>
                 <tbody>
                   {state.data.items.map((event) => (
-                    <tr key={event.id} className="border-t border-slate-100 align-top">
+                    <tr key={event.id} className="border-t border-line align-top">
                       <td className="py-1.5 pr-3 whitespace-nowrap tabular-nums">{new Date(event.created_at).toLocaleString()}</td>
                       <td className="py-1.5 pr-3">{event.actor_name ?? "System"}</td>
                       <td className="py-1.5 pr-3">{humanize(event.action)}</td>
-                      <td className="py-1.5 text-slate-600">{describe(event.metadata)}</td>
+                      <td className="py-1.5 text-fg-muted">{describe(event.metadata)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
             <div className="mt-3 flex items-center justify-between text-sm">
-              <span className="text-slate-600">
+              <span className="text-fg-muted">
                 Page {page + 1} of {Math.max(1, Math.ceil(state.data.total / PAGE_SIZE))}
               </span>
               <div className="flex gap-2">

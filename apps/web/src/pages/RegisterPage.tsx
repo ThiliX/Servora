@@ -41,7 +41,7 @@ export function RegisterPage() {
           account, then sign in.
         </Notice>
         <p className="mt-4 text-center text-sm">
-          <Link to="/login" className="font-medium text-indigo-700 underline">
+          <Link to="/login" className="font-medium text-accent-text underline">
             Back to sign in
           </Link>
         </p>
@@ -87,9 +87,9 @@ export function RegisterPage() {
           {submitting ? "Creating account…" : "Create account"}
         </Button>
       </form>
-      <p className="mt-4 text-center text-sm text-slate-600">
+      <p className="mt-4 text-center text-sm text-fg-muted">
         Already have an account?{" "}
-        <Link to="/login" className="font-medium text-indigo-700 underline">
+        <Link to="/login" className="font-medium text-accent-text underline">
           Sign in
         </Link>
       </p>

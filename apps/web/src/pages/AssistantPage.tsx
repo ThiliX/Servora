@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Button, Card, ErrorState, Field, FormError, Loading, Notice, Select } from "../components/ui";
+import { Button, Card, ErrorState, Field, FormError, Loading, Notice, PageHeader, Select } from "../components/ui";
 import { api, type ApiError } from "../lib/api";
 import { canConfigureAssistant } from "../lib/permissions";
 import type { Assistant, ConfidencePolicy, Tone } from "../lib/types";
@@ -21,7 +21,7 @@ function TextArea({
 }) {
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium text-slate-700">
+      <label htmlFor={id} className="block text-sm font-medium text-fg">
         {label}
       </label>
       <textarea
@@ -31,10 +31,10 @@ function TextArea({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         aria-describedby={hint ? `${id}-hint` : undefined}
-        className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
+        className="mt-1.5 block w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm text-fg shadow-card placeholder:text-fg-subtle focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25"
       />
       {hint && (
-        <p id={`${id}-hint`} className="mt-1 text-xs text-slate-500">
+        <p id={`${id}-hint`} className="mt-1 text-xs text-fg-subtle">
           {hint}
         </p>
       )}
@@ -107,7 +107,7 @@ function AssistantForm({ assistant, onSaved }: { assistant: Assistant; onSaved: 
         <option value="STRICT">Hand off to a person (recommended)</option>
         <option value="BALANCED">Answer when reasonably supported</option>
       </Select>
-      <label className="flex items-center gap-2 text-sm text-slate-700">
+      <label className="flex items-center gap-2 text-sm text-fg">
         <input type="checkbox" checked={automation} onChange={(e) => setAutomation(e.target.checked)} className="size-4" />
         Let the assistant reply to customers automatically
       </label>
@@ -128,7 +128,7 @@ export function AssistantPage() {
   }
   return (
     <>
-      <h1 className="text-xl font-bold">AI assistant</h1>
+      <PageHeader title="AI assistant" description="How the assistant introduces itself, how it sounds, and when it hands over to your team." />
       <Notice tone="info">
         The assistant does not answer customers yet. These settings take effect when answering and the chat widget are
         released.
@@ -138,7 +138,7 @@ export function AssistantPage() {
         {state.status === "error" && <ErrorState error={state.error} onRetry={reload} />}
         {state.status === "ready" && (
           <>
-            <p className="mb-4 text-sm text-slate-500">
+            <p className="mb-4 text-sm text-fg-subtle">
               Current version {state.data.current_version}. Every save is kept as a new version.
             </p>
             <AssistantForm key={state.data.id} assistant={state.data} onSaved={reload} />

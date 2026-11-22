@@ -18,6 +18,8 @@
 | **Inbox:** a person takes over; internal notes never reach the customer | **Playground:** see what the assistant would answer, and why |
 | ![A second business's widget answers only from that business's documents](docs/images/widget-other-tenant.png) | ![One request traced from the core API through the AI service, retrieval, database and model call](docs/images/trace.png) |
 | **Another tenant:** same platform, only its own documents | **Tracing:** one question across the API, AI service, database and model |
+| ![The inbox in the dark theme](docs/images/inbox-dark.png) | ![The customer sees the person's reply in the chat; the internal note never reaches them](docs/images/widget-human-reply.png) |
+| **Light and dark themes**, following the system setting | **The person's reply** reaches the customer; the note does not |
 
 ## How it works
 

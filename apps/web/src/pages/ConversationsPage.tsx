@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { Button, Card, Empty, ErrorState, FormError, Loading, Notice } from "../components/ui";
+import { Button, Card, Empty, ErrorState, FormError, Loading, Notice, PageHeader } from "../components/ui";
 import { api, type ApiError } from "../lib/api";
 import { canManageData, canViewConversations } from "../lib/permissions";
 import type { ControlMode, ConversationSummary, Page, ThreadMessage } from "../lib/types";
@@ -61,7 +61,7 @@ export function ConversationsPage() {
   }
   return (
     <>
-      <h1 className="text-xl font-bold">Conversations</h1>
+      <PageHeader title="Conversations" description="Every conversation with your customers, including those the assistant handled alone." />
       <Card>
         {state.status === "loading" && <Loading label="Loading conversations" />}
         {state.status === "error" && <ErrorState error={state.error} onRetry={reload} />}
@@ -70,19 +70,19 @@ export function ConversationsPage() {
         )}
         {state.status === "ready" && state.data.items.length > 0 && (
           <>
-            <ul className="divide-y divide-slate-200">
+            <ul className="divide-y divide-line">
               {state.data.items.map((conversation) => (
                 <li key={conversation.id} className="py-3">
-                  <Link to={conversation.id} className="block rounded-md hover:bg-slate-50 focus-visible:outline-2">
+                  <Link to={conversation.id} className="block rounded-md hover:bg-subtle focus-visible:outline-2">
                     <p className="flex flex-wrap items-center gap-2 text-sm">
                       <span className="font-medium">{conversation.origin}</span>
-                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-700">
+                      <span className="rounded-full bg-subtle px-2 py-0.5 text-xs text-fg">
                         {MODE_LABELS[conversation.control_mode]}
                       </span>
-                      <span className="text-slate-500">{formatTime(conversation.last_message_at)}</span>
+                      <span className="text-fg-subtle">{formatTime(conversation.last_message_at)}</span>
                     </p>
-                    <p className="mt-1 truncate text-sm text-slate-600">{conversation.last_message_preview ?? ""}</p>
-                    <p className="text-xs text-slate-500">
+                    <p className="mt-1 truncate text-sm text-fg-muted">{conversation.last_message_preview ?? ""}</p>
+                    <p className="text-xs text-fg-subtle">
                       {conversation.message_count} {conversation.message_count === 1 ? "message" : "messages"}
                     </p>
                   </Link>
@@ -112,14 +112,14 @@ export function ConversationPage() {
   return (
     <>
       <p>
-        <Link to=".." relative="path" className="text-sm text-indigo-700 underline">
+        <Link to=".." relative="path" className="text-sm text-accent-text underline">
           All conversations
         </Link>
       </p>
-      <h1 className="text-xl font-bold">Conversation</h1>
+      <PageHeader title="Conversation" />
       {summary.state.status === "error" && <ErrorState error={summary.state.error} onRetry={summary.reload} />}
       {summary.state.status === "ready" && (
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-fg-muted">
           From {summary.state.data.origin} · started {formatTime(summary.state.data.created_at)} ·{" "}
           {MODE_LABELS[summary.state.data.control_mode]}
           {summary.state.data.handoff_requested_at &&
@@ -143,20 +143,20 @@ export function ConversationPage() {
                 <li
                   key={message.id}
                   className={`rounded-md border p-3 text-sm ${
-                    message.delivery_status === "SUPPRESSED" ? "border-dashed border-amber-300 bg-amber-50" : "border-slate-200"
+                    message.delivery_status === "SUPPRESSED" ? "border-dashed border-warning-line bg-warning-soft" : "border-line"
                   }`}
                 >
-                  <p className="flex flex-wrap gap-2 text-xs text-slate-500">
-                    <span className="font-semibold text-slate-700">{SENDER_LABELS[message.sender_type]}</span>
+                  <p className="flex flex-wrap gap-2 text-xs text-fg-subtle">
+                    <span className="font-semibold text-fg">{SENDER_LABELS[message.sender_type]}</span>
                     <span>{formatTime(message.created_at)}</span>
                     {message.delivery_status === "SUPPRESSED" && (
-                      <span className="font-medium text-amber-800">Not shown to the customer: a person took over</span>
+                      <span className="font-medium text-warning-text">Not shown to the customer: a person took over</span>
                     )}
                     {message.outcome && message.outcome !== "ANSWERED" && <span>Outcome: {message.outcome}</span>}
                   </p>
                   <p className="mt-1 whitespace-pre-wrap">{message.body}</p>
                   {message.citations.length > 0 && (
-                    <ul className="mt-2 list-disc pl-5 text-xs text-slate-600">
+                    <ul className="mt-2 list-disc pl-5 text-xs text-fg-muted">
                       {message.citations.map((citation) => (
                         <li key={citation.chunk_id}>
                           {citation.filename}
@@ -203,7 +203,7 @@ function DeleteConversation({ workspaceId, conversationId }: { workspaceId: stri
 
   return (
     <Card title="Delete this conversation">
-      <p className="mb-3 text-sm text-slate-600">
+      <p className="mb-3 text-sm text-fg-muted">
         Deletes the messages, ticket, internal notes, rating and AI records of this conversation. This cannot be undone.
         Usage counts are kept.
       </p>
