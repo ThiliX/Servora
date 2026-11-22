@@ -1,6 +1,6 @@
 # Threat model
 
-Started in M0 from the implementation handbook and updated as controls are built. It lists the threats, the planned controls and the milestone where each control is implemented and tested. The "Evidence" column is filled in only when a test exists and has been run. Nothing here is a claim that the system is secure.
+Started in M0 from the product requirements and updated as controls were built. It lists the threats, the planned controls and the milestone where each control is implemented and tested. The "Evidence" column is filled in only when a test exists and has been run. Nothing here is a claim that the system is secure.
 
 Review checklists: [OWASP API Security Top 10](https://owasp.org/www-project-api-security/) and [OWASP Top 10 for LLM Applications](https://owasp.org/www-project-top-10-for-large-language-model-applications/).
 

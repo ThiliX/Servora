@@ -2,28 +2,23 @@
 
 ## Workflow
 
-Work was built one milestone at a time; progress is tracked in [docs/milestones.md](docs/milestones.md). Keep changes small and reviewable, one concern per pull request.
+Servora was built in milestones; what was built, and what is still open, is in [docs/milestones.md](docs/milestones.md). Keep changes small and reviewable, one concern per pull request.
 
-For each milestone:
-
-1. Inspect the repository and current branch.
-2. Read the relevant docs, migrations and code.
-3. Summarise the current state and any conflicts with the specification.
-4. Propose a small task plan and the files expected to change.
-5. Implement only that milestone.
-6. Add or update tests alongside the code.
-7. Run formatters, linters, tests and builds.
-8. Review the diff for secrets, unrelated edits and unscoped tenant queries.
-9. Update documentation and `.env.example`.
-10. Report what was done, the commands run, the real test results and known limitations.
+1. Branch from an up-to-date `main`.
+2. Read the code, migrations and docs around the change, and the relevant [decision records](docs/architecture/adr/README.md).
+3. Make the change, with tests alongside it.
+4. Run the formatters, linters, tests and builds for every part you touched.
+5. Review the diff for secrets, unrelated edits and tenant queries without a tenant filter.
+6. Update the documentation and `.env.example` where behaviour or configuration changed.
+7. Open a pull request with the commands you ran, their actual results, and any known limitations.
 
 ## Branches, commits and pull requests
 
 - `main` is always releasable. Changes arrive through pull requests.
-- One branch per milestone: `milestone/m1-identity-tenancy`. Smaller pieces may use `feat/<area>-<topic>` or `fix/<area>-<topic>` branched from it.
+- Branch names describe the change: `feat/<area>-<topic>`, `fix/<area>-<topic>`, `docs/<topic>`.
 - Commit messages follow Conventional Commits: `feat(auth): rotate refresh tokens`. Types: `feat`, `fix`, `docs`, `test`, `refactor`, `chore`, `ci`, `build`.
-- Reference requirement IDs from the handbook where they apply: `feat(knowledge): validate upload content type (FR-014)`.
-- Tag each passed milestone gate: `v0.1-m1` through `v1.0-m7`.
+- Reference requirement IDs where they apply: `feat(knowledge): validate upload content type (FR-014)`.
+- Releases are tagged per milestone: `v0.1-m1` through `v0.7-m7`.
 
 ## Tenant isolation rules
 

@@ -1,6 +1,6 @@
 # Browser tests
 
-The MVP demonstration script (handbook section 18) in a real browser, against the real local stack, with Playwright.
+The MVP demonstration script in a real browser, against the real local stack, with Playwright.
 
 | Step | What is checked |
 |---|---|

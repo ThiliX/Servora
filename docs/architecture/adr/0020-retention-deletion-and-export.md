@@ -5,7 +5,7 @@
 
 ## Context
 
-FR-042 and the handbook's privacy baseline (section 13.2) ask for a retention and deletion approach and a path to export tenant data. Until now the runtime role had no `DELETE` privilege on any tenant table: deletion was denied everywhere by design.
+FR-042 and the privacy requirements ask for a retention and deletion approach and a path to export tenant data. Until now the runtime role had no `DELETE` privilege on any tenant table: deletion was denied everywhere by design.
 
 ## Decision
 

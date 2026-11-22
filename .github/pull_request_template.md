@@ -1,10 +1,10 @@
 ## Summary
 
-<!-- What changed and why. Name the milestone and any FR IDs. -->
+<!-- What changed and why. Reference any requirement IDs. -->
 
 ## Checklist
 
-- [ ] Scope is limited to the current milestone
+- [ ] One concern per pull request; no unrelated changes
 - [ ] Tests added or updated, and run locally
 - [ ] Every tenant-owned query is tenant-scoped; new tables have RLS, composite keys and a cross-tenant negative test
 - [ ] No secrets, customer data or generated files in the diff

@@ -5,7 +5,7 @@
 
 ## Context
 
-FR-038, FR-039 and FR-043 ask for AI usage and estimated cost to be recorded, for plan limits that are enforced, and for platform operators to list workspaces and suspend or reactivate them. There is no payment provider in the MVP. Platform access is a separate permission domain from workspace roles (handbook section 2.2) and must not become routine access to customer conversations.
+FR-038, FR-039 and FR-043 ask for AI usage and estimated cost to be recorded, for plan limits that are enforced, and for platform operators to list workspaces and suspend or reactivate them. There is no payment provider in the MVP. Platform access is a separate permission domain from workspace roles and must not become routine access to customer conversations.
 
 ## Decision
 

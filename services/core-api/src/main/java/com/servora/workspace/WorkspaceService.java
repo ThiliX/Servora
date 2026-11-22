@@ -116,7 +116,7 @@ public class WorkspaceService {
         usage.createSubscription(tenantId);
         Membership owner = memberships.save(new Membership(tenantId, userId, WorkspaceRole.OWNER, now));
         WorkspaceContext ctx = new WorkspaceContext(tenantId, userId, owner.getId(), WorkspaceRole.OWNER);
-        // Every workspace starts with a default assistant and widget (handbook journey 4.1).
+        // Every workspace starts with a default assistant and widget.
         assistants.createDefault(ctx, tenant.getName(), tenant.getDefaultLanguage());
         widgets.createDefault(ctx, tenant.getName());
         documents.createDefaultSource(ctx);

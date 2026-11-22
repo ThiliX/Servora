@@ -20,7 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * M7: the cross-tenant object-ID substitution suite, for every tenant-scoped endpoint in one place
- * (master prompt section 12). Tenant A owns one of every resource. Tenant B's owner then calls
+ * (a release requirement). Tenant A owns one of every resource. Tenant B's owner then calls
  * every endpoint twice: through A's workspace path, and with A's object IDs inside B's own
  * workspace path. Every call must be refused as not found, and none may change A's data.
  *

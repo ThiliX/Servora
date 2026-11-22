@@ -118,7 +118,7 @@ Requirements: FR-032 to FR-037, FR-040.
 - [x] Resolution and customer rating, in the API and the widget
 - [x] Agent workspace UI (queue, thread, ticket panes) and notifications in the dashboard
 - [x] Concurrency, idempotency and visibility tests passing (151 core API, 16 widget, 55 dashboard; local run 2026-11-17). The takeover race test ran four times, 24 rounds each, with both orders observed every time
-- [x] Handbook journey 4.3 checked by hand in a browser against the real stack: handoff, takeover, agent reply reaching the widget, resolution, rating shown to the team
+- [x] The handoff journey checked by hand in a browser against the real stack: handoff, takeover, agent reply reaching the widget, resolution, rating shown to the team
 - [ ] Playwright end-to-end suite (deferred to M7)
 - [x] CI green on GitHub for the M5 branch (pull request 5)
 - [x] Reviewed and merged to `main` (2026-11-17)

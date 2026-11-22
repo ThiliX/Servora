@@ -5,7 +5,7 @@
 
 ## Context
 
-The master prompt asks for structured logs, health and readiness endpoints, metrics, and OpenTelemetry traces "from browser through core API and AI service to the provider and database" where practical. It also asks for latency, failure categories, retrieval statistics, tokens, usage limits, queue age and document processing state, and that secrets and unnecessary personal data are never recorded.
+The requirements ask for structured logs, health and readiness endpoints, metrics, and OpenTelemetry traces "from browser through core API and AI service to the provider and database" where practical. It also asks for latency, failure categories, retrieval statistics, tokens, usage limits, queue age and document processing state, and that secrets and unnecessary personal data are never recorded.
 
 Before M7 every API request already had a correlation ID (`X-Request-Id`, the `trace_id` in error bodies and log lines), but it stopped at the core API. The AI service and the worker logged plain text with nothing linking a line to the request that caused it. There were no metrics apart from health.
 

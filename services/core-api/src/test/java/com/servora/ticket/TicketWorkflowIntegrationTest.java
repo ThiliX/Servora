@@ -171,7 +171,7 @@ class TicketWorkflowIntegrationTest extends IntegrationTestBase {
     // --- journey 4.3 ---------------------------------------------------------------------------
 
     @Test
-    void handbookJourneyFromAiToPersonToResolutionAndRating() throws SQLException {
+    void fullJourneyFromAiToPersonToResolutionAndRating() throws SQLException {
         String token = token();
         UUID conversation = conversationOf(token);
         assertThat(customerSays(token, "Refunds?").status()).isEqualTo(200);
