@@ -203,7 +203,7 @@ M7 is delivered in four phases, each its own pull request.
 - [x] Seed script: two demo businesses with owners, agents, documents, assistants and widgets in one command ([demo.md](demo.md))
 - [x] Accessibility check (axe, WCAG 2.1 AA) in the browser suite; fixed a chat log that broke list semantics and could not be scrolled by keyboard, low-contrast muted text, and an unfocusable scrolling snippet
 - [x] Demo guide, user guide, README and limitations updated
-- [ ] CI green and merged
+- [x] CI green and merged (pull request 12); M7 tagged `v0.7-m7`, completing the MVP
 
 Original checklist, ticked as phases complete:
 
@@ -216,6 +216,24 @@ Original checklist, ticked as phases complete:
 - [x] Backup and restore drill performed (phase 3a)
 - [x] Documentation, seed script and demo setup (phase 4)
 
-## Post-MVP
+## After the MVP
+
+Presentation and polish, done:
+
+- [x] Portfolio README with screenshots and measured highlights, a one-page [case study](case-study.md), and a script that recaptures the screenshots (pull request 13)
+- [x] Inbox fixes found while taking screenshots: the ticket list refreshes after an action, and each source document is listed once (pull request 13)
+- [x] Database tracing limited to statements, so traces show the whole request path (pull request 13)
+- [x] UI redesign: sidebar layout, design tokens, light and dark themes, new sign-in page and chat widget; accessibility checked in both themes (pull request 14)
+
+Not done yet:
+
+- [ ] A public, hosted deployment (TLS, domain, protection of the AI quota)
+- [ ] A human review of the answer evaluation's groundedness
+- [ ] Earlier messages of a conversation sent to the AI, so follow-up questions work
+- [ ] Email delivery for verification, invitations and notifications
+- [ ] The nginx base image back to a plain upstream tag once a 1.30.7 (or later) tag is two weeks old
+- [ ] Recheck the deferred `typescript-eslint` advisories on or after 2026-12-01
+
+## Post-MVP features
 
 - [ ] FR-030 sentiment classification
