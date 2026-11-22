@@ -2,7 +2,7 @@
 
 ## Workflow
 
-Work proceeds one milestone at a time, as defined in [docs/implementation-plan.md](docs/implementation-plan.md). Do not start a later milestone before the current one passes its exit gate.
+Work was built one milestone at a time; progress is tracked in [docs/milestones.md](docs/milestones.md). Keep changes small and reviewable, one concern per pull request.
 
 For each milestone:
 
