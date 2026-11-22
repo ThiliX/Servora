@@ -5,7 +5,7 @@
   var preference = "system";
   try {
     preference = window.localStorage.getItem("servora:theme") || "system";
-  } catch (e) {
+  } catch {
     // Storage blocked: follow the system.
   }
   var dark =

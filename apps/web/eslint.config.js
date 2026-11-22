@@ -16,4 +16,9 @@ export default tseslint.config(
       "react-hooks/exhaustive-deps": "error",
     },
   },
+  {
+    // Plain scripts served as they are, such as the theme script loaded before the app.
+    files: ["public/**/*.js"],
+    languageOptions: { globals: globals.browser, sourceType: "script" },
+  },
 );
