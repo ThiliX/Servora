@@ -1,10 +1,11 @@
 import { useState, type FormEvent } from "react";
 import { ChevronRight, LogOut } from "lucide-react";
-import { Link, useNavigate } from "react-router";
+import { Link, Navigate, useNavigate } from "react-router";
 import { Badge, Button, Card, Empty, ErrorState, Field, FormError, Loading } from "../components/ui";
 import { Logo } from "./WorkspaceLayout";
 import { api, type ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
+import { useLiveDemo } from "../lib/liveDemo";
 import { ROLE_LABELS } from "../lib/permissions";
 import type { Workspace, WorkspaceSummary } from "../lib/types";
 import { toApiError, useAsync } from "../lib/useAsync";
@@ -85,6 +86,12 @@ export function WorkspacesPage() {
     () => api<{ platform_admin: boolean }>("/platform/access").catch(() => ({ platform_admin: false })),
     "platform-access",
   );
+  const demo = useLiveDemo();
+
+  // Demo accounts belong to one workspace each: open it straight away.
+  if (demo && state.status === "ready" && state.data.length === 1 && state.data[0]!.status !== "SUSPENDED") {
+    return <Navigate to={`/w/${state.data[0]!.id}`} replace />;
+  }
 
   return (
     <div className="min-h-screen">
@@ -162,9 +169,12 @@ export function WorkspacesPage() {
         )}
       </Card>
 
-      <Card title="Create a workspace" description="You will be its owner. You can invite your team afterwards.">
-        <CreateWorkspaceForm />
-      </Card>
+      {/* The public demo refuses new workspaces, so it does not offer them. */}
+      {!demo && (
+        <Card title="Create a workspace" description="You will be its owner. You can invite your team afterwards.">
+          <CreateWorkspaceForm />
+        </Card>
+      )}
     </main>
     </div>
   );

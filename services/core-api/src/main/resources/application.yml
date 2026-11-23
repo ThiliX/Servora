@@ -169,6 +169,10 @@ servora:
     poll-interval: PT2S
     max-attempts: 8
     retry-base-delay: PT5S
+  demo:
+    # Public demo mode: refuses actions that would spoil shared demo accounts (DemoMode). Never on
+    # for a deployment with real customers.
+    enabled: ${SERVORA_DEMO_MODE:false}
   mail:
     # Development only: write verification and invitation links to the log
     # instead of sending email. Never enable outside local development.

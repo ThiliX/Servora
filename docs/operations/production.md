@@ -56,6 +56,8 @@ Observability: JSON logs with trace IDs are on in this profile. For Prometheus a
 
 Backups: [backup-and-restore.md](backup-and-restore.md).
 
+Public demo from one machine, through Tailscale Funnel: [live-demo.md](live-demo.md).
+
 ## Not covered yet
 
 - TLS, a domain name and a proxy in front of the two entry points.
