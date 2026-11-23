@@ -2,7 +2,9 @@
 
 **A multi-tenant AI customer-support platform.** Each business gets an isolated workspace: an assistant that answers customers from that business's own documents and cites them, an embeddable chat widget, and an inbox where people take over when the assistant should not answer.
 
-![A customer on a demo shop's website asks about returns; the assistant answers from the shop's documents and lists its sources](docs/images/widget-answer.png)
+![Left: a customer on a demo shop's website asks about returns and gets an answer citing the shop's returns policy, then asks for a person. Right: the ticket reaches the team inbox, an agent takes over and replies, and the reply appears in the customer's chat](docs/images/demo.gif)
+
+*A customer gets a cited answer, asks for a person, and an agent takes over from the inbox (28 seconds, recorded on the real stack with a live model).*
 
 ## Highlights
 
@@ -15,6 +17,8 @@
 
 | | |
 |---|---|
+| ![A customer on a demo shop's website asks about returns; the assistant answers from the shop's documents and lists its sources](docs/images/widget-answer.png) | ![The knowledge base: the shop's documents, indexed and ready](docs/images/knowledge.png) |
+| **Cited answers** from the business's own documents | **Knowledge base:** uploads are indexed in the background |
 | ![The team inbox: a ticket taken over by a person, with an internal note only the team can see](docs/images/inbox-takeover.png) | ![The assistant playground: the answer, its outcome, and the passages it was based on](docs/images/playground.png) |
 | **Inbox:** a person takes over; internal notes never reach the customer | **Playground:** see what the assistant would answer, and why |
 | ![A second business's widget answers only from that business's documents](docs/images/widget-other-tenant.png) | ![One request traced from the core API through the AI service, retrieval, database and model call](docs/images/trace.png) |
