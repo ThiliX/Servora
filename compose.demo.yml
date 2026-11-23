@@ -1,0 +1,67 @@
+# Public demo: the production profile, plus the made-up customer websites, shared demo accounts and
+# tighter limits, served from this machine through Tailscale Funnel. Started and reset by
+# scripts/live-demo.mjs; see docs/operations/live-demo.md. Demo data only: never put real customers'
+# data in a stack started with this file.
+#
+#   docker compose -p servora-demo -f docker-compose.yml -f compose.prod.yml -f compose.demo.yml ...
+
+services:
+  core-api:
+    environment:
+      # Refuses actions that would spoil the shared accounts (DemoMode). The reset script switches
+      # it off only while it creates the demo data.
+      SERVORA_DEMO_MODE: ${SERVORA_DEMO_MODE:-true}
+      SERVORA_WEB_BASE_URL: ${SERVORA_DEMO_WEB_ORIGIN:?Run scripts/live-demo.mjs, which sets the public addresses}
+      SERVORA_WIDGET_APP_ORIGIN: ${SERVORA_DEMO_WIDGET_ORIGIN:?Run scripts/live-demo.mjs, which sets the public addresses}
+      # Keeps the model provider's free quota for many visitors. When it still runs out, the AI
+      # service hands the customer to a person instead of failing.
+      SERVORA_AI_TESTSPERHOUR: ${SERVORA_DEMO_PLAYGROUND_PER_HOUR:-20}
+      SERVORA_WIDGET_AIREPLIESPERTENANTPERDAY: ${SERVORA_DEMO_AI_REPLIES_PER_DAY:-150}
+      SERVORA_WIDGET_SESSIONSPERIPPERHOUR: "10"
+      SERVORA_WIDGET_MESSAGESPERIPPERMINUTE: "6"
+      SERVORA_WIDGET_MESSAGESPERCONVERSATIONPERMINUTE: "4"
+      SERVORA_KNOWLEDGE_UPLOADSPERHOUR: "10"
+      SERVORA_MAX_UPLOAD_BYTES: "1048576"
+      SERVORA_EXPORT_PERWORKSPACEPERHOUR: "2"
+      # Everyone signs in to the same accounts: wrong passwords from one visitor must not lock the
+      # account for all. The limits per account and address, and per address, still apply.
+      SERVORA_AUTH_LOGINACCOUNTMAXFAILURES: "1000000"
+
+  web:
+    volumes:
+      - ./infrastructure/demo/trusted-proxy.conf:/etc/nginx/servora-trusted-proxy.conf:ro
+      # config.json: the demo accounts and websites, rewritten on every reset.
+      - ./.demo/public:/usr/share/nginx/html/live-demo:ro
+
+  widget:
+    volumes:
+      - ./infrastructure/demo/trusted-proxy.conf:/etc/nginx/servora-trusted-proxy.conf:ro
+
+  # The made-up TechStore and HotelPro websites that embed the widget, on the widget host's image.
+  demo-site:
+    build:
+      context: ./apps/widget
+    image: servora/widget:prod
+    restart: unless-stopped
+    ports:
+      - "${SERVORA_PUBLIC_BIND:-127.0.0.1}:${SERVORA_DEMO_SITE_PORT:-8002}:8080"
+    volumes:
+      - ./infrastructure/demo/demo-site.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./apps/widget/demo:/usr/share/nginx/html:ro
+    depends_on:
+      widget:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/techstore/"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs:
+      - /tmp
+    mem_limit: 64m
+    cpus: 0.5
+    networks:
+      - edge

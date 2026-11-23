@@ -225,9 +225,11 @@ Presentation and polish, done:
 - [x] Database tracing limited to statements, so traces show the whole request path (pull request 13)
 - [x] UI redesign: sidebar layout, design tokens, light and dark themes, new sign-in page and chat widget; accessibility checked in both themes (pull request 14)
 
+- [x] Public demo from one machine through Tailscale Funnel: demo mode that locks settings on shared accounts, one-click demo sign-in, tighter AI limits, and a nightly reset ([live-demo.md](operations/live-demo.md))
+
 Not done yet:
 
-- [ ] A public, hosted deployment (TLS, domain, protection of the AI quota)
+- [ ] An always-on hosted deployment on a server (TLS proxy, domain)
 - [ ] A human review of the answer evaluation's groundedness
 - [ ] Earlier messages of a conversation sent to the AI, so follow-up questions work
 - [ ] Email delivery for verification, invitations and notifications

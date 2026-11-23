@@ -28,6 +28,12 @@ const { values: options } = parseArgs({
     dashboard: { type: "string" },
     "mail-log": { type: "string" },
     "compose-project": { type: "string" },
+    // Extra compose files of that project, after docker-compose.yml and compose.prod.yml.
+    "compose-file": { type: "string", multiple: true, default: [] },
+    // One origin serving both demo websites, at /techstore/ and /hotelpro/ (the public demo).
+    "site-origin": { type: "string" },
+    // Also writes the demo accounts and websites for the dashboard's sign-in page (the public demo).
+    "public-config": { type: "string" },
     run: { type: "string", default: Date.now().toString(36) },
     out: { type: "string" },
   },
@@ -39,6 +45,7 @@ if (!/^[a-z0-9]{3,20}$/.test(RUN)) throw new Error("--run must be 3-20 lowercase
 if (!options["mail-log"] && !options["compose-project"]) {
   throw new Error("Pass --mail-log <file> or --compose-project <name> so verification links can be read");
 }
+const SITE_ORIGIN = options["site-origin"] ? new URL(options["site-origin"]).origin : null;
 
 const companies = [
   {
@@ -96,9 +103,10 @@ function readLog() {
   if (options["mail-log"]) {
     return existsSync(options["mail-log"]) ? readFileSync(options["mail-log"], "utf8") : "";
   }
+  const files = ["docker-compose.yml", "compose.prod.yml", ...options["compose-file"]].flatMap((file) => ["-f", join(root, file)]);
   return execFileSync(
     "docker",
-    ["compose", "-p", options["compose-project"], "-f", join(root, "docker-compose.yml"), "-f", join(root, "compose.prod.yml"), "logs", "--no-color", "core-api"],
+    ["compose", "-p", options["compose-project"], ...files, "logs", "--no-color", "core-api"],
     { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
   );
 }
@@ -170,8 +178,10 @@ async function uploadAndWait(token, workspaceId, directory) {
  * The demo website's address. In development it loads the widget from the Vite dev server; with the
  * production profile it loads the built loader from the widget host, which also forwards the API.
  */
-function demoPage(site, widget) {
-  const page = `${site}/?key=${widget.public_key}`;
+function demoPage(company, widget) {
+  const page = SITE_ORIGIN
+    ? `${SITE_ORIGIN}/${company.key}/?key=${widget.public_key}`
+    : `${company.site}/?key=${widget.public_key}`;
   if (!options["compose-project"]) return page;
   const host = new URL(widget.loader_url).origin;
   return `${page}&widget=${host}&loader=/servora-widget.js&api=${host}`;
@@ -205,7 +215,7 @@ async function seed(company) {
 
   const widget = await call("PUT", `/workspaces/${workspace.id}/widget/allowed-origins`, {
     token: ownerToken,
-    body: { origins: [company.site] },
+    body: { origins: [SITE_ORIGIN ?? company.site] },
   });
 
   const agentToken = await registerAndSignIn(agent);
@@ -224,7 +234,7 @@ async function seed(company) {
     documents,
     widget_key: widget.public_key,
     loader_url: widget.loader_url,
-    demo_page: demoPage(company.site, widget),
+    demo_page: demoPage(company, widget),
     owner: { email: owner.email, password: owner.password },
     agent: { email: agent.email, password: agent.password },
   };
@@ -247,6 +257,22 @@ writeFileSync(
   { mode: 0o600 },
 );
 
+if (options["public-config"]) {
+  // Shown to every visitor of the public demo: these accounts hold demo data only, and new
+  // passwords are generated on every reset.
+  const config = {
+    reset: "every night",
+    accounts: results.flatMap((result) => [
+      { label: `${result.company} owner`, email: result.owner.email, password: result.owner.password },
+      { label: `${result.company} agent`, email: result.agent.email, password: result.agent.password },
+    ]),
+    sites: results.map((result) => ({ label: `${result.company} website`, url: result.demo_page })),
+  };
+  const publicConfig = resolve(options["public-config"]);
+  mkdirSync(dirname(publicConfig), { recursive: true });
+  writeFileSync(publicConfig, JSON.stringify(config, null, 2) + "\n");
+}
+
 console.log("");
 for (const result of results) {
   console.log(`${result.company}`);
@@ -258,4 +284,4 @@ for (const result of results) {
 }
 console.log("");
 console.log(`Passwords and IDs: ${out} (git-ignored; keep it local).`);
-console.log("Demo websites: node apps/widget/demo/serve.mjs");
+if (!SITE_ORIGIN) console.log("Demo websites: node apps/widget/demo/serve.mjs");

@@ -24,6 +24,7 @@ import { NotificationsBell } from "../components/NotificationsBell";
 import { Badge, Button, ErrorState, Loading, Notice, Select } from "../components/ui";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
+import { useLiveDemo } from "../lib/liveDemo";
 import {
   canConfigureAssistant,
   canManageSettings,
@@ -70,6 +71,7 @@ export function WorkspaceLayout() {
   const navigate = useNavigate();
   const { state: auth, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const demo = useLiveDemo();
   // The role shown and used here comes from the server for this workspace on every load.
   const { state, reload } = useAsync(
     async () => {
@@ -246,6 +248,26 @@ export function WorkspaceLayout() {
         <NotificationsBell workspaceId={workspace.id} />
       </header>
       <main className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
+        {demo && (
+          <Notice tone="info">
+            Public demo: other visitors share this account and see what you do, and everything resets {demo.reset}. Don't
+            enter personal information. Some settings are locked.
+            {demo.sites.length > 0 && (
+              <>
+                {" "}
+                Chat as a customer:{" "}
+                {demo.sites.map((site, index) => (
+                  <span key={site.url}>
+                    {index > 0 && " · "}
+                    <a href={site.url} target="_blank" rel="noreferrer" className="font-medium text-accent-text underline">
+                      {site.label}
+                    </a>
+                  </span>
+                ))}
+              </>
+            )}
+          </Notice>
+        )}
         <Outlet context={{ workspace, user: auth.user, reloadWorkspace: reload } satisfies WorkspaceOutletContext} />
       </main>
     </div>
